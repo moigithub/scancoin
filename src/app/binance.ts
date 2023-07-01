@@ -105,57 +105,30 @@ const populatePrice = async () => {
   })
 }
 
-const getCandles = async (interval: CandleChartInterval_LT = '15m', limit = 14) => {
+const getCandles = async (coin: any, interval: CandleChartInterval_LT = '15m', limit = 14) => {
   console.log('getting initial candles', interval)
-  for (let coin of symbols) {
-    // console.log('getting candles', coin)
-    // await sleep(exchangeInfo.rateLimits[0].limit) // milliseconds
-    // need to get extra (limit) value, so rsi calculates
-    // console.log('getting candle data', coin)
-    if (coin[`data${interval}`].length > 0) {
-      // already fetched data, skip
-      continue
-    }
-
-    console.log('getting initial candles for:', interval, coin.symbol)
-    const data = await client.candles({ symbol: coin.symbol, interval, limit: limit + 1 })
-    // const data = await client.futuresCandles({ symbol: coin.symbol, interval, limit: limit + 1 })
-
-    coin[`data${interval}`] = data.map(d => getCandleData(d))
-
-    const close = coin[`data${interval}`].map((val: any) => Number(val.close))
-    const rsi = RSI.calculate({ values: close, period: limit })
-    coin[`rsi${interval}`] = getLastRSIValue(close, limit)
+  // for (let coin of symbols) {
+  // console.log('getting candles', coin)
+  // await sleep(exchangeInfo.rateLimits[0].limit) // milliseconds
+  // need to get extra (limit) value, so rsi calculates
+  // console.log('getting candle data', coin)
+  if (coin[`data${interval}`].length > 0) {
+    // already fetched data, skip
+    return
   }
+
+  console.log('getting initial candles for:', interval, coin.symbol)
+  const data = await client.candles({ symbol: coin.symbol, interval, limit: limit + 1 })
+  // const data = await client.futuresCandles({ symbol: coin.symbol, interval, limit: limit + 1 })
+
+  coin[`data${interval}`] = data.map(d => getCandleData(d))
+
+  const close = coin[`data${interval}`].map((val: any) => Number(val.close))
+  const rsi = RSI.calculate({ values: close, period: limit })
+  coin[`rsi${interval}`] = getLastRSIValue(close, limit)
+  // }
   // console.log('candles', symbols[0].data1m)
 }
-
-// const getCandles2 = async (interval: CandleChartInterval_LT = '15m', limit = 14) => {
-//   console.log('getting initial candles', interval)
-//   // max limit is 1000
-//   const promises = symbols.map((coin: any) => {
-//     return client.candles({ symbol: coin.symbol, interval, limit: limit + 1 })
-//     // client.futuresCandles({ symbol: coin.symbol, interval, limit: limit + 1 })
-//   })
-
-//   const candles = await Promise.all(promises)
-
-//   symbols.forEach((coin, index) => {
-//     coin[`data${interval}`] = candles[index].map(d => ({
-//       open: d.open,
-//       high: d.high,
-//       low: d.low,
-//       close: d.close,
-//       volume: d.volume
-//     }))
-
-//     const close = coin[`data${interval}`].map((val: any) => Number(val.close))
-//     const rsi = RSI.calculate({ values: close, period: limit })
-//     coin[`rsi${interval}`] = getLastRSIValue(close, limit)
-
-//     // console.log('candles', symbols[0].data1m)
-//   })
-// }
 
 //--------------------------------
 const getCandleData = (candle: any) => {
@@ -257,19 +230,15 @@ const addCandleData =
     }
   }
 //---------------------------------------
-const installSockets = (limit = 14, callback: () => void) => {
+const installSockets = (coin: any, limit = 14, callback: () => void) => {
   console.log('install Sockets')
 
   // max data to keep deberia ser   limit+1
   // para tener data suficiente para el rsi
   //const max = limit + 1
 
-  if (sockets.length > 0) {
-    // sockets installed, clearing
-    unsubscribeAll()
-  }
-  symbols.forEach(coin => {
-    /* candles keys
+  // symbols.forEach(coin => {
+  /* candles keys
         [
         'eventType',   'eventTime',
         'symbol',      'startTime',
@@ -283,69 +252,69 @@ const installSockets = (limit = 14, callback: () => void) => {
       ]
       */
 
-    sockets.push(
-      // client.ws.futuresCandles(coin.symbol, '15m', candle => {
+  sockets.push(
+    // client.ws.futuresCandles(coin.symbol, '15m', candle => {
 
-      client.ws.candles(
-        coin.symbol,
-        '5m',
-        addCandleData(coin, '5m', limit, callback)
+    client.ws.candles(
+      coin.symbol,
+      '5m',
+      addCandleData(coin, '5m', limit, callback)
 
-        // candle => {
-        //   if (candle.isFinal) {
-        //     coin.data5m = [...coin.data5m, getCandleData(candle)].slice(-max)
-        //     console.log('inc data 5m', coin.symbol)
+      // candle => {
+      //   if (candle.isFinal) {
+      //     coin.data5m = [...coin.data5m, getCandleData(candle)].slice(-max)
+      //     console.log('inc data 5m', coin.symbol)
 
-        //     // calc rsi
-        //     const close = coin.data5m.map((val: any) => Number(val.close))
-        //     coin.rsi5m = getLastRSIValue(close, limit)
+      //     // calc rsi
+      //     const close = coin.data5m.map((val: any) => Number(val.close))
+      //     coin.rsi5m = getLastRSIValue(close, limit)
 
-        //     const props = getCandlesProp(coin.data5m, limit)
-        //     coin.isRedCandle = props.isRedCandle
-        //     coin.isStopCandle = props.isStopCandle
-        //     coin.isPowerCandle = props.isPowerCandle
-        //     coin.isBiggerThanPrevious = props.isBiggerThanPrevious
+      //     const props = getCandlesProp(coin.data5m, limit)
+      //     coin.isRedCandle = props.isRedCandle
+      //     coin.isStopCandle = props.isStopCandle
+      //     coin.isPowerCandle = props.isPowerCandle
+      //     coin.isBiggerThanPrevious = props.isBiggerThanPrevious
 
-        //     // send data to client
-        //     callback()
-        //   }
-        // }
-      ),
-      client.ws.candles(
-        coin.symbol,
-        '15m',
-        addCandleData(coin, '15m', limit, callback)
-        // candle => {
-        //   if (candle.isFinal) {
-        //     coin.data15m = [...coin.data15m, getCandleData(candle)].slice(-max)
-        //     // console.log('inc data 15m', coin.symbol)
-        //     const close = coin.data15m.map((val: any) => Number(val.close))
-        //     coin.rsi15m = getLastRSIValue(close, limit)
+      //     // send data to client
+      //     callback()
+      //   }
+      // }
+    ),
+    client.ws.candles(
+      coin.symbol,
+      '15m',
+      addCandleData(coin, '15m', limit, callback)
+      // candle => {
+      //   if (candle.isFinal) {
+      //     coin.data15m = [...coin.data15m, getCandleData(candle)].slice(-max)
+      //     // console.log('inc data 15m', coin.symbol)
+      //     const close = coin.data15m.map((val: any) => Number(val.close))
+      //     coin.rsi15m = getLastRSIValue(close, limit)
 
-        //     callback()
-        //   }
-        // }
-      ),
-      client.ws.candles(
-        coin.symbol,
-        '30m',
-        addCandleData(coin, '30m', limit, callback)
-        // candle => {
-        //   if (candle.isFinal) {
-        //     coin.data30m = [...coin.data30m, getCandleData(candle)].slice(-max)
+      //     callback()
+      //   }
+      // }
+    ),
+    client.ws.candles(
+      coin.symbol,
+      '30m',
+      addCandleData(coin, '30m', limit, callback)
+      // candle => {
+      //   if (candle.isFinal) {
+      //     coin.data30m = [...coin.data30m, getCandleData(candle)].slice(-max)
 
-        //     const close = coin.data30m.map((val: any) => Number(val.close))
-        //     coin.rsi30m = getLastRSIValue(close, limit)
+      //     const close = coin.data30m.map((val: any) => Number(val.close))
+      //     coin.rsi30m = getLastRSIValue(close, limit)
 
-        //     callback()
-        //   }
-        // }
-      ),
+      //     callback()
+      //   }
+      // }
+    ),
 
-      client.ws.candles(
-        coin.symbol,
-        '1h',
-        addCandleData(coin, '1h', limit, callback) /*candle => {
+    client.ws.candles(
+      coin.symbol,
+      '1h',
+      addCandleData(coin, '1h', limit, callback) /*candle => {
         // console.log(Object.keys(candle))
         if (candle.isFinal) {
           coin.data1h = [...coin.data1h, getCandleData(candle)].slice(-max)
@@ -356,11 +325,11 @@ const installSockets = (limit = 14, callback: () => void) => {
           callback()
         }
       }*/
-      ),
-      client.ws.candles(
-        coin.symbol,
-        '4h',
-        addCandleData(coin, '4h', limit, callback) /*candle => {
+    ),
+    client.ws.candles(
+      coin.symbol,
+      '4h',
+      addCandleData(coin, '4h', limit, callback) /*candle => {
         if (candle.isFinal) {
           coin.data4h = [...coin.data4h, getCandleData(candle)].slice(-max)
 
@@ -370,11 +339,11 @@ const installSockets = (limit = 14, callback: () => void) => {
           callback()
         }
       }*/
-      ),
-      client.ws.candles(
-        coin.symbol,
-        '1d',
-        addCandleData(coin, '1d', limit, callback) /*candle => {
+    ),
+    client.ws.candles(
+      coin.symbol,
+      '1d',
+      addCandleData(coin, '1d', limit, callback) /*candle => {
         if (candle.isFinal) {
           coin.data1d = [...coin.data1d, getCandleData(candle)].slice(-max)
 
@@ -384,11 +353,11 @@ const installSockets = (limit = 14, callback: () => void) => {
           callback()
         }
       }*/
-      ),
-      client.ws.candles(
-        coin.symbol,
-        '1w',
-        addCandleData(coin, '1w', limit, callback) /* candle => {
+    ),
+    client.ws.candles(
+      coin.symbol,
+      '1w',
+      addCandleData(coin, '1w', limit, callback) /* candle => {
         if (candle.isFinal) {
           coin.data1w = [...coin.data1w, getCandleData(candle)].slice(-max)
 
@@ -398,9 +367,9 @@ const installSockets = (limit = 14, callback: () => void) => {
           callback()
         }
       }*/
-      )
     )
-  })
+  )
+  // })
 
   console.log('sockets installed', sockets.length)
 }
@@ -429,26 +398,33 @@ export const getData = async (callback: () => void) => {
   // llenar price
   await populatePrice()
   callback()
+
+  if (sockets.length > 0) {
+    // sockets installed, clearing
+    unsubscribeAll()
+  }
+
   // data inicial
-  await getCandles('5m', RSI_LENGTH)
-  callback()
-  await getCandles('15m', RSI_LENGTH)
-  callback()
-  await getCandles('30m', RSI_LENGTH)
-  callback()
-  await getCandles('1h', RSI_LENGTH)
-  callback()
-  await getCandles('4h', RSI_LENGTH)
-  callback()
-  await getCandles('1d', RSI_LENGTH)
-  callback()
-  await getCandles('1w', RSI_LENGTH)
-  callback()
-  // console.log('symbol', symbols[0])
+  for (let coin of symbols) {
+    await getCandles(coin, '5m', RSI_LENGTH)
+    // callback()
+    await getCandles(coin, '15m', RSI_LENGTH)
+    // callback()
+    await getCandles(coin, '30m', RSI_LENGTH)
+    // callback()
+    await getCandles(coin, '1h', RSI_LENGTH)
+    // callback()
+    await getCandles(coin, '4h', RSI_LENGTH)
+    // callback()
+    await getCandles(coin, '1d', RSI_LENGTH)
+    // callback()
+    await getCandles(coin, '1w', RSI_LENGTH)
+    callback()
+    // console.log('symbol', symbols[0])
 
-  // install socket t pull data periodically n save/recalc/emit
-  installSockets(RSI_LENGTH, callback)
-
+    // install socket t pull data periodically n save/recalc/emit
+    installSockets(coin, RSI_LENGTH, callback)
+  }
   // console.log('send data', getDataToSend())
   callback()
 }
