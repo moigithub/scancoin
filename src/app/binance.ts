@@ -8,6 +8,7 @@ let exchangeInfo: any = null
 let RSI_LENGTH = 14
 let VOL_LENGTH = 10
 let VOL_FACTOR = 2 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
+const includeLastCandleData = true // add incomplete last candle to the data
 
 // // Authenticated client, can make signed calls
 // const client2 = Binance({
@@ -123,9 +124,8 @@ const getCandles = async (coin: any, interval: CandleChartInterval_LT = '15m', l
 
   coin[`data${interval}`] = data.map(d => getCandleData(d))
 
-  const close = coin[`data${interval}`].map((val: any) => Number(val.close))
-  const rsi = RSI.calculate({ values: close, period: limit })
-  coin[`rsi${interval}`] = getLastRSIValue(close, limit)
+  addExtraCandleData(coin, interval, limit)
+
   // }
   // console.log('candles', symbols[0].data1m)
 }
@@ -156,12 +156,12 @@ const getCandlesProp = (data: any[], limit = 14) => {
   }
   // isRedCandle
   const lastCandle = data[data.length - 1]
-  const isLastCandleRed = lastCandle.close < lastCandle.open
+  const isLastCandleRed = lastCandle ? lastCandle.close < lastCandle.open : false
   const isLastCandleGreen = !isLastCandleRed
   prop.isRedCandle = isLastCandleRed
 
-  const prevCandle = data[data.length - 2] ?? 0
-  const isPrevCandleRed = prevCandle.close < prevCandle.open
+  const prevCandle = data[data.length - 2]
+  const isPrevCandleRed = prevCandle ? prevCandle.close < prevCandle.open : false
   const isPrevCandleGreen = !isPrevCandleRed
 
   //----------------------------
@@ -204,12 +204,21 @@ const getCandlesProp = (data: any[], limit = 14) => {
   return prop
 }
 
+const addExtraCandleData = (coin: any, interval: CandleChartInterval_LT = '15m', limit = 14) => {
+  // calc rsi
+  const close = coin[`data${interval}`].map((val: any) => Number(val.close))
+  coin[`rsi${interval}`] = getLastRSIValue(close, limit)
+
+  const props = getCandlesProp(coin[`data${interval}`], limit)
+  coin[`isRedCandle${interval}`] = props.isRedCandle
+  coin[`isStopCandle${interval}`] = props.isStopCandle
+  coin[`isPowerCandle${interval}`] = props.isPowerCandle
+  coin[`isBiggerThanPrevious${interval}`] = props.isBiggerThanPrevious
+}
+
 const addCandleData =
   (limit = 14, callback: () => void) =>
   (candle: any) => {
-    // max data to keep deberia ser   limit+1
-    // para tener data suficiente para el rsi
-    const max = limit + 1
     /* candles keys
         [
         'eventType',   'eventTime',
@@ -223,29 +232,46 @@ const addCandleData =
         'buyVolume',   'quoteBuyVolume'
       ]
       */
+
+    const interval = candle.interval
+    const symbol = candle.symbol
+    const coin = symbols.find(s => s.symbol === symbol)
+    if (!coin) return // symbol doesnt exist
+
+    console.log('adding candle data', interval, symbol)
+    const candleData = getCandleData(candle)
+
     if (candle.isFinal) {
-      const interval = candle.interval
-      const symbol = candle.symbol
-      const coin = symbols.find(s => s.symbol === symbol)
-      if (!coin) return // symbol doesnt exist
-
-      console.log('adding candle data', interval, symbol)
-      coin[`data${interval}`] = [...coin[`data${interval}`], getCandleData(candle)].slice(-max)
+      // append data at the end
+      coin[`data${interval}`] = [...coin[`data${interval}`], candleData]
       // console.log('inc ',`data${interval}`, coin.symbol)
-
-      // calc rsi
-      const close = coin[`data${interval}`].map((val: any) => Number(val.close))
-      coin[`rsi${interval}`] = getLastRSIValue(close, limit)
-
-      const props = getCandlesProp(coin[`data${interval}`], limit)
-      coin[`isRedCandle${interval}`] = props.isRedCandle
-      coin[`isStopCandle${interval}`] = props.isStopCandle
-      coin[`isPowerCandle${interval}`] = props.isPowerCandle
-      coin[`isBiggerThanPrevious${interval}`] = props.isBiggerThanPrevious
-
-      // send data to client
-      callback()
+    } else {
+      // incomplete candle data
+      if (includeLastCandleData) {
+        // el candle aun se esta formando en x temporalidad, ejm vela de 30 min.. recien va por minuto 16
+        // replace last element on the array
+        // esto va a afectar el calculo del RSI, al tener un candle incompleto
+        const count = coin[`data${interval}`].length
+        if (count > 0) {
+          coin[`data${interval}`][count - 1] = candleData
+        } else {
+          // [].length === 0
+          coin[`data${interval}`] = [candleData] // this should never happen..cuz we getting initial candles at start
+        }
+      }
     }
+
+    // max data to keep deberia ser   limit+1
+    // para tener data suficiente para el rsi
+    const max = limit + 1
+
+    // we keep only enought data for rsi calc
+    coin[`data${interval}`] = coin[`data${interval}`].slice(-max)
+
+    addExtraCandleData(coin, interval, limit)
+
+    // send data to client
+    callback()
   }
 //---------------------------------------
 // TODO:
