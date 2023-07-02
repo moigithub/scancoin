@@ -27,7 +27,7 @@ const getSymbols = async () => {
 
   symbols = exchangeInfo.symbols
     .filter((coin: any) => coin.quoteAsset === 'USDT' && coin.status === 'TRADING')
-    .filter((coin: any) => coin.symbol === 'LTCUSDT')
+    // .filter((coin: any) => coin.symbol === 'LTCUSDT')
     .map((coin: any) => {
       const minNotional = coin.filters.filter(
         (f: any) => (f.filterType as string) === 'NOTIONAL'
@@ -147,11 +147,11 @@ const getCandles = async (coin: any, interval: CandleChartInterval_LT = '15m') =
 //--------------------------------
 const getCandleData = (candle: Candle) => {
   return {
-    open: candle.open,
-    high: candle.high,
-    low: candle.low,
-    close: candle.close,
-    volume: candle.volume,
+    open: Number(candle.open),
+    high: Number(candle.high),
+    low: Number(candle.low),
+    close: Number(candle.close),
+    volume: Number(candle.volume),
     isFinal: candle.isFinal ?? true
   }
 }
@@ -211,8 +211,8 @@ const getCandlesProp = (data: any[]) => {
 
   //----------------------------
   // isBiggerThanPrevious
-  const lastCandleBodySize = Math.abs(lastCandle.open - lastCandle.close)
-  const prevCandleBodySize = Math.abs(prevCandle.open - prevCandle.close)
+  const lastCandleBodySize = lastCandle ? Math.abs(lastCandle.open - lastCandle.close) : 0
+  const prevCandleBodySize = prevCandle ? Math.abs(prevCandle.open - prevCandle.close) : 0
   const lastCandleIsBigger = lastCandleBodySize > prevCandleBodySize
   prop.isBiggerThanPrevious = lastCandleIsBigger
 
