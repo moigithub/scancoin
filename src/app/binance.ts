@@ -1,6 +1,6 @@
-import Binance, { CandleChartInterval_LT, SymbolMinNotionalFilter } from 'binance-api-node'
+import Binance, { CandleChartInterval_LT, CandleChartResult, Candle } from 'binance-api-node'
 import { RSI, SMA } from 'technicalindicators'
-
+const USE_FUTURES_DATA = true
 const client = Binance()
 let symbols: any[] = []
 let sockets: any[] = []
@@ -19,11 +19,15 @@ const includeLastCandleData = true // add incomplete last candle to the data
 
 const getSymbols = async () => {
   console.log('Getting symbols')
-  exchangeInfo = await client.exchangeInfo()
-  // exchangeInfo = await client.futuresExchangeInfo()
+  if (USE_FUTURES_DATA) {
+    exchangeInfo = await client.futuresExchangeInfo()
+  } else {
+    exchangeInfo = await client.exchangeInfo()
+  }
 
   symbols = exchangeInfo.symbols
     .filter((coin: any) => coin.quoteAsset === 'USDT' && coin.status === 'TRADING')
+    .filter((coin: any) => coin.symbol === 'LTCUSDT')
     .map((coin: any) => {
       const minNotional = coin.filters.filter(
         (f: any) => (f.filterType as string) === 'NOTIONAL'
@@ -94,9 +98,12 @@ const populatePrice = async () => {
   // populate current price, esto podria ponerse en un timer aparte cada 1 segundo
   // a menos q el current price sea igual al close price
   // nah... el precio debe ser el mas actualizao a 1 segundo, NO a x interval (>5min es mucho tiempo)
-  const prices = await client.prices()
-  // const prices = await client.futuresPrices()
-
+  let prices: any = {}
+  if (USE_FUTURES_DATA) {
+    prices = await client.futuresPrices()
+  } else {
+    prices = await client.prices()
+  }
   symbols.forEach(coin => {
     try {
       coin.price = prices[coin.symbol]
@@ -119,10 +126,19 @@ const getCandles = async (coin: any, interval: CandleChartInterval_LT = '15m', l
   }
 
   console.log('getting initial candles for:', interval, coin.symbol)
-  const data = await client.candles({ symbol: coin.symbol, interval, limit: limit + 1 })
-  // const data = await client.futuresCandles({ symbol: coin.symbol, interval, limit: limit + 1 })
+  let data
+  if (USE_FUTURES_DATA) {
+    data = await client.futuresCandles({ symbol: coin.symbol, interval, limit: limit + 1 })
+  } else {
+    data = await client.candles({ symbol: coin.symbol, interval, limit: limit + 1 })
+  }
 
-  coin[`data${interval}`] = data.map(d => getCandleData(d))
+  coin[`data${interval}`] = data.map((d: any) => getCandleData(d))
+
+  // //TODO:DEbugcode.. delete after
+  // if (coin.symbol === 'LTCUSDT' && interval === '5m') {
+  //   console.log('data 1w for LTCUSDT', data)
+  // }
 
   addExtraCandleData(coin, interval, limit)
 
@@ -131,13 +147,14 @@ const getCandles = async (coin: any, interval: CandleChartInterval_LT = '15m', l
 }
 
 //--------------------------------
-const getCandleData = (candle: any) => {
+const getCandleData = (candle: Candle) => {
   return {
     open: candle.open,
     high: candle.high,
     low: candle.low,
     close: candle.close,
-    volume: candle.volume
+    volume: candle.volume,
+    isFinal: candle.isFinal ?? true
   }
 }
 
@@ -157,12 +174,12 @@ const getCandlesProp = (data: any[], limit = 14) => {
   // isRedCandle
   const lastCandle = data[data.length - 1]
   const isLastCandleRed = lastCandle ? lastCandle.close < lastCandle.open : false
-  const isLastCandleGreen = !isLastCandleRed
+  const isLastCandleGreen = lastCandle ? !isLastCandleRed : false
   prop.isRedCandle = isLastCandleRed
 
   const prevCandle = data[data.length - 2]
   const isPrevCandleRed = prevCandle ? prevCandle.close < prevCandle.open : false
-  const isPrevCandleGreen = !isPrevCandleRed
+  const isPrevCandleGreen = lastCandle ? !isPrevCandleRed : false
 
   //----------------------------
   // isStopCandle
@@ -240,10 +257,17 @@ const addCandleData =
 
     console.log('adding candle data', interval, symbol)
     const candleData = getCandleData(candle)
+    const count = coin[`data${interval}`].length
+    const lastCandle = coin[`data${interval}`][count - 1]
 
     if (candle.isFinal) {
       // append data at the end
-      coin[`data${interval}`] = [...coin[`data${interval}`], candleData]
+
+      if (!lastCandle.isFinal) {
+        coin[`data${interval}`][count - 1] = candleData
+      } else {
+        coin[`data${interval}`] = [...coin[`data${interval}`], candleData]
+      }
       // console.log('inc ',`data${interval}`, coin.symbol)
     } else {
       // incomplete candle data
@@ -251,12 +275,11 @@ const addCandleData =
         // el candle aun se esta formando en x temporalidad, ejm vela de 30 min.. recien va por minuto 16
         // replace last element on the array
         // esto va a afectar el calculo del RSI, al tener un candle incompleto
-        const count = coin[`data${interval}`].length
-        if (count > 0) {
+        // check if last candle on stored data is incomplete, and replace it
+        if (!lastCandle.isFinal) {
           coin[`data${interval}`][count - 1] = candleData
         } else {
-          // [].length === 0
-          coin[`data${interval}`] = [candleData] // this should never happen..cuz we getting initial candles at start
+          coin[`data${interval}`] = [...coin[`data${interval}`], candleData]
         }
       }
     }
@@ -327,16 +350,28 @@ export const getData = async (callback: () => void) => {
 
   console.log('install Sockets')
 
-  sockets.push(
-    // client.ws.futuresCandles(coin.symbol, '15m', candle => {
-    client.ws.candles(allCoins, '5m', addCandleData(RSI_LENGTH, callback)),
-    client.ws.candles(allCoins, '15m', addCandleData(RSI_LENGTH, callback)),
-    client.ws.candles(allCoins, '30m', addCandleData(RSI_LENGTH, callback)),
-    client.ws.candles(allCoins, '1h', addCandleData(RSI_LENGTH, callback)),
-    client.ws.candles(allCoins, '4h', addCandleData(RSI_LENGTH, callback)),
-    client.ws.candles(allCoins, '1d', addCandleData(RSI_LENGTH, callback)),
-    client.ws.candles(allCoins, '1w', addCandleData(RSI_LENGTH, callback))
-  )
+  if (USE_FUTURES_DATA) {
+    sockets.push(
+      client.ws.futuresCandles(allCoins, '5m', addCandleData(RSI_LENGTH, callback)),
+      client.ws.futuresCandles(allCoins, '15m', addCandleData(RSI_LENGTH, callback)),
+      client.ws.futuresCandles(allCoins, '30m', addCandleData(RSI_LENGTH, callback)),
+      client.ws.futuresCandles(allCoins, '1h', addCandleData(RSI_LENGTH, callback)),
+      client.ws.futuresCandles(allCoins, '4h', addCandleData(RSI_LENGTH, callback)),
+      client.ws.futuresCandles(allCoins, '1d', addCandleData(RSI_LENGTH, callback)),
+      client.ws.futuresCandles(allCoins, '1w', addCandleData(RSI_LENGTH, callback))
+    )
+  } else {
+    sockets.push(
+      client.ws.candles(allCoins, '5m', addCandleData(RSI_LENGTH, callback)),
+      client.ws.candles(allCoins, '15m', addCandleData(RSI_LENGTH, callback)),
+      client.ws.candles(allCoins, '30m', addCandleData(RSI_LENGTH, callback)),
+      client.ws.candles(allCoins, '1h', addCandleData(RSI_LENGTH, callback)),
+      client.ws.candles(allCoins, '4h', addCandleData(RSI_LENGTH, callback)),
+      client.ws.candles(allCoins, '1d', addCandleData(RSI_LENGTH, callback)),
+      client.ws.candles(allCoins, '1w', addCandleData(RSI_LENGTH, callback))
+    )
+  }
+
   console.log('sockets installed', sockets.length)
   // console.log('send data', getDataToSend())
 }
@@ -346,6 +381,7 @@ export const getDataToSend = () => {
     symbol: coin.symbol,
     minNotional: coin.minNotional,
     price: coin.price,
+    data5m: coin.data5m,
     // data15m: coin.data15m,
     // data1d: coin.data1d,
     // data1w: coin.data1w,
