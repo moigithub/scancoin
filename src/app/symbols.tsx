@@ -58,8 +58,10 @@ export const Symbols = () => {
   const [symbols, setSymbols] = useState<Symbol[]>([])
   const [pushFilter, setPushFilter] = useState(true)
   const [chartData, setChartData] = useState<any[]>([])
+  const [chartData2, setChartData2] = useState<any[]>([])
   // const [selectedCoin, setSelectedCoin] = useState('')
   const selectedCoin = useRef('')
+  const selectedCoin2 = useRef('')
 
   useEffect(() => {
     socketInitializer()
@@ -108,6 +110,43 @@ export const Symbols = () => {
         console.log('no data with that symbol', selectedCoin.current)
       }
     }
+
+    if (selectedCoin2.current) {
+      const parts = selectedCoin2.current.split(':')
+      const symbol = parts[0]
+      const interval = parts[1]
+      console.log('updating chart2 ', parts)
+      const data = symbols.find(coin => coin.symbol === symbol)
+      if (data) {
+        switch (interval) {
+          case '5m':
+            setChartData2(data.data5m)
+            break
+          case '15m':
+            setChartData2(data.data15m)
+            break
+          case '30m':
+            setChartData2(data.data30m)
+            break
+          case '1h':
+            setChartData2(data.data1h)
+            break
+          case '4h':
+            setChartData2(data.data4h)
+            break
+          case '1d':
+            setChartData2(data.data1d)
+            break
+          case '1w':
+            setChartData2(data.data1w)
+            break
+          default:
+            console.log('wrong inteval passed', interval)
+        }
+      } else {
+        console.log('no data with that symbol', selectedCoin.current)
+      }
+    }
   }, [symbols])
 
   async function socketInitializer() {
@@ -134,6 +173,13 @@ export const Symbols = () => {
     console.log('select ', coin)
     // setSelectedCoin(coin)
     selectedCoin.current = coin
+  }
+
+  const handleViewChart2 = (coin: string) => {
+    // setChartData(data)
+    console.log('select2 ', coin)
+    // setSelectedCoin(coin)
+    selectedCoin2.current = coin
   }
 
   let filterSymbols = symbols
@@ -168,9 +214,15 @@ export const Symbols = () => {
           />
         </div>
       </div>
-      <div className='chart' id='chart-1'>
-        <h3>Data: {selectedCoin.current}</h3>
-        <Chart data={chartData} />
+      <div className='charts flex'>
+        <div className='chart m-2 flex-1' id='chart-1'>
+          <h3>Data: {selectedCoin.current}</h3>
+          <Chart data={chartData} />
+        </div>
+        <div className='chart m-2 flex-1' id='chart-2'>
+          <h3>Data: {selectedCoin2.current}</h3>
+          <Chart data={chartData2} />
+        </div>
       </div>
       <table className='table-auto min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-slate-500'>
         <thead>
@@ -350,31 +402,108 @@ export const Symbols = () => {
 
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   {status5m}
-                  <span onClick={() => handleViewChart(`${coin.symbol}:5m`)}> View</span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart(`${coin.symbol}:5m`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`${coin.symbol}:5m`)}
+                  >
+                    2
+                  </span>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   {status15m}
-                  <span onClick={() => handleViewChart(`${coin.symbol}:15m`)}> View</span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart(`${coin.symbol}:15m`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`${coin.symbol}:15m`)}
+                  >
+                    2
+                  </span>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   {status30m}
-                  <span onClick={() => handleViewChart(`${coin.symbol}:30m`)}> View</span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart(`${coin.symbol}:30m`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`${coin.symbol}:30m`)}
+                  >
+                    2
+                  </span>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   {status1h}
-                  <span onClick={() => handleViewChart(`${coin.symbol}:1h`)}> View</span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart(`${coin.symbol}:1h`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`${coin.symbol}:1h`)}
+                  >
+                    2
+                  </span>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   {status4h}
-                  <span onClick={() => handleViewChart(`${coin.symbol}:4h`)}> View</span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart(`${coin.symbol}:4h`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`${coin.symbol}:4h`)}
+                  >
+                    2
+                  </span>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   {status1d}
-                  <span onClick={() => handleViewChart(`${coin.symbol}:1d`)}> View</span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart(`${coin.symbol}:1d`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`${coin.symbol}:1d`)}
+                  >
+                    2
+                  </span>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   {status1w}
-                  <span onClick={() => handleViewChart(`${coin.symbol}:1w`)}> View</span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart(`${coin.symbol}:1w`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`${coin.symbol}:1w`)}
+                  >
+                    2
+                  </span>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'></td>
               </tr>

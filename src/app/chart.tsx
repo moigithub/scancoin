@@ -85,5 +85,5 @@ areaSeries.setData(lineData);
     }
   }, [data])
 
-  return <div ref={chartContainerRef} />
+  return <div ref={chartContainerRef} className='w-full' />
 }
