@@ -271,53 +271,70 @@ export const Symbols = () => {
       <table className='table-auto min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-slate-500'>
         <thead>
           <tr>
+            <th colSpan={2}>Symbol</th>
+
+            <th
+              colSpan={7}
+              className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+            >
+              RSI
+            </th>
+            <th
+              colSpan={7}
+              className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+            >
+              candle status
+            </th>
+            <th></th>
+          </tr>
+          <tr>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              Symbol
+              Name
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
               Curr.Price
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              RSI 5min
+              5min
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              RSI 15min
+              15min
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              RSI 30min
+              30min
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              RSI 1Hra
+              1Hra
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              RSI 4Hra
+              4Hra
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              RSI Dia
+              Dia
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              RSI Sem
+              1w
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              5m candle
+              5m
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              15m candle
+              15m
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              30m candle
+              30m
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              1h candle
+              1h
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              4h candle
+              4h
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              1d candle
+              1d
             </th>
             <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              1w candle
+              1w
             </th>
             <th></th>
           </tr>

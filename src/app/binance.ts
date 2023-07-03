@@ -26,11 +26,10 @@ const getSymbols = async () => {
     exchangeInfo = await client.exchangeInfo()
   }
 
+  const bannedSymbols = ['BLURUSDT', 'BTCDOMUSDT', 'BTCUSDT_230929', 'ETHUSDT_230929']
   symbols = exchangeInfo.symbols
     .filter((coin: any) => coin.quoteAsset === 'USDT' && coin.status === 'TRADING')
-    .filter(
-      (coin: any) => !['BTCDOMUSDT', 'BTCUSDT_230929', 'ETHUSDT_230929'].includes(coin.symbol)
-    )
+    .filter((coin: any) => !bannedSymbols.includes(coin.symbol))
     // .filter((coin: any) => coin.symbol === 'LTCUSDT')
     .map((coin: any) => {
       const minNotional = coin.filters.filter(
@@ -206,7 +205,7 @@ const getCandlesProp = (data: any[]) => {
   //   prevCandleHighVolume && isPrevCandleRed && isLastCandleGreen
   // const prevCandleHighVolumeChangeGreenToRed =
   //   prevCandleHighVolume && isPrevCandleGreen && isLastCandleRed
-  prop.isStopCandle = prevCandleHighVolume && isPrevCandleGreen !== isLastCandleRed
+  prop.isStopCandle = prevCandleHighVolume && isPrevCandleGreen && isLastCandleRed
   // prop.isStopCandle = prevCandleHighVolumeChangeRedToGreen || prevCandleHighVolumeChangeGreenToRed
 
   //----------------------------
@@ -220,7 +219,7 @@ const getCandlesProp = (data: any[]) => {
   // const lastCandleHighVolumeChangeGreenToRed =
   //   lastCandleHighVolume && isPrevCandleGreen && isLastCandleRed
 
-  prop.isPowerCandle = lastCandleHighVolume && isPrevCandleGreen !== isLastCandleRed
+  prop.isPowerCandle = lastCandleHighVolume && isPrevCandleGreen && isLastCandleRed
   // prop.isPowerCandle = lastCandleHighVolumeChangeRedToGreen || lastCandleHighVolumeChangeGreenToRed
 
   //----------------------------
