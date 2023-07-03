@@ -2,8 +2,8 @@ import { Symbols } from './symbols'
 
 export default async function Home() {
   return (
-    <main className='flex min-h-screen flex-col items-center p-24'>
-      pass server component as prop to child component
+    <main className='flex min-h-screen flex-col items-center'>
+      {/* pass server component as prop to child component */}
       <Symbols />
       <p>inputs:</p>
       <p>-filtro de temporalidad </p>

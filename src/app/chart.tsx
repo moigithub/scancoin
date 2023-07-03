@@ -1,5 +1,5 @@
 import { ColorType, createChart } from 'lightweight-charts'
-import { RefObject, useEffect, useRef } from 'react'
+import { useEffect, useRef } from 'react'
 
 export const Chart = ({ data }: { data: any[] }) => {
   const chartContainerRef = useRef<HTMLDivElement>()
@@ -24,7 +24,7 @@ export const Chart = ({ data }: { data: any[] }) => {
         mode: 0 // CrosshairMode.Normal
       },
       width: chartContainerRef?.current?.clientWidth ?? 200,
-      height: 300
+      height: 150
     })
 
     /*
@@ -57,23 +57,58 @@ areaSeries.setData(lineData);
       wickDownColor: '#ef5350'
     })
 
-    candlestickSeries
-      // .addLineSeries({
-      //   color: '#2962FF',
-      //   lineWidth: 2,
-      // })
-      .setData(
-        data
-        //   [
-        //   {
-        //     close: 108.9974612905403,
-        //     high: 121.20998259466148,
-        //     low: 96.65376292551082,
-        //     open: 104.5614412226746,
-        //     time: { year: 2018, month: 9, day: 22 }
-        //   }
-        // ]
-      )
+    // Generate sample data to use within a candlestick series
+    const candleStickData = data.map(datapoint => {
+      // map function is changing the color for the individual
+      // candlestick points that close above 205
+      const isRed = datapoint.open > datapoint.close
+      const isGreen = datapoint.open < datapoint.close
+      if (isRed) {
+        if (datapoint.volume < datapoint.volAverage * 0.5) {
+          return { ...datapoint, color: 'orange', wickColor: 'orange' }
+        } else if (
+          datapoint.volume >= datapoint.volAverage * 0.5 &&
+          datapoint.volume < datapoint.volAverage * 1.5
+        ) {
+          return { ...datapoint, color: 'red', wickColor: 'red' }
+        } else {
+          return { ...datapoint, color: 'maroon', wickColor: 'maroon' }
+        }
+      }
+      if (isGreen) {
+        if (datapoint.volume < datapoint.volAverage * 0.5) {
+          return { ...datapoint, color: '#00ff00', wickColor: '#00ff00' }
+        } else if (
+          datapoint.volume >= datapoint.volAverage * 0.5 &&
+          datapoint.volume < datapoint.volAverage * 1.5
+        ) {
+          return { ...datapoint, color: '#009600', wickColor: '#009600' }
+        } else {
+          return { ...datapoint, color: '#003200', wickColor: '#003200' }
+        }
+      }
+
+      return datapoint
+    })
+    if (candleStickData.length > 0) {
+      candlestickSeries
+        // .addLineSeries({
+        //   color: '#2962FF',
+        //   lineWidth: 2,
+        // })
+        .setData(
+          candleStickData
+          //   [
+          //   {
+          //     close: 108.9974612905403,
+          //     high: 121.20998259466148,
+          //     low: 96.65376292551082,
+          //     open: 104.5614412226746,
+          //     time: { year: 2018, month: 9, day: 22 }
+          //   }
+          // ]
+        )
+    }
     chart.timeScale().fitContent()
 
     window.addEventListener('resize', handleResize)

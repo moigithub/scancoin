@@ -89,7 +89,7 @@ const getSymbols = async () => {
         isBiggerThanPrevious1w: false
       }
     })
-    .slice(0, 10) //TODO: remove slice
+  // .slice(0, 10) //TODO: remove slice
 
   console.log('found symbols', symbols.length)
   return symbols
@@ -130,10 +130,13 @@ const getCandles = async (coin: any, interval: CandleChartInterval_LT = '15m') =
   console.log('getting initial candles for:', interval, coin.symbol)
   let data
   if (USE_FUTURES_DATA) {
-    data = await client.futuresCandles({ symbol: coin.symbol, interval, limit: RSI_LENGTH + 1 })
+    data = await client.futuresCandles({ symbol: coin.symbol, interval, limit: RSI_LENGTH + 2 })
   } else {
-    data = await client.candles({ symbol: coin.symbol, interval, limit: RSI_LENGTH + 1 })
+    data = await client.candles({ symbol: coin.symbol, interval, limit: RSI_LENGTH + 2 })
   }
+
+  // remove last candle, this is incomplete and gonna populate with sockets in real time
+  data = data.slice(0, data.length - 1)
 
   coin[`data${interval}`] = data.map((d: any) => getCandleData(d))
 
@@ -157,7 +160,8 @@ const getCandleData = (candle: Candle & CandleChartResult) => {
     low: Number(candle.low),
     close: Number(candle.close),
     volume: Number(candle.volume),
-    isFinal: candle.isFinal ?? true
+    isFinal: candle.isFinal ?? true,
+    volAverage: 0
   }
 }
 
@@ -190,6 +194,10 @@ const getCandlesProp = (data: any[]) => {
   const volSMA = SMA.calculate({ period: VOLUME_LENGTH, values: volume })
   const volAverage = volSMA[volSMA.length - 1] ?? 0
   const prevVolume = volume[volume.length - 2] ?? 0
+
+  // save vol avg on last candle
+  data[data.length - 1] = { ...data[data.length - 1], volAverage }
+
   // prev candle have high volume
   const prevCandleHighVolume = prevVolume > volAverage * VOL_FACTOR
 
