@@ -5,6 +5,7 @@ const client = Binance()
 let symbols: any[] = []
 let sockets: any[] = []
 let exchangeInfo: any = null
+const TOTAL_CANDLES = 51
 let RSI_LENGTH = 14
 let VOLUME_LENGTH = RSI_LENGTH // 20 // por ahora usar rsi length
 let VOL_FACTOR = 2 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
@@ -295,9 +296,10 @@ const addCandleData = (candle: any) => {
 
   // max data to keep deberia ser   RSI_LENGTH +1
   // para tener data suficiente para el rsi
-  const max = RSI_LENGTH + 1
+  const max = Math.max(TOTAL_CANDLES, RSI_LENGTH + 1)
 
-  // we keep only enought data for rsi calc
+  // // we keep only enought data for rsi calc
+  // we should have enough for rsi, or max TOTAL_CANDLES
   coin[`data${interval}`] = coin[`data${interval}`].slice(-max)
 
   addExtraCandleData(coin, interval)

@@ -2,7 +2,7 @@ import { ColorType, createChart } from 'lightweight-charts'
 import { useEffect, useRef } from 'react'
 
 export const Chart = ({ data }: { data: any[] }) => {
-  const chartContainerRef = useRef<HTMLDivElement>()
+  const chartContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleResize = () => {
@@ -54,10 +54,10 @@ areaSeries.setData(lineData);
 
     const candlestickSeries = chart.addCandlestickSeries({
       priceScaleId: 'right',
-      upColor: '#009600',
+      upColor: '#00AA00',
       downColor: 'red',
       borderVisible: false,
-      wickUpColor: '#009600',
+      wickUpColor: '#00AA00',
       wickDownColor: 'red'
     })
 
@@ -81,14 +81,14 @@ areaSeries.setData(lineData);
       }
       if (isGreen) {
         if (datapoint.volume < datapoint.volAverage * 0.5) {
-          return { ...datapoint, color: '#00ff00', wickColor: '#00ff00' }
+          return { ...datapoint, color: '#44ff44', wickColor: '#44ff44' }
         } else if (
           datapoint.volume >= datapoint.volAverage * 0.5 &&
           datapoint.volume < datapoint.volAverage * 1.5
         ) {
-          return { ...datapoint, color: '#009600', wickColor: '#009600' }
+          return { ...datapoint, color: '#00AA00', wickColor: '#00AA00' }
         } else {
-          return { ...datapoint, color: '#003200', wickColor: '#003200' }
+          return { ...datapoint, color: '#004411', wickColor: '#004411' }
         }
       }
 
