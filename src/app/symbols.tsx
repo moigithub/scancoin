@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import io, { Socket } from 'socket.io-client'
 import { Chart } from './chart'
+import Image from 'next/image'
 
 type Symbol = {
   symbol: string
@@ -226,6 +227,46 @@ export const Symbols = () => {
     console.log('select2 ', coin)
     // setSelectedCoin(coin)
     selectedCoin2.current = coin
+  }
+
+  const renderIcons = (coin: any, interval: string) => {
+    let status = []
+    if (coin[`isStopCandle${interval}`])
+      status.push(
+        <Image
+          alt='stop'
+          key={`${coin.symbol}${interval}:stop`}
+          src='/assets/stop.png'
+          width={24}
+          height={24}
+        />
+      ) //'Stop'
+    if (coin[`isPowerCandle${interval}`]) {
+      // entrando volumen
+      if (coin[`isBiggerThanPrevious${interval}`])
+        status.push(
+          <Image
+            alt='superpush'
+            key={`${coin.symbol}${interval}:superpush`}
+            src='/assets/superpush.png'
+            width={24}
+            height={24}
+          />
+        )
+      //' SuperPush' // vol inc, bigger candle
+      else
+        status.push(
+          <Image
+            alt='push'
+            key={`${coin.symbol}${interval}:push`}
+            src='/assets/push.png'
+            width={24}
+            height={24}
+          />
+        ) //' Push'
+    }
+    // if (coin[`isBiggerThanPrevious${interval}`]) status += ' Big'
+    return status
   }
 
   let filterSymbols = symbols
@@ -485,64 +526,6 @@ export const Symbols = () => {
         </thead>
         <tbody>
           {filterSymbols.map(coin => {
-            let status5m = ''
-            if (coin.isStopCandle5m) status5m = 'Stop'
-            if (coin.isPowerCandle5m) {
-              // entrando volumen
-              if (coin.isBiggerThanPrevious5m) status5m += ' SuperPush' // vol inc, bigger candle
-              else status5m += ' Push'
-            }
-            // if (coin.isBiggerThanPrevious5m) status5m += ' Big'
-
-            let status15m = ''
-            if (coin.isStopCandle15m) status15m = 'Stop'
-            if (coin.isPowerCandle15m) {
-              if (coin.isBiggerThanPrevious15m) {
-                status15m += ' SuperPush'
-              } else status15m += ' Push'
-            }
-            // if (coin.isBiggerThanPrevious15m) status15m += ' Big'
-
-            let status30m = ''
-            if (coin.isStopCandle30m) status30m = 'Stop'
-            if (coin.isPowerCandle30m) {
-              if (coin.isBiggerThanPrevious30m) status30m += ' SuperPush'
-              else status30m += ' Push'
-            }
-            // if (coin.isBiggerThanPrevious30m) status30m += ' Big'
-
-            let status1h = ''
-            if (coin.isStopCandle1h) status1h = 'Stop'
-            if (coin.isPowerCandle1h) {
-              if (coin.isBiggerThanPrevious1h) status1h += ' SuperPush'
-              else status1h += ' Push'
-            }
-            // if (coin.isBiggerThanPrevious1h) status1h += ' Big'
-
-            let status4h = ''
-            if (coin.isStopCandle4h) status4h = 'Stop'
-            if (coin.isPowerCandle4h) {
-              if (coin.isBiggerThanPrevious4h) status4h += ' SuperPush'
-              else status4h += ' Push'
-            }
-            // if (coin.isBiggerThanPrevious4h) status4h += ' Big'
-
-            let status1d = ''
-            if (coin.isStopCandle1d) status1d = 'Stop'
-            if (coin.isPowerCandle1d) {
-              if (coin.isBiggerThanPrevious1d) status1d += ' SuperPush'
-              else status1d += ' Push'
-            }
-            // if (coin.isBiggerThanPrevious1d) status1d += ' Big'
-
-            let status1w = ''
-            if (coin.isStopCandle1w) status1w = 'Stop'
-            if (coin.isPowerCandle1w) {
-              if (coin.isBiggerThanPrevious1w) status1w += ' SuperPush'
-              else status1w += ' Push'
-            }
-            // if (coin.isBiggerThanPrevious1w) status1w += ' Big'
-
             return (
               <tr key={coin.symbol}>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
@@ -606,123 +589,172 @@ export const Symbols = () => {
                 </td>
 
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <span style={{ backgroundColor: coin.isRedCandle1h ? 'red' : 'green' }}>
-                    {status5m}
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart(`${coin.symbol}:5m`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`${coin.symbol}:5m`)}
-                  >
-                    2
-                  </span>
+                  <div className='flex'>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 16,
+                        backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
+                      }}
+                    ></span>
+                    {renderIcons(coin, '5m')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart(`${coin.symbol}:5m`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`${coin.symbol}:5m`)}
+                    >
+                      2
+                    </span>
+                  </div>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <span style={{ backgroundColor: coin.isRedCandle1h ? 'red' : 'green' }}>
-                    {status15m}
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart(`${coin.symbol}:15m`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`${coin.symbol}:15m`)}
-                  >
-                    2
-                  </span>
+                  <div className='flex'>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 16,
+                        backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
+                      }}
+                    ></span>
+                    {renderIcons(coin, '15m')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart(`${coin.symbol}:15m`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`${coin.symbol}:15m`)}
+                    >
+                      2
+                    </span>
+                  </div>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <span style={{ backgroundColor: coin.isRedCandle1h ? 'red' : 'green' }}>
-                    {status30m}
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart(`${coin.symbol}:30m`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`${coin.symbol}:30m`)}
-                  >
-                    2
-                  </span>
+                  <div className='flex'>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 16,
+                        backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
+                      }}
+                    ></span>
+                    {renderIcons(coin, '30m')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart(`${coin.symbol}:30m`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`${coin.symbol}:30m`)}
+                    >
+                      2
+                    </span>
+                  </div>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <span style={{ backgroundColor: coin.isRedCandle1h ? 'red' : 'green' }}>
-                    {status1h}
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart(`${coin.symbol}:1h`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`${coin.symbol}:1h`)}
-                  >
-                    2
-                  </span>
+                  <div className='flex'>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 16,
+                        backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
+                      }}
+                    ></span>
+                    {renderIcons(coin, '1h')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart(`${coin.symbol}:1h`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`${coin.symbol}:1h`)}
+                    >
+                      2
+                    </span>
+                  </div>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <span style={{ backgroundColor: coin.isRedCandle1h ? 'red' : 'green' }}>
-                    {status4h}
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart(`${coin.symbol}:4h`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`${coin.symbol}:4h`)}
-                  >
-                    2
-                  </span>
+                  <div className='flex'>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 16,
+                        backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
+                      }}
+                    ></span>
+                    {renderIcons(coin, '4h')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart(`${coin.symbol}:4h`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`${coin.symbol}:4h`)}
+                    >
+                      2
+                    </span>
+                  </div>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <span style={{ backgroundColor: coin.isRedCandle1h ? 'red' : 'green' }}>
-                    {status1d}
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart(`${coin.symbol}:1d`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`${coin.symbol}:1d`)}
-                  >
-                    2
-                  </span>
+                  <div className='flex'>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 16,
+                        backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
+                      }}
+                    ></span>
+                    {renderIcons(coin, '1d')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart(`${coin.symbol}:1d`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`${coin.symbol}:1d`)}
+                    >
+                      2
+                    </span>
+                  </div>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <span style={{ backgroundColor: coin.isRedCandle1h ? 'red' : 'green' }}>
-                    {status1w}
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart(`${coin.symbol}:1w`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`${coin.symbol}:1w`)}
-                  >
-                    2
-                  </span>
+                  <div className='flex'>
+                    <span
+                      style={{
+                        width: 8,
+                        height: 16,
+                        backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
+                      }}
+                    ></span>
+                    {renderIcons(coin, '1w')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart(`${coin.symbol}:1w`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`${coin.symbol}:1w`)}
+                    >
+                      2
+                    </span>
+                  </div>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'></td>
               </tr>
@@ -732,7 +764,17 @@ export const Symbols = () => {
         <tfoot>
           <tr>
             <td colSpan={17}>
-              (isPowerCandle) Entrando volumen? last candle high vol, and change color
+              PUSH (isPowerCandle) : Cuando entra nueva vela de otro color con mucho volumen
+            </td>
+          </tr>
+          <tr>
+            <td colSpan={17}>
+              SuperPUSH (isPowerCandle+big) : igual q PUSH pero la vela es mas grande(elefante)
+            </td>
+          </tr>
+          <tr>
+            <td colSpan={17}>
+              STOP: Cuando la vela anterior tiene mucho volumen, y aparece nueva vela con otro color
             </td>
           </tr>
         </tfoot>

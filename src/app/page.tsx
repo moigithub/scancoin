@@ -5,6 +5,8 @@ export default async function Home() {
     <main className='flex min-h-screen flex-col items-center'>
       {/* pass server component as prop to child component */}
       <Symbols />
+
+      <h3>ideas x hacer</h3>
       <p>inputs:</p>
       <p>-filtro de temporalidad </p>
       <p>-rsi overbought (client) </p>
