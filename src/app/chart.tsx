@@ -17,11 +17,15 @@ export const Chart = ({ data }: { data: any[] }) => {
         visible: true
       },
       layout: {
-        textColor: 'black',
-        background: { type: ColorType.Solid, color: 'white' }
+        textColor: 'white',
+        background: { type: ColorType.Solid, color: '#222222' }
       },
       crosshair: {
         mode: 0 // CrosshairMode.Normal
+      },
+      grid: {
+        vertLines: { visible: false },
+        horzLines: { visible: true, color: '#D6DCDE55' }
       },
       width: chartContainerRef?.current?.clientWidth ?? 200,
       height: 150
@@ -50,11 +54,11 @@ areaSeries.setData(lineData);
 
     const candlestickSeries = chart.addCandlestickSeries({
       priceScaleId: 'right',
-      upColor: '#26a69a',
-      downColor: '#ef5350',
+      upColor: '#009600',
+      downColor: 'red',
       borderVisible: false,
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350'
+      wickUpColor: '#009600',
+      wickDownColor: 'red'
     })
 
     // Generate sample data to use within a candlestick series
@@ -65,7 +69,7 @@ areaSeries.setData(lineData);
       const isGreen = datapoint.open < datapoint.close
       if (isRed) {
         if (datapoint.volume < datapoint.volAverage * 0.5) {
-          return { ...datapoint, color: 'orange', wickColor: 'orange' }
+          return { ...datapoint, color: '#ef5350', wickColor: '#ef5350' }
         } else if (
           datapoint.volume >= datapoint.volAverage * 0.5 &&
           datapoint.volume < datapoint.volAverage * 1.5
