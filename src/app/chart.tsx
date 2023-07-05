@@ -1,8 +1,24 @@
 import { ColorType, createChart } from 'lightweight-charts'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { EMA, SMA } from 'technicalindicators'
 
-export const Chart = ({ data }: { data: any[] }) => {
+export const Chart = ({
+  data = [],
+  ema20 = false,
+  sma50 = false,
+  sma200 = false,
+  width = 200,
+  height = 150
+}: {
+  data: any[]
+  width?: number
+  height?: number
+  ema20?: boolean
+  sma50?: boolean
+  sma200?: boolean
+}) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
+  const [fitContent, setFitContent] = useState(true)
 
   useEffect(() => {
     const handleResize = () => {
@@ -27,8 +43,8 @@ export const Chart = ({ data }: { data: any[] }) => {
         vertLines: { visible: false },
         horzLines: { visible: true, color: '#D6DCDE55' }
       },
-      width: chartContainerRef?.current?.clientWidth ?? 200,
-      height: 150
+      width: chartContainerRef?.current?.clientWidth ?? width,
+      height
     })
 
     /*
@@ -51,6 +67,52 @@ const areaSeries = chart.addAreaSeries({
 // Set the data for the Area Series
 areaSeries.setData(lineData);
 */
+
+    if (ema20) {
+      // { time: { year: 2018, month: 1, day: 1 }, value: 27.58405298746434 },
+      const formattedEma20 = data
+        .filter(d => d.ema20 !== undefined)
+        .map(d => ({ time: d.time, value: d.ema20 }))
+      console.log('formatted ema', formattedEma20)
+      const ema20Series = chart.addLineSeries({
+        color: '#FFFFFF',
+        lineWidth: 2,
+        // disabling built-in price lines
+        lastValueVisible: false,
+        priceLineVisible: false
+      })
+      ema20Series.setData(formattedEma20)
+    }
+
+    if (sma50) {
+      const formattedSma50 = data
+        .filter(d => d.sma50 !== undefined)
+        .map(d => ({ time: d.time, value: d.sma50 }))
+      console.log('formatted sma50', formattedSma50)
+      const sma50Series = chart.addLineSeries({
+        color: '#FFEA00',
+        lineWidth: 2,
+        // disabling built-in price lines
+        lastValueVisible: false,
+        priceLineVisible: false
+      })
+      sma50Series.setData(formattedSma50)
+    }
+
+    if (sma200) {
+      const formattedSma200 = data
+        .filter(d => d.sma200 !== undefined)
+        .map(d => ({ time: d.time, value: d.sma200 }))
+      console.log('formatted sma200', formattedSma200)
+      const sma200Series = chart.addLineSeries({
+        color: '#FF0000',
+        lineWidth: 2,
+        // disabling built-in price lines
+        lastValueVisible: false,
+        priceLineVisible: false
+      })
+      sma200Series.setData(formattedSma200)
+    }
 
     const candlestickSeries = chart.addCandlestickSeries({
       priceScaleId: 'right',
@@ -113,7 +175,18 @@ areaSeries.setData(lineData);
           // ]
         )
     }
-    chart.timeScale().fitContent()
+
+    candlestickSeries.priceScale().applyOptions({
+      autoScale: false, // disables auto scaling based on visible content
+      scaleMargins: {
+        top: 0.1,
+        bottom: 0.2
+      }
+    })
+
+    if (fitContent) {
+      chart.timeScale().fitContent()
+    }
 
     window.addEventListener('resize', handleResize)
 
@@ -124,5 +197,18 @@ areaSeries.setData(lineData);
     }
   }, [data])
 
-  return <div ref={chartContainerRef} className='w-full' />
+  return (
+    <div className='chart-container w-full'>
+      <div ref={chartContainerRef} className='w-full' />
+      <label htmlFor='fit'>Adjust content</label>
+      <input
+        id='fit'
+        type='checkbox'
+        checked={fitContent}
+        onChange={e => setFitContent(e.target.checked)}
+      />
+    </div>
+  )
 }
+
+// helpers

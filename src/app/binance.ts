@@ -1,11 +1,13 @@
 import Binance, { CandleChartInterval_LT, CandleChartResult, Candle } from 'binance-api-node'
-import { RSI, SMA } from 'technicalindicators'
+import { EMA, RSI, SMA } from 'technicalindicators'
 const USE_FUTURES_DATA = true
 const client = Binance()
 let symbols: any[] = []
 let sockets: any[] = []
 let exchangeInfo: any = null
-const TOTAL_CANDLES = 51
+const TOTAL_BTC_CANDLES = 201
+const TOTAL_CANDLES = 21
+const TOTAL_CLIENT_CANDLES = 20
 let RSI_LENGTH = 14
 let VOLUME_LENGTH = RSI_LENGTH // 20 // por ahora usar rsi length
 let VOL_FACTOR = 2 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
@@ -129,10 +131,18 @@ const getCandles = async (coin: any, interval: CandleChartInterval_LT = '15m') =
 
   console.log('getting initial candles for:', interval, coin.symbol)
   let data
+
+  // get more data for BTC to calculate sma/ema
+  let totalCandles = Math.max(RSI_LENGTH + 2, TOTAL_CANDLES)
+
+  if (coin.symbol === 'BTCUSDT') {
+    totalCandles = Math.max(RSI_LENGTH + 2, TOTAL_BTC_CANDLES)
+  }
+
   if (USE_FUTURES_DATA) {
-    data = await client.futuresCandles({ symbol: coin.symbol, interval, limit: RSI_LENGTH + 2 })
+    data = await client.futuresCandles({ symbol: coin.symbol, interval, limit: totalCandles })
   } else {
-    data = await client.candles({ symbol: coin.symbol, interval, limit: RSI_LENGTH + 2 })
+    data = await client.candles({ symbol: coin.symbol, interval, limit: totalCandles })
   }
 
   // remove last candle, this is incomplete and gonna populate with sockets in real time
@@ -166,23 +176,26 @@ const getCandleData = (candle: Candle & CandleChartResult) => {
 }
 
 //---------------------------------------
+const calculateRSI = (values = []) => {
+  return RSI.calculate({ values, period: RSI_LENGTH })
+}
+
 const getLastRSIValue = (values = []) => {
-  const rsi = RSI.calculate({ values, period: RSI_LENGTH })
+  const rsi = calculateRSI(values)
   return rsi.length > 0 ? rsi[rsi.length - 1] : 0
 }
 
-const getCandlesProp = (data: any[]) => {
-  const prop = {
-    isRedCandle: false,
-    isStopCandle: false,
-    isPowerCandle: false,
-    isBiggerThanPrevious: false
-  }
+const addExtraCandleData = (coin: any, interval: CandleChartInterval_LT = '15m') => {
+  const data = coin[`data${interval}`]
+  // calc rsi
+  const close = data.map((val: any) => Number(val.close))
+  coin[`rsi${interval}`] = getLastRSIValue(close)
+
   // isRedCandle
   const lastCandle = data[data.length - 1]
   const isLastCandleRed = lastCandle ? lastCandle.close < lastCandle.open : false
   const isLastCandleGreen = lastCandle ? lastCandle.close > lastCandle.open : false
-  prop.isRedCandle = isLastCandleRed
+  coin[`isRedCandle${interval}`] = isLastCandleRed
 
   const prevCandle = data[data.length - 2]
   const isPrevCandleRed = prevCandle ? prevCandle.close < prevCandle.open : false
@@ -195,54 +208,40 @@ const getCandlesProp = (data: any[]) => {
   const volAverage = volSMA[volSMA.length - 1] ?? 0
   const prevVolume = volume[volume.length - 2] ?? 0
 
+  const ema20 = EMA.calculate({ period: 20, values: close })
+  const sma50 = SMA.calculate({ period: 50, values: close })
+  const sma200 = SMA.calculate({ period: 200, values: close })
+  const ema20last = ema20[ema20.length - 1] ?? 0
+  const sma50last = sma50[sma50.length - 1] ?? 0
+  const sma200last = sma200[sma200.length - 1] ?? 0
+
   // save vol avg on last candle
-  data[data.length - 1] = { ...data[data.length - 1], volAverage }
+  data[data.length - 1] = {
+    ...data[data.length - 1],
+    volAverage,
+    ema20: ema20last,
+    sma50: sma50last,
+    sma200: sma200last
+  }
 
   // prev candle have high volume
   const prevCandleHighVolume = prevVolume > volAverage * VOL_FACTOR
 
   // prev candle high volume, change candle color--- showing loosing power or attemp to reverse
-  // const prevCandleHighVolumeChangeRedToGreen =
-  //   prevCandleHighVolume && isPrevCandleRed && isLastCandleGreen
-  // const prevCandleHighVolumeChangeGreenToRed =
-  //   prevCandleHighVolume && isPrevCandleGreen && isLastCandleRed
-  prop.isStopCandle = prevCandleHighVolume && isPrevCandleGreen && isLastCandleRed
-  // prop.isStopCandle = prevCandleHighVolumeChangeRedToGreen || prevCandleHighVolumeChangeGreenToRed
-
+  coin[`isStopCandle${interval}`] = prevCandleHighVolume && isPrevCandleGreen && isLastCandleRed
   //----------------------------
   // isPowerCandle
   const lastVolume = volume[volume.length - 1] ?? 0
   const lastCandleHighVolume = lastVolume > volAverage * VOL_FACTOR
 
   // last candle high volume, change candle color--- showing interest, things gonna move!
-  // const lastCandleHighVolumeChangeRedToGreen =
-  //   lastCandleHighVolume && isPrevCandleRed && isLastCandleGreen
-  // const lastCandleHighVolumeChangeGreenToRed =
-  //   lastCandleHighVolume && isPrevCandleGreen && isLastCandleRed
-
-  prop.isPowerCandle = lastCandleHighVolume && isPrevCandleGreen && isLastCandleRed
-  // prop.isPowerCandle = lastCandleHighVolumeChangeRedToGreen || lastCandleHighVolumeChangeGreenToRed
-
+  coin[`isPowerCandle${interval}`] = lastCandleHighVolume && isPrevCandleGreen && isLastCandleRed
   //----------------------------
   // isBiggerThanPrevious
   const lastCandleBodySize = lastCandle ? Math.abs(lastCandle.open - lastCandle.close) : 0
   const prevCandleBodySize = prevCandle ? Math.abs(prevCandle.open - prevCandle.close) : 0
   const lastCandleIsBigger = lastCandleBodySize > prevCandleBodySize
-  prop.isBiggerThanPrevious = lastCandleIsBigger
-
-  return prop
-}
-
-const addExtraCandleData = (coin: any, interval: CandleChartInterval_LT = '15m') => {
-  // calc rsi
-  const close = coin[`data${interval}`].map((val: any) => Number(val.close))
-  coin[`rsi${interval}`] = getLastRSIValue(close)
-
-  const props = getCandlesProp(coin[`data${interval}`])
-  coin[`isRedCandle${interval}`] = props.isRedCandle
-  coin[`isStopCandle${interval}`] = props.isStopCandle
-  coin[`isPowerCandle${interval}`] = props.isPowerCandle
-  coin[`isBiggerThanPrevious${interval}`] = props.isBiggerThanPrevious
+  coin[`isBiggerThanPrevious${interval}`] = lastCandleIsBigger
 }
 
 const addCandleData = (candle: any) => {
@@ -294,15 +293,20 @@ const addCandleData = (candle: any) => {
     }
   }
 
-  // max data to keep deberia ser   RSI_LENGTH +1
-  // para tener data suficiente para el rsi
-  const max = Math.max(TOTAL_CANDLES, RSI_LENGTH + 1)
+  addExtraCandleData(coin, interval)
 
+  // max data to keep deberia ser   RSI_LENGTH +1
+  // para tener data suficiente para el rsi, sma, ema
+
+  // get more data for BTC to calculate sma/ema
+  let totalCandles = Math.max(RSI_LENGTH + 2, TOTAL_CANDLES)
+
+  if (coin.symbol === 'BTCUSDT') {
+    totalCandles = Math.max(RSI_LENGTH + 2, TOTAL_BTC_CANDLES)
+  }
   // // we keep only enought data for rsi calc
   // we should have enough for rsi, or max TOTAL_CANDLES
-  coin[`data${interval}`] = coin[`data${interval}`].slice(-max)
-
-  addExtraCandleData(coin, interval)
+  coin[`data${interval}`] = coin[`data${interval}`].slice(-totalCandles)
 
   // send data to client
   // callback() // sending too many data, should use some interval thing to avoid sending per coin
@@ -390,13 +394,13 @@ export const getDataToSend = () => {
     symbol: coin.symbol,
     minNotional: coin.minNotional,
     price: coin.price,
-    data5m: coin.data5m,
-    data15m: coin.data15m,
-    data30m: coin.data30m,
-    data1h: coin.data1h,
-    data4h: coin.data4h,
-    data1d: coin.data1d,
-    data1w: coin.data1w,
+    data5m: coin.data5m.slice(-TOTAL_CLIENT_CANDLES),
+    data15m: coin.data15m.slice(-TOTAL_CLIENT_CANDLES),
+    data30m: coin.data30m.slice(-TOTAL_CLIENT_CANDLES),
+    data1h: coin.data1h.slice(-TOTAL_CLIENT_CANDLES),
+    data4h: coin.data4h.slice(-TOTAL_CLIENT_CANDLES),
+    data1d: coin.data1d.slice(-TOTAL_CLIENT_CANDLES),
+    data1w: coin.data1w.slice(-TOTAL_CLIENT_CANDLES),
     rsi5m: coin.rsi5m,
     rsi15m: coin.rsi15m,
     rsi30m: coin.rsi30m,
