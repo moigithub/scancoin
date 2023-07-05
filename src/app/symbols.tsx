@@ -1,6 +1,14 @@
 'use client'
 
-import { ChangeEvent, MutableRefObject, SetStateAction, useEffect, useRef, useState } from 'react'
+import {
+  ChangeEvent,
+  MutableRefObject,
+  SetStateAction,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState
+} from 'react'
 import io, { Socket } from 'socket.io-client'
 import { Chart } from './chart'
 import Image from 'next/image'
@@ -83,7 +91,7 @@ export const Symbols = () => {
     }
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const chartUpdater = (
       selectedCoin: MutableRefObject<string>,
       setter: (value: SetStateAction<any[]>) => void
@@ -259,7 +267,9 @@ export const Symbols = () => {
     return status
   }
 
-  let filterSymbols = symbols
+  let filterSymbols = symbols.filter(s => s.symbol !== 'BTCUSDT')
+
+  const BTC = symbols.filter(s => s.symbol === 'BTCUSDT')
 
   if (searchFilter) {
     filterSymbols = filterSymbols.filter(s => s.symbol.includes(searchFilter.toUpperCase()))
@@ -377,7 +387,7 @@ export const Symbols = () => {
                 </span>
               </div>
             </div>
-            <Chart data={btcData0} ema20 sma50 sma200 height={300} />
+            <Chart data={btcData0} ema20 sma50 sma200 height={200} />
           </div>
 
           <div className='chart m-2 flex-1' id='chart-1'>
@@ -729,6 +739,240 @@ export const Symbols = () => {
           </tr>
         </thead>
         <tbody>
+          {BTC.length > 0 && (
+            <tr key={BTC[0].symbol}>
+              <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                {/* <a
+                    href={`https://www.tradingview.com/symbols/${BTC[0].symbol}/?exchange=BINANCE`}
+                    target='_blank'
+                  >
+                    {BTC[0].symbol}
+                  </a> */}
+                <a
+                  href={`https://www.tradingview.com/chart?symbol=BINANCE:${BTC[0].symbol}`}
+                  target='_blank'
+                >
+                  {BTC[0].symbol}
+                </a>
+              </td>
+              <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                {BTC[0].price}
+              </td>
+              <td
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{ backgroundColor: getBgColor(BTC[0].rsi5m) }}
+              >
+                {BTC[0].rsi5m}
+              </td>
+              <td
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{ backgroundColor: getBgColor(BTC[0].rsi15m) }}
+              >
+                {BTC[0].rsi15m}
+              </td>
+              <td
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{ backgroundColor: getBgColor(BTC[0].rsi30m) }}
+              >
+                {BTC[0].rsi30m}
+              </td>
+              <td
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{ backgroundColor: getBgColor(BTC[0].rsi1h) }}
+              >
+                {BTC[0].rsi1h}
+              </td>
+              <td
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{ backgroundColor: getBgColor(BTC[0].rsi4h) }}
+              >
+                {BTC[0].rsi4h}
+              </td>
+              <td
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{ backgroundColor: getBgColor(BTC[0].rsi1d) }}
+              >
+                {BTC[0].rsi1d}
+              </td>
+              <td
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{ backgroundColor: getBgColor(BTC[0].rsi1w) }}
+              >
+                {BTC[0].rsi1w}
+              </td>
+
+              <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: BTC[0].isRedCandle5m ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(BTC[0], '5m')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(BTC[0].symbol, `5m`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(BTC[0].symbol, `5m`)}
+                  >
+                    2
+                  </span>
+                </div>
+              </td>
+              <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: BTC[0].isRedCandle15m ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(BTC[0], '15m')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(BTC[0].symbol, `15m`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(BTC[0].symbol, `15m`)}
+                  >
+                    2
+                  </span>
+                </div>
+              </td>
+              <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: BTC[0].isRedCandle30m ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(BTC[0], '30m')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(BTC[0].symbol, `30m`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(BTC[0].symbol, `30m`)}
+                  >
+                    2
+                  </span>
+                </div>
+              </td>
+              <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: BTC[0].isRedCandle1h ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(BTC[0], '1h')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(BTC[0].symbol, `1h`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(BTC[0].symbol, `1h`)}
+                  >
+                    2
+                  </span>
+                </div>
+              </td>
+              <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: BTC[0].isRedCandle4h ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(BTC[0], '4h')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(BTC[0].symbol, `4h`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(BTC[0].symbol, `4h`)}
+                  >
+                    2
+                  </span>
+                </div>
+              </td>
+              <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: BTC[0].isRedCandle1d ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(BTC[0], '1d')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(BTC[0].symbol, `1d`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(BTC[0].symbol, `1d`)}
+                  >
+                    2
+                  </span>
+                </div>
+              </td>
+              <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: BTC[0].isRedCandle1w ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(BTC[0], '1w')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(BTC[0].symbol, `1w`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(BTC[0].symbol, `1w`)}
+                  >
+                    2
+                  </span>
+                </div>
+              </td>
+              <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'></td>
+            </tr>
+          )}
+
           {filterSymbols.map(coin => {
             return (
               <tr key={coin.symbol}>
