@@ -57,6 +57,7 @@ let socket: Socket
 
 export const Symbols = () => {
   const [symbols, setSymbols] = useState<Symbol[]>([])
+  const [searchFilter, setSearchFilter] = useState('')
   const [pushFilter, setPushFilter] = useState(true)
   const [overBoughtFilter, setOverBoughtFilter] = useState(true)
   const [overSoldFilter, setOverSoldFilter] = useState(true)
@@ -195,9 +196,14 @@ export const Symbols = () => {
     selectedCoin2.current = symbol + ':' + interval
   }
 
+  const handleSearchFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    console.log('search', e.target.value)
+    setSearchFilter(e.target.value)
+  }
+
   const renderIcons = (coin: any, interval: string) => {
     let status = []
-    if (coin[`isStopCandle${interval}`])
+    if (coin[`isStopCandle${interval}`]) {
       status.push(
         <Image
           alt='stop'
@@ -206,41 +212,61 @@ export const Symbols = () => {
           width={24}
           height={24}
         />
-      ) //'Stop'
+      )
+    } //'Stop'
     if (coin[`isPowerCandle${interval}`]) {
       // entrando volumen
-      if (coin[`isBiggerThanPrevious${interval}`])
+      if (coin[`isBiggerThanPrevious${interval}`]) {
         status.push(
-          <Image
-            style={{ transform: coin[`isRedCandle${interval}`] ? 'rotate(90deg);' : 'none' }}
-            alt='superpush'
-            key={`${coin.symbol}${interval}:superpush`}
-            src='/assets/superpush.png'
-            width={24}
-            height={24}
-          />
+          <span
+            style={{
+              padding: 0,
+              transform: coin[`isRedCandle${interval}`] ? 'rotate(90deg)' : 'none'
+            }}
+          >
+            <Image
+              alt='superpush'
+              key={`${coin.symbol}${interval}:superpush`}
+              src='/assets/superpush.png'
+              width={24}
+              height={24}
+            />
+          </span>
         )
+      }
       //' SuperPush' // vol inc, bigger candle
-      else
+      else {
         status.push(
-          <Image
-            style={{ transform: coin[`isRedCandle${interval}`] ? 'rotate(90deg);' : 'none' }}
-            alt='push'
-            key={`${coin.symbol}${interval}:push`}
-            src='/assets/push.png'
-            width={24}
-            height={24}
-          />
-        ) //' Push'
+          <span
+            style={{
+              padding: 0,
+              transform: coin[`isRedCandle${interval}`] ? 'rotate(90deg)' : 'none'
+            }}
+          >
+            <Image
+              alt='push'
+              key={`${coin.symbol}${interval}:push`}
+              src='/assets/push.png'
+              width={24}
+              height={24}
+            />
+          </span>
+        )
+      }
     }
+
     // if (coin[`isBiggerThanPrevious${interval}`]) status += ' Big'
     return status
   }
 
   let filterSymbols = symbols
 
+  if (searchFilter) {
+    filterSymbols = filterSymbols.filter(s => s.symbol.includes(searchFilter.toUpperCase()))
+  }
+
   if (pushFilter) {
-    filterSymbols = symbols.filter(
+    filterSymbols = filterSymbols.filter(
       symbol =>
         symbol.isPowerCandle5m ||
         symbol.isPowerCandle15m ||
@@ -301,41 +327,6 @@ export const Symbols = () => {
 
   return (
     <div className='p-3 flex flex-col min-w-[1200px]'>
-      <div className='flex'>
-        <button
-          className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded'
-          onClick={() => socket.emit('get-data')}
-        >
-          Refresh
-        </button>
-        <div className='group mx-5'>
-          <label htmlFor='filter-push'>Show push/superpush only</label>
-          <input
-            type='checkbox'
-            id='filter-push'
-            checked={pushFilter}
-            onChange={handlePushFilter}
-          />
-        </div>
-        <div className='group mx-5'>
-          <label htmlFor='filter-overbought'>Show overbought only</label>
-          <input
-            type='checkbox'
-            id='filter-overbought'
-            checked={overBoughtFilter}
-            onChange={handleOverBoughtFilter}
-          />
-        </div>
-        <div className='group mx-5'>
-          <label htmlFor='filter-oversold'>Show oversold only</label>
-          <input
-            type='checkbox'
-            id='filter-oversold'
-            checked={overSoldFilter}
-            onChange={handleOverSoldFilter}
-          />
-        </div>
-      </div>
       <div className='charts flex flex-col'>
         <div className='chart-group flex'>
           <div className='chart m-2 flex-1' id='chart-1'>
@@ -386,7 +377,7 @@ export const Symbols = () => {
                 </span>
               </div>
             </div>
-            <Chart data={btcData0} />
+            <Chart data={btcData0} ema20 sma50 sma200 height={300} />
           </div>
 
           <div className='chart m-2 flex-1' id='chart-1'>
@@ -613,6 +604,59 @@ export const Symbols = () => {
           </div>
         </div>
       </div>
+      <div className='filter flex justify-between items-center'>
+        <div className='search my-2'>
+          <label
+            className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+            htmlFor='filter-search'
+          >
+            Search symbol
+          </label>
+          <input
+            type='text'
+            id='filter-search'
+            className='bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+            value={searchFilter}
+            onChange={handleSearchFilter}
+          />
+        </div>
+        <div className='flex'>
+          <button
+            className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded'
+            onClick={() => socket.emit('get-data')}
+          >
+            Refresh
+          </button>
+          <div className='group mx-5'>
+            <label htmlFor='filter-push'>Show push/superpush only</label>
+            <input
+              type='checkbox'
+              id='filter-push'
+              checked={pushFilter}
+              onChange={handlePushFilter}
+            />
+          </div>
+          <div className='group mx-5'>
+            <label htmlFor='filter-overbought'>Show overbought only</label>
+            <input
+              type='checkbox'
+              id='filter-overbought'
+              checked={overBoughtFilter}
+              onChange={handleOverBoughtFilter}
+            />
+          </div>
+          <div className='group mx-5'>
+            <label htmlFor='filter-oversold'>Show oversold only</label>
+            <input
+              type='checkbox'
+              id='filter-oversold'
+              checked={overSoldFilter}
+              onChange={handleOverSoldFilter}
+            />
+          </div>
+        </div>
+      </div>
+
       <table className='table-auto min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-slate-500'>
         <thead>
           <tr>
