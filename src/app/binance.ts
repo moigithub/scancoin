@@ -7,7 +7,7 @@ let sockets: any[] = []
 let exchangeInfo: any = null
 const TOTAL_BTC_CANDLES = 201
 const TOTAL_CANDLES = 21
-const TOTAL_CLIENT_CANDLES = 20
+const TOTAL_CLIENT_CANDLES = 20 // lo que se manda al cliente, debe ser menor que TOTAL_CANDLES
 let RSI_LENGTH = 14
 let VOLUME_LENGTH = RSI_LENGTH // 20 // por ahora usar rsi length
 let VOL_FACTOR = 2 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
@@ -29,7 +29,13 @@ const getSymbols = async () => {
     exchangeInfo = await client.exchangeInfo()
   }
 
-  const bannedSymbols = ['BLURUSDT', 'BTCDOMUSDT', 'BTCUSDT_230929', 'ETHUSDT_230929']
+  const bannedSymbols = [
+    'BLURUSDT',
+    'FOOTBALLUSDT',
+    'BTCDOMUSDT',
+    'BTCUSDT_230929',
+    'ETHUSDT_230929'
+  ]
   symbols = exchangeInfo.symbols
     .filter((coin: any) => coin.quoteAsset === 'USDT' && coin.status === 'TRADING')
     .filter((coin: any) => !bannedSymbols.includes(coin.symbol))
@@ -292,6 +298,9 @@ const addCandleData = (candle: any) => {
       }
     }
   }
+
+  // set coin price
+  coin.price = candle.close
 
   addExtraCandleData(coin, interval)
 

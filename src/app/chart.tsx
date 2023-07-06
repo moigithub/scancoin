@@ -1,6 +1,5 @@
 import { ColorType, createChart } from 'lightweight-charts'
 import { useEffect, useRef, useState } from 'react'
-import { EMA, SMA } from 'technicalindicators'
 
 export const Chart = ({
   data = [],
@@ -184,6 +183,26 @@ areaSeries.setData(lineData);
       }
     })
 
+    // const changeTime=(range: TimeRange | null) => {
+    //   if (!range) return
+    //   console.log('timerange', range)
+    //   chart.timeScale().applyOptions({
+    //     rightOffset: chart.timeScale().scrollPosition()
+    //   })
+    // }
+    // chart.timeScale().subscribeVisibleTimeRangeChange(changeTime)
+
+    // const changeRange = (range: any) => {
+    //   console.log('loical range', range)
+    //   // const bars =candlestickSeries.barsInLogicalRange(range)
+    //   if (!range) return
+    //   chart.timeScale().setVisibleLogicalRange({
+    //     from: range?.from,
+    //     to: range?.to
+    //   })
+    // }
+    // chart.timeScale().subscribeVisibleLogicalRangeChange(changeRange)
+
     if (fitContent) {
       chart.timeScale().fitContent()
     }
@@ -192,6 +211,8 @@ areaSeries.setData(lineData);
 
     return () => {
       window.removeEventListener('resize', handleResize)
+      // chart.timeScale().unsubscribeVisibleLogicalRangeChange(changeRange)
+      // chart.timeScale().unsubscribeVisibleTimeRangeChange(changeTime)
 
       chart.remove()
     }

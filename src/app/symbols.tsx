@@ -438,7 +438,7 @@ export const Symbols = () => {
                 </span>
               </div>
             </div>
-            <Chart data={btcData1} />
+            <Chart data={btcData1} ema20 sma50 sma200 height={200} />
           </div>
 
           <div className='chart m-2 flex-1' id='chart-1'>
@@ -489,7 +489,7 @@ export const Symbols = () => {
                 </span>
               </div>
             </div>
-            <Chart data={btcData2} />
+            <Chart data={btcData2} ema20 sma50 sma200 height={200} />
           </div>
         </div>
         <div className='chart-group flex items-start'>
