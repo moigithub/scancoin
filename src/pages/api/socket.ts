@@ -25,7 +25,7 @@ export default async function SocketHandler(req: NextApiRequest, res: NextApiRes
     return
   }
 
-  getData(sendData)
+  getData(sendData, sendAlert)
 
   console.log('Setting up socket')
   io = new IOServer(res.socket.server, {
@@ -60,4 +60,8 @@ const sendData = () => {
   const dataToSend = getDataToSend()
   console.log('sending data', dataToSend.length)
   io.emit('data', dataToSend)
+}
+const sendAlert = (type: string, data: any) => {
+  console.log('sending alert', type, data)
+  io.emit(type, data)
 }

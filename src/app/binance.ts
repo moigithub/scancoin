@@ -6,8 +6,8 @@ let symbols: any[] = []
 let sockets: any[] = []
 let exchangeInfo: any = null
 const TOTAL_BTC_CANDLES = 201
-const TOTAL_CANDLES = 21
-const TOTAL_CLIENT_CANDLES = 20 // lo que se manda al cliente, debe ser menor que TOTAL_CANDLES
+const TOTAL_CANDLES = 31
+const TOTAL_CLIENT_CANDLES = 30 // lo que se manda al cliente, debe ser menor que TOTAL_CANDLES
 let RSI_LENGTH = 14
 let VOLUME_LENGTH = RSI_LENGTH // 20 // por ahora usar rsi length
 let VOL_FACTOR = 2 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
@@ -32,6 +32,8 @@ const getSymbols = async () => {
   const bannedSymbols = [
     'BLURUSDT',
     'FOOTBALLUSDT',
+    '1000LUNCUSDT',
+    'USDCUSDT',
     'BTCDOMUSDT',
     'BTCUSDT_230929',
     'ETHUSDT_230929'
@@ -139,10 +141,10 @@ const getCandles = async (coin: any, interval: CandleChartInterval_LT = '15m') =
   let data
 
   // get more data for BTC to calculate sma/ema
-  let totalCandles = Math.max(RSI_LENGTH + 2, TOTAL_CANDLES)
+  let totalCandles = Math.max(TOTAL_CLIENT_CANDLES + 2, TOTAL_CANDLES)
 
   if (coin.symbol === 'BTCUSDT') {
-    totalCandles = Math.max(RSI_LENGTH + 2, TOTAL_BTC_CANDLES)
+    totalCandles = Math.max(TOTAL_CLIENT_CANDLES + 2, TOTAL_BTC_CANDLES)
   }
 
   if (USE_FUTURES_DATA) {
@@ -168,7 +170,8 @@ const getCandles = async (coin: any, interval: CandleChartInterval_LT = '15m') =
 }
 
 //--------------------------------
-const getCandleData = (candle: Candle & CandleChartResult) => {
+type CandleType = Candle & CandleChartResult
+const getCandleData = (candle: Partial<CandleType>) => {
   return {
     time: candle.openTime || candle.eventTime,
     open: Number(candle.open),
@@ -250,7 +253,7 @@ const addExtraCandleData = (coin: any, interval: CandleChartInterval_LT = '15m')
   coin[`isBiggerThanPrevious${interval}`] = lastCandleIsBigger
 }
 
-const addCandleData = (candle: any) => {
+const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle: Candle) => {
   /* candles keys
         [
         'eventType',   'eventTime',
@@ -265,12 +268,12 @@ const addCandleData = (candle: any) => {
       ]
       */
 
-  const interval = candle.interval
+  const interval = candle.interval as CandleChartInterval_LT
   const symbol = candle.symbol
   const coin = symbols.find(s => s.symbol === symbol)
   if (!coin) return // symbol doesnt exist
 
-  console.log('adding candle data', interval, symbol)
+  // console.log('adding candle data', interval, symbol)
   const candleData = getCandleData(candle)
   const count = coin[`data${interval}`].length
   const lastCandle = coin[`data${interval}`][count - 1]
@@ -304,14 +307,27 @@ const addCandleData = (candle: any) => {
 
   addExtraCandleData(coin, interval)
 
+  // --------------------------
+  // ALERTS !!
+  // --------------------------
+  if (candle.isFinal) {
+    if (
+      coin[`isPowerCandle${interval}`] &&
+      coin[`isBiggerThanPrevious${interval}`] &&
+      (coin[`rsi${interval}`] > 70 || coin[`rsi${interval}`] < 30)
+    ) {
+      sendAlert(`alert:${interval}`, coin)
+    }
+  }
+
   // max data to keep deberia ser   RSI_LENGTH +1
   // para tener data suficiente para el rsi, sma, ema
 
   // get more data for BTC to calculate sma/ema
-  let totalCandles = Math.max(RSI_LENGTH + 2, TOTAL_CANDLES)
+  let totalCandles = Math.max(TOTAL_CLIENT_CANDLES + 2, TOTAL_CANDLES)
 
   if (coin.symbol === 'BTCUSDT') {
-    totalCandles = Math.max(RSI_LENGTH + 2, TOTAL_BTC_CANDLES)
+    totalCandles = Math.max(TOTAL_CLIENT_CANDLES + 2, TOTAL_BTC_CANDLES)
   }
   // // we keep only enought data for rsi calc
   // we should have enough for rsi, or max TOTAL_CANDLES
@@ -336,7 +352,10 @@ filtro por moneda
 */
 
 //---------------------------------------
-export const getData = async (callback: () => void) => {
+export const getData = async (
+  callback: () => void,
+  sendAlert: (type: string, data: any) => void
+) => {
   //-=========================
   // preparar la data para mostrar
   // obtener symbols/lista de coins
@@ -370,23 +389,23 @@ export const getData = async (callback: () => void) => {
 
   if (USE_FUTURES_DATA) {
     sockets.push(
-      client.ws.futuresCandles(allCoins, '5m', addCandleData),
-      client.ws.futuresCandles(allCoins, '15m', addCandleData),
-      client.ws.futuresCandles(allCoins, '30m', addCandleData),
-      client.ws.futuresCandles(allCoins, '1h', addCandleData),
-      client.ws.futuresCandles(allCoins, '4h', addCandleData),
-      client.ws.futuresCandles(allCoins, '1d', addCandleData),
-      client.ws.futuresCandles(allCoins, '1w', addCandleData)
+      client.ws.futuresCandles(allCoins, '5m', addCandleData(sendAlert)),
+      client.ws.futuresCandles(allCoins, '15m', addCandleData(sendAlert)),
+      client.ws.futuresCandles(allCoins, '30m', addCandleData(sendAlert)),
+      client.ws.futuresCandles(allCoins, '1h', addCandleData(sendAlert)),
+      client.ws.futuresCandles(allCoins, '4h', addCandleData(sendAlert)),
+      client.ws.futuresCandles(allCoins, '1d', addCandleData(sendAlert)),
+      client.ws.futuresCandles(allCoins, '1w', addCandleData(sendAlert))
     )
   } else {
     sockets.push(
-      client.ws.candles(allCoins, '5m', addCandleData),
-      client.ws.candles(allCoins, '15m', addCandleData),
-      client.ws.candles(allCoins, '30m', addCandleData),
-      client.ws.candles(allCoins, '1h', addCandleData),
-      client.ws.candles(allCoins, '4h', addCandleData),
-      client.ws.candles(allCoins, '1d', addCandleData),
-      client.ws.candles(allCoins, '1w', addCandleData)
+      client.ws.candles(allCoins, '5m', addCandleData(sendAlert)),
+      client.ws.candles(allCoins, '15m', addCandleData(sendAlert)),
+      client.ws.candles(allCoins, '30m', addCandleData(sendAlert)),
+      client.ws.candles(allCoins, '1h', addCandleData(sendAlert)),
+      client.ws.candles(allCoins, '4h', addCandleData(sendAlert)),
+      client.ws.candles(allCoins, '1d', addCandleData(sendAlert)),
+      client.ws.candles(allCoins, '1w', addCandleData(sendAlert))
     )
   }
 

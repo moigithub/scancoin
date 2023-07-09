@@ -72,7 +72,7 @@ areaSeries.setData(lineData);
       const formattedEma20 = data
         .filter(d => d.ema20 !== undefined)
         .map(d => ({ time: d.time, value: d.ema20 }))
-      console.log('formatted ema', formattedEma20)
+      // console.log('formatted ema', formattedEma20)
       const ema20Series = chart.addLineSeries({
         color: '#FFFFFF',
         lineWidth: 2,
@@ -87,7 +87,7 @@ areaSeries.setData(lineData);
       const formattedSma50 = data
         .filter(d => d.sma50 !== undefined)
         .map(d => ({ time: d.time, value: d.sma50 }))
-      console.log('formatted sma50', formattedSma50)
+      // console.log('formatted sma50', formattedSma50)
       const sma50Series = chart.addLineSeries({
         color: '#FFEA00',
         lineWidth: 2,
@@ -102,7 +102,7 @@ areaSeries.setData(lineData);
       const formattedSma200 = data
         .filter(d => d.sma200 !== undefined)
         .map(d => ({ time: d.time, value: d.sma200 }))
-      console.log('formatted sma200', formattedSma200)
+      // console.log('formatted sma200', formattedSma200)
       const sma200Series = chart.addLineSeries({
         color: '#FF0000',
         lineWidth: 2,
@@ -221,13 +221,8 @@ areaSeries.setData(lineData);
   return (
     <div className='chart-container w-full'>
       <div ref={chartContainerRef} className='w-full' />
-      <label htmlFor='fit'>Adjust content</label>
-      <input
-        id='fit'
-        type='checkbox'
-        checked={fitContent}
-        onChange={e => setFitContent(e.target.checked)}
-      />
+      <label>Adjust content</label>
+      <input type='checkbox' checked={fitContent} onChange={e => setFitContent(e.target.checked)} />
     </div>
   )
 }
