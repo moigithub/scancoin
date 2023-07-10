@@ -59,6 +59,13 @@ type Symbol = {
   isStopCandle1w: boolean
   isPowerCandle1w: boolean
   isBiggerThanPrevious1w: boolean
+  prev10CandleVolumeCount5m: number
+  prev10CandleVolumeCount15m: number
+  prev10CandleVolumeCount30m: number
+  prev10CandleVolumeCount1h: number
+  prev10CandleVolumeCount4h: number
+  prev10CandleVolumeCount1d: number
+  prev10CandleVolumeCount1w: number
 }
 
 let socket: Socket
@@ -69,10 +76,13 @@ let snd3: any = null
 export const Symbols = () => {
   const [symbols, setSymbols] = useState<Symbol[]>([])
   const [searchFilter, setSearchFilter] = useState('')
+  const [volumeCount, setVolumeCount] = useState(3)
+
   const [pushFilter, setPushFilter] = useState(true)
   const [overBoughtFilter, setOverBoughtFilter] = useState(true)
   const [overSoldFilter, setOverSoldFilter] = useState(true)
   const [alerts, setAlerts] = useState<any[]>([])
+  const [volumeAlerts, setVolumeAlerts] = useState<any[]>([])
 
   const [btcData0, setBtcData0] = useState<any[]>([])
   const [btcData1, setBtcData1] = useState<any[]>([])
@@ -87,6 +97,7 @@ export const Symbols = () => {
   const selectedCoin1 = useRef('')
   const selectedCoin2 = useRef('')
   const selectedCoin3 = useRef('')
+  const pingInterval = useRef<NodeJS.Timer>()
 
   useEffect(() => {
     socketInitializer()
@@ -97,7 +108,12 @@ export const Symbols = () => {
     snd3 = new Audio('./ve.mp3')
     snd2 = new Audio('./co.mp3')
 
+    pingInterval.current = setInterval(() => {
+      socket.emit('ping')
+    }, 20 * 1000) //20 seconds
+
     return () => {
+      clearInterval(pingInterval.current)
       socket.emit('bye')
       socket.disconnect()
     }
@@ -164,37 +180,72 @@ export const Symbols = () => {
       console.log('connected')
     })
 
+    socket.on('pong', (response: any) => {
+      console.log('pong', response, new Date(response).toISOString())
+    })
+
     socket.on('data', (data: Symbol[]) => {
-      console.log('received data0', selectedCoin1.current, data)
+      // console.log('received data0', selectedCoin1.current, data)
       setSymbols(data)
     })
 
-    socket.on('alert:5m', (coin: any) => {
-      setAlerts(m => [...m, formatAlertMsg('5m', coin)])
+    socket.on('alert:powercandle:5m', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('5m', coin), ...m])
       if (snd) snd.play()
     })
-    socket.on('alert:15m', (coin: any) => {
-      setAlerts(m => [...m, formatAlertMsg('15m', coin)])
+    socket.on('alert:powercandle:15m', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('15m', coin), ...m])
       if (snd) snd.play()
     })
-    socket.on('alert:30m', (coin: any) => {
-      setAlerts(m => [...m, formatAlertMsg('30m', coin)])
+    socket.on('alert:powercandle:30m', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('30m', coin), ...m])
       if (snd) snd.play()
     })
-    socket.on('alert:1h', (coin: any) => {
-      setAlerts(m => [...m, formatAlertMsg('1h', coin)])
+    socket.on('alert:powercandle:1h', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('1h', coin), ...m])
       if (snd) snd.play()
     })
-    socket.on('alert:4h', (coin: any) => {
-      setAlerts(m => [...m, formatAlertMsg('4h', coin)])
+    socket.on('alert:powercandle:4h', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('4h', coin), ...m])
       if (snd) snd.play()
     })
-    socket.on('alert:1d', (coin: any) => {
-      setAlerts(m => [...m, formatAlertMsg('1d', coin)])
+    socket.on('alert:powercandle:1d', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('1d', coin), ...m])
       if (snd) snd.play()
     })
-    socket.on('alert:1w', (coin: any) => {
-      setAlerts(m => [...m, formatAlertMsg('1w', coin)])
+    socket.on('alert:powercandle:1w', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('1w', coin), ...m])
+      if (snd) snd.play()
+    })
+
+    // volume count alert
+
+    socket.on('alert:volumecount:5m', (coin: any) => {
+      setVolumeAlerts(m => [formatAlertMsg('5m', coin), ...m])
+      if (snd) snd.play()
+    })
+    socket.on('alert:volumecount:15m', (coin: any) => {
+      setVolumeAlerts(m => [formatAlertMsg('15m', coin), ...m])
+      if (snd) snd.play()
+    })
+    socket.on('alert:volumecount:30m', (coin: any) => {
+      setVolumeAlerts(m => [formatAlertMsg('30m', coin), ...m])
+      if (snd) snd.play()
+    })
+    socket.on('alert:volumecount:1h', (coin: any) => {
+      setVolumeAlerts(m => [formatAlertMsg('1h', coin), ...m])
+      if (snd) snd.play()
+    })
+    socket.on('alert:volumecount:4h', (coin: any) => {
+      setVolumeAlerts(m => [formatAlertMsg('4h', coin), ...m])
+      if (snd) snd.play()
+    })
+    socket.on('alert:volumecount:1d', (coin: any) => {
+      setVolumeAlerts(m => [formatAlertMsg('1d', coin), ...m])
+      if (snd) snd.play()
+    })
+    socket.on('alert:volumecount:1w', (coin: any) => {
+      setVolumeAlerts(m => [formatAlertMsg('1w', coin), ...m])
       if (snd) snd.play()
     })
   }
@@ -220,8 +271,7 @@ export const Symbols = () => {
 
   const renderMessage = (msg: any, index: number) => {
     return (
-      <li key={index} className='border border-amber-500 my-2'>
-        <span>{msg.time}</span>
+      <li key={index} className='my-2 border border-amber-500 '>
         <span
           className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
           onClick={() => handleChangeInterval1(msg.symbol, msg.interval)}
@@ -240,20 +290,26 @@ export const Symbols = () => {
         >
           3
         </span>
-        <span className='mx-2'>{msg.mode}</span>
-        <span className='mx-2'>{msg.interval}</span>
-        <span className='mx-2'>RSI: {msg[`rsi${msg.interval}`]}</span>
         <a
-          className='mx-2'
+          className='mx-2 '
           href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
             msg.symbol
           )}&interval=${getTradingViewInterval(msg.interval)}`}
           target='_blank'
         >
-          {msg.symbol}
+          <p>
+            <span className='mx-2'>{msg.time}</span>
+            <span className='mx-2'>{msg.mode}</span>
+          </p>
+          <p>
+            <span className='mx-2'>
+              {msg.symbol} {msg.interval}
+            </span>{' '}
+          </p>
+          <p className='mx-2'>RSI: {msg[`rsi${msg.interval}`]}</p>
+          <p className='mx-2'>VolumeCount: {msg[`prev10CandleVolumeCount${msg.interval}`]}</p>
+          <p className='mx-2'>Price:{msg.price}</p>
         </a>
-
-        <span className='mx-2'>{msg.price}</span>
       </li>
     )
   }
@@ -319,6 +375,11 @@ export const Symbols = () => {
   const handleSearchFilter = (e: ChangeEvent<HTMLInputElement>) => {
     console.log('search', e.target.value)
     setSearchFilter(e.target.value)
+  }
+
+  const handleVolumeCount = (e: ChangeEvent<HTMLInputElement>) => {
+    console.log('search', e.target.value)
+    setVolumeCount(Number(e.target.value))
   }
 
   const renderIcons = (coin: any, interval: string) => {
@@ -447,12 +508,26 @@ export const Symbols = () => {
     })
   }
 
+  if (volumeCount > 0) {
+    filterSymbols = filterSymbols.filter(s => {
+      return (
+        s.prev10CandleVolumeCount5m >= volumeCount ||
+        s.prev10CandleVolumeCount15m >= volumeCount ||
+        s.prev10CandleVolumeCount30m >= volumeCount ||
+        s.prev10CandleVolumeCount1h >= volumeCount ||
+        s.prev10CandleVolumeCount4h >= volumeCount ||
+        s.prev10CandleVolumeCount1d >= volumeCount ||
+        s.prev10CandleVolumeCount1w >= volumeCount
+      )
+    })
+  }
+
   return (
     <div className='p-3 flex'>
       <div className='p-1 flex flex-col min-w-[1200px]'>
         <div className='charts flex flex-col'>
           <div className='chart-group flex'>
-            <div className='chart m-2 flex-1' id='chart-1'>
+            <div className='chart m-2 flex-1' id='chart-btc0'>
               <div className='chart-header flex'>
                 <h3>{btcCoin0.current}</h3>
                 <div className='btc-btns mx-5 '>
@@ -503,7 +578,7 @@ export const Symbols = () => {
               <Chart data={btcData0} ema20 sma50 sma200 height={200} />
             </div>
 
-            <div className='chart m-2 flex-1' id='chart-1'>
+            <div className='chart m-2 flex-1' id='chart-btc1'>
               <div className='chart-header flex'>
                 <h3>{btcCoin1.current}</h3>
                 <div className='btc-btns mx-5 '>
@@ -554,7 +629,7 @@ export const Symbols = () => {
               <Chart data={btcData1} ema20 sma50 sma200 height={200} />
             </div>
 
-            <div className='chart m-2 flex-1' id='chart-1'>
+            <div className='chart m-2 flex-1' id='chart-btc2'>
               <div className='chart-header flex'>
                 <h3>{btcCoin2.current}</h3>
                 <div className='btc-btns mx-5 '>
@@ -801,6 +876,24 @@ export const Symbols = () => {
               className='bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
               value={searchFilter}
               onChange={handleSearchFilter}
+            />
+          </div>
+          <div className='search my-2'>
+            <label
+              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+              htmlFor='volume-count'
+            >
+              Search symbol
+            </label>
+            <input
+              type='number'
+              step={1}
+              min={0}
+              max={10}
+              id='volume-count'
+              className='bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+              value={volumeCount}
+              onChange={handleVolumeCount}
             />
           </div>
           <div className='flex'>
@@ -1220,43 +1313,43 @@ export const Symbols = () => {
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{ backgroundColor: getBgColor(coin.rsi5m) }}
                   >
-                    {coin.rsi5m}
+                    {coin.rsi5m} ({coin.prev10CandleVolumeCount5m})
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{ backgroundColor: getBgColor(coin.rsi15m) }}
                   >
-                    {coin.rsi15m}
+                    {coin.rsi15m} ({coin.prev10CandleVolumeCount15m})
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{ backgroundColor: getBgColor(coin.rsi30m) }}
                   >
-                    {coin.rsi30m}
+                    {coin.rsi30m} ({coin.prev10CandleVolumeCount30m})
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{ backgroundColor: getBgColor(coin.rsi1h) }}
                   >
-                    {coin.rsi1h}
+                    {coin.rsi1h} ({coin.prev10CandleVolumeCount1h})
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{ backgroundColor: getBgColor(coin.rsi4h) }}
                   >
-                    {coin.rsi4h}
+                    {coin.rsi4h} ({coin.prev10CandleVolumeCount4h})
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{ backgroundColor: getBgColor(coin.rsi1d) }}
                   >
-                    {coin.rsi1d}
+                    {coin.rsi1d} ({coin.prev10CandleVolumeCount1d})
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{ backgroundColor: getBgColor(coin.rsi1w) }}
                   >
-                    {coin.rsi1w}
+                    {coin.rsi1w} ({coin.prev10CandleVolumeCount1w})
                   </td>
 
                   <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
@@ -1523,6 +1616,7 @@ export const Symbols = () => {
       </div>
       <div className='alerts flex flex-col w-[300px]'>
         <ul className='overflow-y-auto'>{alerts.map(renderMessage)}</ul>
+        <ul className='overflow-y-auto'>{volumeAlerts.map(renderMessage)}</ul>
       </div>
     </div>
   )

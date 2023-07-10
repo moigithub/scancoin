@@ -96,7 +96,14 @@ const getSymbols = async () => {
         isRedCandle1w: false,
         isStopCandle1w: false, //previous candle have high volume, next candle reverse.. showing loosing power
         isPowerCandle1w: false, //next candle entering with high volume and reversing
-        isBiggerThanPrevious1w: false
+        isBiggerThanPrevious1w: false,
+        prev10CandleVolumeCount5m: 0,
+        prev10CandleVolumeCount15m: 0,
+        prev10CandleVolumeCount30m: 0,
+        prev10CandleVolumeCount1h: 0,
+        prev10CandleVolumeCount4h: 0,
+        prev10CandleVolumeCount1d: 0,
+        prev10CandleVolumeCount1w: 0
       }
     })
   // .slice(0, 10) //TODO: remove slice
@@ -251,6 +258,14 @@ const addExtraCandleData = (coin: any, interval: CandleChartInterval_LT = '15m')
   const prevCandleBodySize = prevCandle ? Math.abs(prevCandle.open - prevCandle.close) : 0
   const lastCandleIsBigger = lastCandleBodySize > prevCandleBodySize
   coin[`isBiggerThanPrevious${interval}`] = lastCandleIsBigger
+
+  // prev 10 candle high volume count
+  let prev10CandleVolumeCount = 0
+  if (volume.length > 10 && volAverage > 0) {
+    prev10CandleVolumeCount =
+      volume.slice(-10).filter((vol: number) => vol > volAverage * VOL_FACTOR).length ?? 0
+  }
+  coin[`prev10CandleVolumeCount${interval}`] = prev10CandleVolumeCount
 }
 
 const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle: Candle) => {
@@ -316,7 +331,11 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
       coin[`isBiggerThanPrevious${interval}`] &&
       (coin[`rsi${interval}`] > 70 || coin[`rsi${interval}`] < 30)
     ) {
-      sendAlert(`alert:${interval}`, coin)
+      sendAlert(`alert:powercandle:${interval}`, coin)
+    }
+
+    if (coin[`prev10CandleVolumeCount${interval}`] > 3) {
+      sendAlert(`alert:volumecount:${interval}`, coin)
     }
   }
 
@@ -417,6 +436,12 @@ export const getData = async (
   // console.log('send data', getDataToSend())
 }
 
+export const pingTime = async () => {
+  const time = await client.time()
+  console.log('ping time', time)
+  return time
+}
+
 export const getDataToSend = () => {
   return symbols.map(coin => ({
     symbol: coin.symbol,
@@ -463,7 +488,14 @@ export const getDataToSend = () => {
     isRedCandle1w: coin.isRedCandle1w,
     isStopCandle1w: coin.isStopCandle1w,
     isPowerCandle1w: coin.isPowerCandle1w,
-    isBiggerThanPrevious1w: coin.isBiggerThanPrevious1w
+    isBiggerThanPrevious1w: coin.isBiggerThanPrevious1w,
+    prev10CandleVolumeCount5m: coin.prev10CandleVolumeCount5m,
+    prev10CandleVolumeCount15m: coin.prev10CandleVolumeCount15m,
+    prev10CandleVolumeCount30m: coin.prev10CandleVolumeCount30m,
+    prev10CandleVolumeCount1h: coin.prev10CandleVolumeCount1h,
+    prev10CandleVolumeCount4h: coin.prev10CandleVolumeCount4h,
+    prev10CandleVolumeCount1d: coin.prev10CandleVolumeCount1d,
+    prev10CandleVolumeCount1w: coin.prev10CandleVolumeCount1w
   }))
 }
 

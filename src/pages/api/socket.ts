@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import type { Server as HTTPServer } from 'http'
 import type { Socket as NetSocket } from 'net'
 import { Server as IOServer } from 'Socket.IO'
-import { unsubscribeAll, getDataToSend, getData } from '@/app/binance'
+import { unsubscribeAll, getDataToSend, getData, pingTime } from '@/app/binance'
 
 interface SocketServer extends HTTPServer {
   io?: IOServer | undefined
@@ -39,13 +39,9 @@ export default async function SocketHandler(req: NextApiRequest, res: NextApiRes
 
     sendData()
 
-    socket.on('get-data', () => sendData())
+    socket.on('get-data', sendData) //refresh btn
 
-    // socket.on('clients', () => {
-    //   io.emit('clients', io.engine.clientsCount)
-    // })
-
-    // install a timer to periodically send values
+    socket.on('ping', ping)
 
     socket.on('bye', () => {
       unsubscribeAll()
@@ -64,4 +60,9 @@ const sendData = () => {
 const sendAlert = (type: string, data: any) => {
   console.log('sending alert', type, data)
   io.emit(type, data)
+}
+const ping = async () => {
+  const response = await pingTime()
+  console.log('ping', response)
+  io.emit('pong', response)
 }
