@@ -78,7 +78,9 @@ export const Symbols = () => {
   const [searchFilter, setSearchFilter] = useState('')
   const [volumeCount, setVolumeCount] = useState(3)
 
-  const [pushFilter, setPushFilter] = useState(true)
+  const [pushFilter, setPushFilter] = useState(false)
+  const [searchOnlyFilter, setSearchOnlyFilter] = useState(false)
+
   const [overBoughtFilter, setOverBoughtFilter] = useState(true)
   const [overSoldFilter, setOverSoldFilter] = useState(true)
   const [alerts, setAlerts] = useState<any[]>([])
@@ -94,9 +96,9 @@ export const Symbols = () => {
   const btcCoin0 = useRef('BTCUSDT:5m')
   const btcCoin1 = useRef('BTCUSDT:15m')
   const btcCoin2 = useRef('BTCUSDT:30m')
-  const selectedCoin1 = useRef('')
-  const selectedCoin2 = useRef('')
-  const selectedCoin3 = useRef('')
+  const selectedCoin1 = useRef('BTCUSDT:1h')
+  const selectedCoin2 = useRef('BTCUSDT:4h')
+  const selectedCoin3 = useRef('BTCUSDT:1d')
   const pingInterval = useRef<NodeJS.Timer>()
 
   useEffect(() => {
@@ -190,67 +192,67 @@ export const Symbols = () => {
     })
 
     socket.on('alert:powercandle:5m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('5m', coin), ...m])
+      setAlerts(m => [formatAlertMsg('5m', 'Alert', coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:powercandle:15m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('15m', coin), ...m])
+      setAlerts(m => [formatAlertMsg('15m', 'Alert', coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:powercandle:30m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('30m', coin), ...m])
+      setAlerts(m => [formatAlertMsg('30m', 'Alert', coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:powercandle:1h', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1h', coin), ...m])
+      setAlerts(m => [formatAlertMsg('1h', 'Alert', coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:powercandle:4h', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('4h', coin), ...m])
+      setAlerts(m => [formatAlertMsg('4h', 'Alert', coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:powercandle:1d', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1d', coin), ...m])
+      setAlerts(m => [formatAlertMsg('1d', 'Alert', coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:powercandle:1w', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1w', coin), ...m])
+      setAlerts(m => [formatAlertMsg('1w', 'Alert', coin), ...m])
       if (snd) snd.play()
     })
 
     // volume count alert
 
     socket.on('alert:volumecount:5m', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('5m', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('5m', 'Vol', coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:volumecount:15m', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('15m', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('15m', 'Vol', coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:volumecount:30m', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('30m', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('30m', 'Vol', coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:volumecount:1h', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('1h', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('1h', 'Vol', coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:volumecount:4h', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('4h', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('4h', 'Vol', coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:volumecount:1d', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('1d', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('1d', 'Vol', coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:volumecount:1w', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('1w', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('1w', 'Vol', coin), ...m])
       if (snd) snd.play()
     })
   }
 
-  const formatAlertMsg = (interval: string, coin: any) => {
+  const formatAlertMsg = (interval: string, type: string, coin: any) => {
     const time = new Date()
     let mode = ''
     if (coin[`rsi${interval}`] < 30) {
@@ -262,6 +264,7 @@ export const Symbols = () => {
     const data = {
       time: time.toLocaleTimeString('en-US'),
       mode,
+      type,
       interval,
       ...coin
     }
@@ -299,7 +302,9 @@ export const Symbols = () => {
         >
           <p>
             <span className='mx-2'>{msg.time}</span>
-            <span className='mx-2'>{msg.mode}</span>
+            <span className='mx-2'>
+              {msg.mode} {msg.type}
+            </span>
           </p>
           <p>
             <span className='mx-2'>
@@ -312,6 +317,10 @@ export const Symbols = () => {
         </a>
       </li>
     )
+  }
+
+  const handleSearchOnlyFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchOnlyFilter(e.target.checked)
   }
 
   const handlePushFilter = (e: ChangeEvent<HTMLInputElement>) => {
@@ -448,80 +457,81 @@ export const Symbols = () => {
     filterSymbols = filterSymbols.filter(s => s.symbol.includes(searchFilter.toUpperCase()))
   }
 
-  if (pushFilter) {
-    filterSymbols = filterSymbols.filter(
-      symbol =>
-        symbol.isPowerCandle5m ||
-        symbol.isPowerCandle15m ||
-        symbol.isPowerCandle30m ||
-        symbol.isPowerCandle1h ||
-        symbol.isPowerCandle4h ||
-        symbol.isPowerCandle1d ||
-        symbol.isPowerCandle1w
-    )
-  }
+  if (!searchOnlyFilter) {
+    if (pushFilter) {
+      filterSymbols = filterSymbols.filter(
+        symbol =>
+          symbol.isPowerCandle5m ||
+          symbol.isPowerCandle15m ||
+          symbol.isPowerCandle30m ||
+          symbol.isPowerCandle1h ||
+          symbol.isPowerCandle4h ||
+          symbol.isPowerCandle1d ||
+          symbol.isPowerCandle1w
+      )
+    }
 
-  const overBought = 70
-  const overSold = 30
-  if (overBoughtFilter && overSoldFilter) {
-    filterSymbols = filterSymbols.filter(s => {
-      return (
-        s.rsi5m > overBought ||
-        s.rsi15m > overBought ||
-        s.rsi30m > overBought ||
-        s.rsi1h > overBought ||
-        s.rsi4h > overBought ||
-        s.rsi1d > overBought ||
-        s.rsi1w > overBought ||
-        s.rsi5m < overSold ||
-        s.rsi15m < overSold ||
-        s.rsi30m < overSold ||
-        s.rsi1h < overSold ||
-        s.rsi4h < overSold ||
-        s.rsi1d < overSold ||
-        s.rsi1w < overSold
-      )
-    })
-  } else if (overBoughtFilter) {
-    filterSymbols = filterSymbols.filter(s => {
-      return (
-        s.rsi5m > overBought ||
-        s.rsi15m > overBought ||
-        s.rsi30m > overBought ||
-        s.rsi1h > overBought ||
-        s.rsi4h > overBought ||
-        s.rsi1d > overBought ||
-        s.rsi1w > overBought
-      )
-    })
-  } else if (overSoldFilter) {
-    filterSymbols = filterSymbols.filter(s => {
-      return (
-        s.rsi5m < overSold ||
-        s.rsi15m < overSold ||
-        s.rsi30m < overSold ||
-        s.rsi1h < overSold ||
-        s.rsi4h < overSold ||
-        s.rsi1d < overSold ||
-        s.rsi1w < overSold
-      )
-    })
-  }
+    const overBought = 70
+    const overSold = 30
+    if (overBoughtFilter && overSoldFilter) {
+      filterSymbols = filterSymbols.filter(s => {
+        return (
+          s.rsi5m > overBought ||
+          s.rsi15m > overBought ||
+          s.rsi30m > overBought ||
+          s.rsi1h > overBought ||
+          s.rsi4h > overBought ||
+          s.rsi1d > overBought ||
+          s.rsi1w > overBought ||
+          s.rsi5m < overSold ||
+          s.rsi15m < overSold ||
+          s.rsi30m < overSold ||
+          s.rsi1h < overSold ||
+          s.rsi4h < overSold ||
+          s.rsi1d < overSold ||
+          s.rsi1w < overSold
+        )
+      })
+    } else if (overBoughtFilter) {
+      filterSymbols = filterSymbols.filter(s => {
+        return (
+          s.rsi5m > overBought ||
+          s.rsi15m > overBought ||
+          s.rsi30m > overBought ||
+          s.rsi1h > overBought ||
+          s.rsi4h > overBought ||
+          s.rsi1d > overBought ||
+          s.rsi1w > overBought
+        )
+      })
+    } else if (overSoldFilter) {
+      filterSymbols = filterSymbols.filter(s => {
+        return (
+          (s.rsi5m > 0 && s.rsi5m < overSold) ||
+          (s.rsi15m > 0 && s.rsi15m < overSold) ||
+          (s.rsi30m > 0 && s.rsi30m < overSold) ||
+          (s.rsi1h > 0 && s.rsi1h < overSold) ||
+          (s.rsi4h > 0 && s.rsi4h < overSold) ||
+          (s.rsi1d > 0 && s.rsi1d < overSold) ||
+          (s.rsi1w > 0 && s.rsi1w < overSold)
+        )
+      })
+    }
 
-  if (volumeCount > 0) {
-    filterSymbols = filterSymbols.filter(s => {
-      return (
-        s.prev10CandleVolumeCount5m >= volumeCount ||
-        s.prev10CandleVolumeCount15m >= volumeCount ||
-        s.prev10CandleVolumeCount30m >= volumeCount ||
-        s.prev10CandleVolumeCount1h >= volumeCount ||
-        s.prev10CandleVolumeCount4h >= volumeCount ||
-        s.prev10CandleVolumeCount1d >= volumeCount ||
-        s.prev10CandleVolumeCount1w >= volumeCount
-      )
-    })
+    if (volumeCount > 0) {
+      filterSymbols = filterSymbols.filter(s => {
+        return (
+          s.prev10CandleVolumeCount5m >= volumeCount ||
+          s.prev10CandleVolumeCount15m >= volumeCount ||
+          s.prev10CandleVolumeCount30m >= volumeCount ||
+          s.prev10CandleVolumeCount1h >= volumeCount ||
+          s.prev10CandleVolumeCount4h >= volumeCount ||
+          s.prev10CandleVolumeCount1d >= volumeCount ||
+          s.prev10CandleVolumeCount1w >= volumeCount
+        )
+      })
+    }
   }
-
   return (
     <div className='p-3 flex'>
       <div className='p-1 flex flex-col min-w-[1200px]'>
@@ -878,6 +888,15 @@ export const Symbols = () => {
               onChange={handleSearchFilter}
             />
           </div>
+          <div className='group mx-5'>
+            <label htmlFor='filter-searchOnly'>Search only</label>
+            <input
+              type='checkbox'
+              id='filter-searchOnly'
+              checked={searchOnlyFilter}
+              onChange={handleSearchOnlyFilter}
+            />
+          </div>
           <div className='search my-2'>
             <label
               className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
@@ -898,16 +917,30 @@ export const Symbols = () => {
           </div>
           <div className='flex'>
             <button
-              className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded'
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => socket.emit('reconnect')}
+            >
+              Reconnect
+            </button>
+
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
               onClick={() => socket.emit('get-data')}
             >
               Refresh
             </button>
+
             <button
-              className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded'
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
               onClick={() => setAlerts([])}
             >
               Clear alerts
+            </button>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setVolumeAlerts([])}
+            >
+              Clear Vol alerts
             </button>
             <div className='group mx-5'>
               <label htmlFor='filter-push'>Show push/superpush only</label>
@@ -1608,6 +1641,14 @@ export const Symbols = () => {
                 <span>
                   STOP: Cuando la vela anterior tiene mucho volumen, y aparece nueva vela con otro
                   color
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td colSpan={17}>
+                ( n )
+                <span>
+                  n: Cuantas velas con alto volumen (buy or sell) hubieron en las ultimas 10 velas
                 </span>
               </td>
             </tr>
