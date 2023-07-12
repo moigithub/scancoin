@@ -1,9 +1,15 @@
-import Binance, { CandleChartInterval_LT, CandleChartResult, Candle } from 'binance-api-node'
+import { sendAlert, sendData } from '@/pages/api/socket'
+import Binance, {
+  CandleChartInterval_LT,
+  CandleChartResult,
+  Candle,
+  ReconnectingWebSocketHandler
+} from 'binance-api-node'
 import { EMA, RSI, SMA } from 'technicalindicators'
 const USE_FUTURES_DATA = true
 const client = Binance()
 let symbols: any[] = []
-let sockets: any[] = []
+let sockets: ReconnectingWebSocketHandler[] = []
 let exchangeInfo: any = null
 const TOTAL_BTC_CANDLES = 201
 const TOTAL_CANDLES = 31
@@ -31,6 +37,7 @@ const getSymbols = async () => {
 
   const bannedSymbols = [
     'BLURUSDT',
+    'XVGUSDT',
     'FOOTBALLUSDT',
     '1000LUNCUSDT',
     'USDCUSDT',
@@ -353,7 +360,7 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
   coin[`data${interval}`] = coin[`data${interval}`].slice(-totalCandles)
 
   // send data to client
-  // callback() // sending too many data, should use some interval thing to avoid sending per coin
+  // sendData() // sending too many data, should use some interval thing to avoid sending per coin
 }
 //---------------------------------------
 // TODO:
@@ -371,23 +378,15 @@ filtro por moneda
 */
 
 //---------------------------------------
-export const getData = async (
-  callback: () => void,
-  sendAlert: (type: string, data: any) => void
-) => {
+export const initializeCandles = async () => {
   //-=========================
   // preparar la data para mostrar
   // obtener symbols/lista de coins
   await getSymbols()
-  callback()
+  sendData(getDataToSend())
   // llenar price
   await populatePrice()
-  callback()
-
-  if (sockets.length > 0) {
-    // sockets installed, clearing
-    unsubscribeAll()
-  }
+  sendData(getDataToSend())
 
   // data inicial
   for (let coin of symbols) {
@@ -398,13 +397,29 @@ export const getData = async (
     await getCandles(coin, '4h')
     await getCandles(coin, '1d')
     await getCandles(coin, '1w')
-    callback()
+    sendData(getDataToSend())
     // console.log('symbol', symbols[0])
   }
+
+  installSockets()
+
+  // install timer to send data back to client periodically
+  if (timerHandler) clearInterval(timerHandler)
+  timerHandler = setInterval(() => sendData(getDataToSend()), 1000) // 1 second
+
+  // console.log('send data', getDataToSend())
+}
+
+export const installSockets = () => {
+  console.log('install Sockets')
+
+  if (sockets.length > 0) {
+    // sockets installed, clearing
+    unsubscribeAll()
+  }
+
   const allCoins = symbols.map(coin => coin.symbol)
   // install socket t pull data periodically n save/recalc/emit
-
-  console.log('install Sockets')
 
   if (USE_FUTURES_DATA) {
     sockets.push(
@@ -427,13 +442,7 @@ export const getData = async (
       client.ws.candles(allCoins, '1w', addCandleData(sendAlert))
     )
   }
-
-  // install timer to send data back to client periodically
-  if (timerHandler) clearInterval(timerHandler)
-  timerHandler = setInterval(() => callback(), 1000) // 1 second
-
   console.log('sockets installed', sockets.length)
-  // console.log('send data', getDataToSend())
 }
 
 export const pingTime = async () => {
@@ -442,7 +451,7 @@ export const pingTime = async () => {
   return time
 }
 
-export const getDataToSend = () => {
+const getDataToSend = () => {
   return symbols.map(coin => ({
     symbol: coin.symbol,
     minNotional: coin.minNotional,
@@ -499,8 +508,13 @@ export const getDataToSend = () => {
   }))
 }
 
+export const refreshData = () => {
+  console.log('Refreshing data')
+  sendData(getDataToSend())
+}
+
 export const unsubscribeAll = () => {
-  sockets.forEach(unsubscribe => unsubscribe())
+  sockets.forEach(unsubscribe => unsubscribe({ delay: 0, fastClose: true, keepClosed: true }))
   sockets = []
 }
 //--------------------

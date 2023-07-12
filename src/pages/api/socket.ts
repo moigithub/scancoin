@@ -2,7 +2,13 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import type { Server as HTTPServer } from 'http'
 import type { Socket as NetSocket } from 'net'
 import { Server as IOServer } from 'Socket.IO'
-import { unsubscribeAll, getDataToSend, getData, pingTime } from '@/app/binance'
+import {
+  unsubscribeAll,
+  initializeCandles,
+  pingTime,
+  installSockets,
+  refreshData
+} from '@/app/binance'
 
 interface SocketServer extends HTTPServer {
   io?: IOServer | undefined
@@ -25,7 +31,7 @@ export default async function SocketHandler(req: NextApiRequest, res: NextApiRes
     return
   }
 
-  getData(sendData, sendAlert)
+  initializeCandles()
 
   console.log('Setting up socket')
   io = new IOServer(res.socket.server, {
@@ -37,9 +43,8 @@ export default async function SocketHandler(req: NextApiRequest, res: NextApiRes
     console.log('Connection established')
     // socket.broadcast.emit('receive-message', { msg: 'hello' })
 
-    sendData()
-
-    socket.on('get-data', sendData) //refresh btn
+    socket.on('get-data', refreshData) //refresh btn
+    socket.on('reconnect', installSockets) //refresh btn
 
     socket.on('ping', ping)
 
@@ -52,12 +57,11 @@ export default async function SocketHandler(req: NextApiRequest, res: NextApiRes
   res.end()
 }
 
-const sendData = () => {
-  const dataToSend = getDataToSend()
-  console.log('sending data', dataToSend.length)
+export const sendData = (dataToSend: any) => {
+  // console.log('sending data', dataToSend.length)
   io.emit('data', dataToSend)
 }
-const sendAlert = (type: string, data: any) => {
+export const sendAlert = (type: string, data: any) => {
   console.log('sending alert', type, data)
   io.emit(type, data)
 }
