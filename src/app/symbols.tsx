@@ -12,25 +12,35 @@ import {
 import io, { Socket } from 'socket.io-client'
 import { Chart } from './chart'
 import Image from 'next/image'
+import { abort } from 'process'
+
+interface CandleData {
+  time: number | undefined
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+  isFinal: boolean
+  volAverage: number
+  ema20?: number
+  sma50?: number
+  sma200?: number
+  rsi: number
+}
 
 type Symbol = {
   symbol: string
   minNotional: string
   price: number
-  data5m: any[]
-  data15m: any[]
-  data30m: any[]
-  data1h: any[]
-  data4h: any[]
-  data1d: any[]
-  data1w: any[]
-  rsi5m: number
-  rsi15m: number
-  rsi30m: number
-  rsi1h: number
-  rsi4h: number
-  rsi1d: number
-  rsi1w: number
+  data5m: CandleData[]
+  data15m: CandleData[]
+  data30m: CandleData[]
+  data1h: CandleData[]
+  data4h: CandleData[]
+  data1d: CandleData[]
+  data1w: CandleData[]
+
   isRedCandle5m: boolean
   isStopCandle5m: boolean
   isPowerCandle5m: boolean
@@ -77,14 +87,18 @@ export const Symbols = () => {
   const [symbols, setSymbols] = useState<Symbol[]>([])
   const [searchFilter, setSearchFilter] = useState('')
   const [volumeCount, setVolumeCount] = useState(3)
+  const [minRSIFilter, setMinRSIFilter] = useState(30)
+  const [maxRSIFilter, setMaxRSIFilter] = useState(70)
 
   const [pushFilter, setPushFilter] = useState(false)
   const [searchOnlyFilter, setSearchOnlyFilter] = useState(false)
+  const [volumeCountFilter, setVolumeCountFilter] = useState(false)
 
   const [overBoughtFilter, setOverBoughtFilter] = useState(true)
   const [overSoldFilter, setOverSoldFilter] = useState(true)
   const [alerts, setAlerts] = useState<any[]>([])
   const [volumeAlerts, setVolumeAlerts] = useState<any[]>([])
+  const [rsiSelectedSort, setRsiSelectedSort] = useState('5m:desc')
 
   const [btcData0, setBtcData0] = useState<any[]>([])
   const [btcData1, setBtcData1] = useState<any[]>([])
@@ -102,17 +116,24 @@ export const Symbols = () => {
   const pingInterval = useRef<NodeJS.Timer>()
 
   useEffect(() => {
-    socketInitializer()
-
     snd = new Audio(
       'data:audio/wav;base64,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qJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU='
     )
     snd3 = new Audio('./ve.mp3')
     snd2 = new Audio('./co.mp3')
 
-    pingInterval.current = setInterval(() => {
-      socket.emit('ping')
-    }, 20 * 1000) //20 seconds
+    const init = async () => {
+      await socketInitializer()
+      pingInterval.current = setInterval(() => {
+        socket.emit('ping')
+      }, 20 * 1000) //20 seconds
+
+      // initialize rsi
+      socket.emit('setMinRSI', minRSIFilter)
+      socket.emit('setMaxRSI', maxRSIFilter)
+    }
+
+    init()
 
     return () => {
       clearInterval(pingInterval.current)
@@ -255,14 +276,16 @@ export const Symbols = () => {
   const formatAlertMsg = (interval: string, type: string, coin: any) => {
     const time = new Date()
     let mode = ''
-    if (coin[`rsi${interval}`] < 30) {
+    const lastCandle = coin[`data${interval}`][coin[`data${interval}`].length - 1]
+    if (lastCandle.rsi < 30) {
       mode = 'BUY'
     }
-    if (coin[`rsi${interval}`] > 70) {
+    if (lastCandle.rsi > 70) {
       mode = 'SELL'
     }
     const data = {
       time: time.toLocaleTimeString('en-US'),
+      rsi: lastCandle.rsi,
       mode,
       type,
       interval,
@@ -311,7 +334,7 @@ export const Symbols = () => {
               {msg.symbol} {msg.interval}
             </span>{' '}
           </p>
-          <p className='mx-2'>RSI: {msg[`rsi${msg.interval}`]}</p>
+          <p className='mx-2'>RSI: {msg.rsi}</p>
           <p className='mx-2'>VolumeCount: {msg[`prev10CandleVolumeCount${msg.interval}`]}</p>
           <p className='mx-2'>Price:{msg.price}</p>
         </a>
@@ -323,8 +346,23 @@ export const Symbols = () => {
     setSearchOnlyFilter(e.target.checked)
   }
 
+  const handleVolumeCountFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    setVolumeCountFilter(e.target.checked)
+  }
+
   const handlePushFilter = (e: ChangeEvent<HTMLInputElement>) => {
     setPushFilter(e.target.checked)
+  }
+
+  const handleMinRSIFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value)
+    setMinRSIFilter(value)
+    socket.emit('setMinRSI', value)
+  }
+  const handleMaxRSIFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value)
+    setMaxRSIFilter(value)
+    socket.emit('setMaxRSI', value)
   }
 
   const handleOverBoughtFilter = (e: ChangeEvent<HTMLInputElement>) => {
@@ -449,9 +487,26 @@ export const Symbols = () => {
     return status
   }
 
+  const handleSelectSort = (header: string) => {
+    //header = 5m, 15m, 30m, 1h, 4h, 1d, 1w
+    const currentSort = rsiSelectedSort.split(':')
+    let newSort = rsiSelectedSort
+    if (currentSort[0] === header) {
+      const mode = currentSort[1] === 'asc' ? 'desc' : 'asc'
+      newSort = header + ':' + mode
+    } else {
+      newSort = header + ':' + 'desc'
+    }
+    setRsiSelectedSort(newSort)
+  }
+
   let filterSymbols = symbols.filter(s => s.symbol !== 'BTCUSDT')
 
   const BTC = symbols.filter(s => s.symbol === 'BTCUSDT')
+
+  if (searchFilter) {
+    filterSymbols = filterSymbols.filter(s => s.symbol.includes(searchFilter.toUpperCase()))
+  }
 
   if (searchFilter) {
     filterSymbols = filterSymbols.filter(s => s.symbol.includes(searchFilter.toUpperCase()))
@@ -471,54 +526,61 @@ export const Symbols = () => {
       )
     }
 
-    const overBought = 70
-    const overSold = 30
+    filterSymbols = filterSymbols.filter(s => s.symbol.includes(searchFilter.toUpperCase()))
+
     if (overBoughtFilter && overSoldFilter) {
       filterSymbols = filterSymbols.filter(s => {
         return (
-          s.rsi5m > overBought ||
-          s.rsi15m > overBought ||
-          s.rsi30m > overBought ||
-          s.rsi1h > overBought ||
-          s.rsi4h > overBought ||
-          s.rsi1d > overBought ||
-          s.rsi1w > overBought ||
-          s.rsi5m < overSold ||
-          s.rsi15m < overSold ||
-          s.rsi30m < overSold ||
-          s.rsi1h < overSold ||
-          s.rsi4h < overSold ||
-          s.rsi1d < overSold ||
-          s.rsi1w < overSold
+          s.data5m[s.data5m.length - 1]?.rsi > maxRSIFilter ||
+          s.data15m[s.data15m.length - 1]?.rsi > maxRSIFilter ||
+          s.data30m[s.data30m.length - 1]?.rsi > maxRSIFilter ||
+          s.data1h[s.data1h.length - 1]?.rsi > maxRSIFilter ||
+          s.data4h[s.data4h.length - 1]?.rsi > maxRSIFilter ||
+          s.data1d[s.data1d.length - 1]?.rsi > maxRSIFilter ||
+          s.data1w[s.data1w.length - 1]?.rsi > maxRSIFilter ||
+          s.data5m[s.data5m.length - 1]?.rsi < minRSIFilter ||
+          s.data15m[s.data15m.length - 1]?.rsi < minRSIFilter ||
+          s.data30m[s.data30m.length - 1]?.rsi < minRSIFilter ||
+          s.data1h[s.data1h.length - 1]?.rsi < minRSIFilter ||
+          s.data4h[s.data4h.length - 1]?.rsi < minRSIFilter ||
+          s.data1d[s.data1d.length - 1]?.rsi < minRSIFilter ||
+          s.data1w[s.data1w.length - 1]?.rsi < minRSIFilter
         )
       })
     } else if (overBoughtFilter) {
       filterSymbols = filterSymbols.filter(s => {
         return (
-          s.rsi5m > overBought ||
-          s.rsi15m > overBought ||
-          s.rsi30m > overBought ||
-          s.rsi1h > overBought ||
-          s.rsi4h > overBought ||
-          s.rsi1d > overBought ||
-          s.rsi1w > overBought
+          s.data5m[s.data5m.length - 1]?.rsi > maxRSIFilter ||
+          s.data15m[s.data15m.length - 1]?.rsi > maxRSIFilter ||
+          s.data30m[s.data30m.length - 1]?.rsi > maxRSIFilter ||
+          s.data1h[s.data1h.length - 1]?.rsi > maxRSIFilter ||
+          s.data4h[s.data4h.length - 1]?.rsi > maxRSIFilter ||
+          s.data1d[s.data1d.length - 1]?.rsi > maxRSIFilter ||
+          s.data1w[s.data1w.length - 1]?.rsi > maxRSIFilter
         )
       })
     } else if (overSoldFilter) {
       filterSymbols = filterSymbols.filter(s => {
         return (
-          (s.rsi5m > 0 && s.rsi5m < overSold) ||
-          (s.rsi15m > 0 && s.rsi15m < overSold) ||
-          (s.rsi30m > 0 && s.rsi30m < overSold) ||
-          (s.rsi1h > 0 && s.rsi1h < overSold) ||
-          (s.rsi4h > 0 && s.rsi4h < overSold) ||
-          (s.rsi1d > 0 && s.rsi1d < overSold) ||
-          (s.rsi1w > 0 && s.rsi1w < overSold)
+          (s.data5m[s.data5m.length - 1]?.rsi > 0 &&
+            s.data5m[s.data5m.length - 1]?.rsi < minRSIFilter) ||
+          (s.data15m[s.data15m.length - 1]?.rsi > 0 &&
+            s.data15m[s.data15m.length - 1]?.rsi < minRSIFilter) ||
+          (s.data30m[s.data30m.length - 1]?.rsi > 0 &&
+            s.data30m[s.data30m.length - 1]?.rsi < minRSIFilter) ||
+          (s.data1h[s.data1h.length - 1]?.rsi > 0 &&
+            s.data1h[s.data1h.length - 1]?.rsi < minRSIFilter) ||
+          (s.data4h[s.data4h.length - 1]?.rsi > 0 &&
+            s.data4h[s.data4h.length - 1]?.rsi < minRSIFilter) ||
+          (s.data1d[s.data1d.length - 1]?.rsi > 0 &&
+            s.data1d[s.data1d.length - 1]?.rsi < minRSIFilter) ||
+          (s.data1w[s.data1w.length - 1]?.rsi > 0 &&
+            s.data1w[s.data1w.length - 1]?.rsi < minRSIFilter)
         )
       })
     }
 
-    if (volumeCount > 0) {
+    if (volumeCountFilter) {
       filterSymbols = filterSymbols.filter(s => {
         return (
           s.prev10CandleVolumeCount5m >= volumeCount ||
@@ -532,9 +594,111 @@ export const Symbols = () => {
       })
     }
   }
+
+  const getData = (d: any) => {
+    return {
+      symbol: d.symbol,
+      price: d.price,
+      rsi5m: d.data5m[d.data5m.length - 1]?.rsi ?? 0,
+      rsi15m: d.data15m[d.data15m.length - 1]?.rsi ?? 0,
+      rsi30m: d.data30m[d.data30m.length - 1]?.rsi ?? 0,
+      rsi1h: d.data1h[d.data1h.length - 1]?.rsi ?? 0,
+      rsi4h: d.data4h[d.data4h.length - 1]?.rsi ?? 0,
+      rsi1d: d.data1d[d.data1d.length - 1]?.rsi ?? 0,
+      rsi1w: d.data1w[d.data1w.length - 1]?.rsi ?? 0,
+      prev10CandleVolumeCount5m: d.prev10CandleVolumeCount5m,
+      prev10CandleVolumeCount15m: d.prev10CandleVolumeCount15m,
+      prev10CandleVolumeCount30m: d.prev10CandleVolumeCount30m,
+      prev10CandleVolumeCount1h: d.prev10CandleVolumeCount1h,
+      prev10CandleVolumeCount4h: d.prev10CandleVolumeCount4h,
+      prev10CandleVolumeCount1d: d.prev10CandleVolumeCount1d,
+      prev10CandleVolumeCount1w: d.prev10CandleVolumeCount1w,
+      isRedCandle5m: d.isRedCandle5m,
+      isRedCandle15m: d.isRedCandle15m,
+      isRedCandle30m: d.isRedCandle30m,
+      isRedCandle1h: d.isRedCandle1h,
+      isRedCandle4h: d.isRedCandle4h,
+      isRedCandle1d: d.isRedCandle1d,
+      isRedCandle1w: d.isRedCandle1w,
+
+      isStopCandle5m: d.isStopCandle5m,
+      isStopCandle15m: d.isStopCandle15m,
+      isStopCandle30m: d.isStopCandle30m,
+      isStopCandle1h: d.isStopCandle1h,
+      isStopCandle4h: d.isStopCandle4h,
+      isStopCandle1d: d.isStopCandle1d,
+      isStopCandle1w: d.isStopCandle1w,
+
+      isPowerCandle5m: d.isPowerCandle5m,
+      isPowerCandle15m: d.isPowerCandle15m,
+      isPowerCandle30m: d.isPowerCandle30m,
+      isPowerCandle1h: d.isPowerCandle1h,
+      isPowerCandle4h: d.isPowerCandle4h,
+      isPowerCandle1d: d.isPowerCandle1d,
+      isPowerCandle1w: d.isPowerCandle1w,
+
+      isBiggerThanPrevious5m: d.isBiggerThanPrevious5m,
+      isBiggerThanPrevious15m: d.isBiggerThanPrevious15m,
+      isBiggerThanPrevious30m: d.isBiggerThanPrevious30m,
+      isBiggerThanPrevious1h: d.isBiggerThanPrevious1h,
+      isBiggerThanPrevious4h: d.isBiggerThanPrevious4h,
+      isBiggerThanPrevious1d: d.isBiggerThanPrevious1d,
+      isBiggerThanPrevious1w: d.isBiggerThanPrevious1w
+    }
+  }
+
+  const dataSymbols = filterSymbols.map(getData).sort((a: any, b: any) => {
+    const currentSort = rsiSelectedSort.split(':')
+    if (currentSort[0] === '5m') {
+      if (currentSort[1] === 'asc') {
+        return a.rsi5m - b.rsi5m
+      } else {
+        return b.rsi5m - a.rsi5m
+      }
+    } else if (currentSort[0] === '15m') {
+      if (currentSort[1] === 'asc') {
+        return a.rsi15m - b.rsi15m
+      } else {
+        return b.rsi15m - a.rsi15m
+      }
+    } else if (currentSort[0] === '30m') {
+      if (currentSort[1] === 'asc') {
+        return a.rsi30m - b.rsi30m
+      } else {
+        return b.rsi30m - a.rsi30m
+      }
+    } else if (currentSort[0] === '1h') {
+      if (currentSort[1] === 'asc') {
+        return a.rsi1h - b.rsi1h
+      } else {
+        return b.rsi1h - a.rsi1h
+      }
+    } else if (currentSort[0] === '4h') {
+      if (currentSort[1] === 'asc') {
+        return a.rsi4h - b.rsi4h
+      } else {
+        return b.rsi4h - a.rsi4h
+      }
+    } else if (currentSort[0] === '1d') {
+      if (currentSort[1] === 'asc') {
+        return a.rsi1d - b.rsi1d
+      } else {
+        return b.rsi1d - a.rsi1d
+      }
+    } else if (currentSort[0] === '1w') {
+      if (currentSort[1] === 'asc') {
+        return a.rsi1w - b.rsi1w
+      } else {
+        return b.rsi1w - a.rsi1w
+      }
+    }
+    return 0
+  })
+  const dataBTC = BTC.map(getData)
+
   return (
     <div className='p-3 flex'>
-      <div className='p-1 flex flex-col min-w-[1200px]'>
+      <div className='p-1 flex flex-col' style={{ width: 'calc(100% - 300px)' }}>
         <div className='charts flex flex-col'>
           <div className='chart-group flex'>
             <div className='chart m-2 flex-1' id='chart-btc0'>
@@ -881,6 +1045,12 @@ export const Symbols = () => {
               Search symbol
             </label>
             <input
+              type='checkbox'
+              id='filter-searchOnly'
+              checked={searchOnlyFilter}
+              onChange={handleSearchOnlyFilter}
+            />
+            <input
               type='text'
               id='filter-search'
               className='bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
@@ -888,13 +1058,38 @@ export const Symbols = () => {
               onChange={handleSearchFilter}
             />
           </div>
-          <div className='group mx-5'>
-            <label htmlFor='filter-searchOnly'>Search only</label>
+          <div className='rsi-min my-2'>
+            <label
+              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+              htmlFor='rsi-min'
+            >
+              Min RSI (oversold)
+            </label>
             <input
-              type='checkbox'
-              id='filter-searchOnly'
-              checked={searchOnlyFilter}
-              onChange={handleSearchOnlyFilter}
+              type='number'
+              id='filter-minrsi'
+              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+              min={0}
+              max={100}
+              value={minRSIFilter}
+              onChange={handleMinRSIFilter}
+            />
+          </div>
+          <div className='rsi-max my-2'>
+            <label
+              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+              htmlFor='rsi-max'
+            >
+              Max RSI (overbought)
+            </label>
+            <input
+              type='number'
+              id='filter-maxrsi'
+              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+              min={0}
+              max={100}
+              value={maxRSIFilter}
+              onChange={handleMaxRSIFilter}
             />
           </div>
           <div className='search my-2'>
@@ -902,15 +1097,22 @@ export const Symbols = () => {
               className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
               htmlFor='volume-count'
             >
-              Search symbol
+              Volume Count
             </label>
+            <input
+              type='checkbox'
+              id='filter-volCount'
+              checked={volumeCountFilter}
+              onChange={handleVolumeCountFilter}
+            />
+
             <input
               type='number'
               step={1}
               min={0}
               max={10}
               id='volume-count'
-              className='bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
               value={volumeCount}
               onChange={handleVolumeCount}
             />
@@ -981,7 +1183,7 @@ export const Symbols = () => {
                 colSpan={7}
                 className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
-                RSI
+                RSI ({rsiSelectedSort})
               </th>
               <th
                 colSpan={7}
@@ -998,25 +1200,46 @@ export const Symbols = () => {
               <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 Curr.Price
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th
+                onClick={() => handleSelectSort('5m')}
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+              >
                 5min
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th
+                onClick={() => handleSelectSort('15m')}
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+              >
                 15min
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th
+                onClick={() => handleSelectSort('30m')}
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+              >
                 30min
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th
+                onClick={() => handleSelectSort('1h')}
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+              >
                 1Hra
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th
+                onClick={() => handleSelectSort('4h')}
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+              >
                 4Hra
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th
+                onClick={() => handleSelectSort('1d')}
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+              >
                 Dia
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th
+                onClick={() => handleSelectSort('1w')}
+                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+              >
                 1w
               </th>
               <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
@@ -1044,66 +1267,80 @@ export const Symbols = () => {
             </tr>
           </thead>
           <tbody>
-            {BTC.length > 0 && (
-              <tr key={BTC[0].symbol}>
+            {dataBTC.length > 0 && (
+              <tr key={dataBTC[0].symbol} className='border-2 border-red-500'>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   {/* <a
-                    href={`https://www.tradingview.com/symbols/${BTC[0].symbol}/?exchange=BINANCE`}
+                    href={`https://www.tradingview.com/symbols/${dataBTC[0].symbol}/?exchange=BINANCE`}
                     target='_blank'
                   >
-                    {BTC[0].symbol}
+                    {dataBTC[0].symbol}
                   </a> */}
                   <a
-                    href={`https://www.tradingview.com/chart?symbol=BINANCE:${BTC[0].symbol}`}
+                    href={`https://www.tradingview.com/chart?symbol=BINANCE:${dataBTC[0].symbol}`}
                     target='_blank'
                   >
-                    {BTC[0].symbol}
+                    {dataBTC[0].symbol}
                   </a>
                 </td>
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  {BTC[0].price}
+                  {dataBTC[0].price}
                 </td>
                 <td
                   className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{ backgroundColor: getBgColor(BTC[0].rsi5m) }}
+                  style={{
+                    backgroundColor: getBgColor(dataBTC[0].rsi5m)
+                  }}
                 >
-                  {BTC[0].rsi5m}
+                  {dataBTC[0].rsi5m}
                 </td>
                 <td
                   className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{ backgroundColor: getBgColor(BTC[0].rsi15m) }}
+                  style={{
+                    backgroundColor: getBgColor(dataBTC[0].rsi15m)
+                  }}
                 >
-                  {BTC[0].rsi15m}
+                  {dataBTC[0].rsi15m}
                 </td>
                 <td
                   className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{ backgroundColor: getBgColor(BTC[0].rsi30m) }}
+                  style={{
+                    backgroundColor: getBgColor(dataBTC[0].rsi30m)
+                  }}
                 >
-                  {BTC[0].rsi30m}
+                  {dataBTC[0].rsi30m}
                 </td>
                 <td
                   className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{ backgroundColor: getBgColor(BTC[0].rsi1h) }}
+                  style={{
+                    backgroundColor: getBgColor(dataBTC[0].rsi1h)
+                  }}
                 >
-                  {BTC[0].rsi1h}
+                  {dataBTC[0].rsi1h}
                 </td>
                 <td
                   className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{ backgroundColor: getBgColor(BTC[0].rsi4h) }}
+                  style={{
+                    backgroundColor: getBgColor(dataBTC[0].rsi4h)
+                  }}
                 >
-                  {BTC[0].rsi4h}
+                  {dataBTC[0].rsi4h}
                 </td>
                 <td
                   className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{ backgroundColor: getBgColor(BTC[0].rsi1d) }}
+                  style={{
+                    backgroundColor: getBgColor(dataBTC[0].rsi1d)
+                  }}
                 >
-                  {BTC[0].rsi1d}
+                  {dataBTC[0].rsi1d}
                 </td>
                 <td
                   className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{ backgroundColor: getBgColor(BTC[0].rsi1w) }}
+                  style={{
+                    backgroundColor: getBgColor(dataBTC[0].rsi1w)
+                  }}
                 >
-                  {BTC[0].rsi1w}
+                  {dataBTC[0].rsi1w}
                 </td>
 
                 <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
@@ -1112,25 +1349,25 @@ export const Symbols = () => {
                       style={{
                         width: 8,
                         height: 16,
-                        backgroundColor: BTC[0].isRedCandle5m ? 'red' : 'green'
+                        backgroundColor: dataBTC[0].isRedCandle5m ? 'red' : 'green'
                       }}
                     ></span>
-                    {renderIcons(BTC[0], '5m')}
+                    {renderIcons(dataBTC[0], '5m')}
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(BTC[0].symbol, `5m`)}
+                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `5m`)}
                     >
                       1
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(BTC[0].symbol, `5m`)}
+                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `5m`)}
                     >
                       2
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(BTC[0].symbol, `5m`)}
+                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `5m`)}
                     >
                       3
                     </span>
@@ -1142,25 +1379,25 @@ export const Symbols = () => {
                       style={{
                         width: 8,
                         height: 16,
-                        backgroundColor: BTC[0].isRedCandle15m ? 'red' : 'green'
+                        backgroundColor: dataBTC[0].isRedCandle15m ? 'red' : 'green'
                       }}
                     ></span>
-                    {renderIcons(BTC[0], '15m')}
+                    {renderIcons(dataBTC[0], '15m')}
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(BTC[0].symbol, `15m`)}
+                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `15m`)}
                     >
                       1
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(BTC[0].symbol, `15m`)}
+                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `15m`)}
                     >
                       2
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(BTC[0].symbol, `15m`)}
+                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `15m`)}
                     >
                       3
                     </span>
@@ -1172,25 +1409,25 @@ export const Symbols = () => {
                       style={{
                         width: 8,
                         height: 16,
-                        backgroundColor: BTC[0].isRedCandle30m ? 'red' : 'green'
+                        backgroundColor: dataBTC[0].isRedCandle30m ? 'red' : 'green'
                       }}
                     ></span>
-                    {renderIcons(BTC[0], '30m')}
+                    {renderIcons(dataBTC[0], '30m')}
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(BTC[0].symbol, `30m`)}
+                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `30m`)}
                     >
                       1
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(BTC[0].symbol, `30m`)}
+                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `30m`)}
                     >
                       2
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(BTC[0].symbol, `30m`)}
+                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `30m`)}
                     >
                       3
                     </span>
@@ -1202,25 +1439,25 @@ export const Symbols = () => {
                       style={{
                         width: 8,
                         height: 16,
-                        backgroundColor: BTC[0].isRedCandle1h ? 'red' : 'green'
+                        backgroundColor: dataBTC[0].isRedCandle1h ? 'red' : 'green'
                       }}
                     ></span>
-                    {renderIcons(BTC[0], '1h')}
+                    {renderIcons(dataBTC[0], '1h')}
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(BTC[0].symbol, `1h`)}
+                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `1h`)}
                     >
                       1
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(BTC[0].symbol, `1h`)}
+                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `1h`)}
                     >
                       2
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(BTC[0].symbol, `1h`)}
+                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `1h`)}
                     >
                       3
                     </span>
@@ -1232,25 +1469,25 @@ export const Symbols = () => {
                       style={{
                         width: 8,
                         height: 16,
-                        backgroundColor: BTC[0].isRedCandle4h ? 'red' : 'green'
+                        backgroundColor: dataBTC[0].isRedCandle4h ? 'red' : 'green'
                       }}
                     ></span>
-                    {renderIcons(BTC[0], '4h')}
+                    {renderIcons(dataBTC[0], '4h')}
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(BTC[0].symbol, `4h`)}
+                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `4h`)}
                     >
                       1
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(BTC[0].symbol, `4h`)}
+                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `4h`)}
                     >
                       2
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(BTC[0].symbol, `4h`)}
+                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `4h`)}
                     >
                       3
                     </span>
@@ -1262,25 +1499,25 @@ export const Symbols = () => {
                       style={{
                         width: 8,
                         height: 16,
-                        backgroundColor: BTC[0].isRedCandle1d ? 'red' : 'green'
+                        backgroundColor: dataBTC[0].isRedCandle1d ? 'red' : 'green'
                       }}
                     ></span>
-                    {renderIcons(BTC[0], '1d')}
+                    {renderIcons(dataBTC[0], '1d')}
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(BTC[0].symbol, `1d`)}
+                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `1d`)}
                     >
                       1
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(BTC[0].symbol, `1d`)}
+                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `1d`)}
                     >
                       2
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(BTC[0].symbol, `1d`)}
+                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `1d`)}
                     >
                       3
                     </span>
@@ -1292,25 +1529,25 @@ export const Symbols = () => {
                       style={{
                         width: 8,
                         height: 16,
-                        backgroundColor: BTC[0].isRedCandle1w ? 'red' : 'green'
+                        backgroundColor: dataBTC[0].isRedCandle1w ? 'red' : 'green'
                       }}
                     ></span>
-                    {renderIcons(BTC[0], '1w')}
+                    {renderIcons(dataBTC[0], '1w')}
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(BTC[0].symbol, `1w`)}
+                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `1w`)}
                     >
                       1
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(BTC[0].symbol, `1w`)}
+                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `1w`)}
                     >
                       2
                     </span>
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(BTC[0].symbol, `1w`)}
+                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `1w`)}
                     >
                       3
                     </span>
@@ -1320,7 +1557,7 @@ export const Symbols = () => {
               </tr>
             )}
 
-            {filterSymbols.map(coin => {
+            {dataSymbols.map(coin => {
               return (
                 <tr key={coin.symbol}>
                   <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
@@ -1344,43 +1581,57 @@ export const Symbols = () => {
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{ backgroundColor: getBgColor(coin.rsi5m) }}
+                    style={{
+                      backgroundColor: getBgColor(coin.rsi5m)
+                    }}
                   >
                     {coin.rsi5m} ({coin.prev10CandleVolumeCount5m})
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{ backgroundColor: getBgColor(coin.rsi15m) }}
+                    style={{
+                      backgroundColor: getBgColor(coin.rsi15m)
+                    }}
                   >
                     {coin.rsi15m} ({coin.prev10CandleVolumeCount15m})
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{ backgroundColor: getBgColor(coin.rsi30m) }}
+                    style={{
+                      backgroundColor: getBgColor(coin.rsi30m)
+                    }}
                   >
                     {coin.rsi30m} ({coin.prev10CandleVolumeCount30m})
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{ backgroundColor: getBgColor(coin.rsi1h) }}
+                    style={{
+                      backgroundColor: getBgColor(coin.rsi1h)
+                    }}
                   >
                     {coin.rsi1h} ({coin.prev10CandleVolumeCount1h})
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{ backgroundColor: getBgColor(coin.rsi4h) }}
+                    style={{
+                      backgroundColor: getBgColor(coin.rsi4h)
+                    }}
                   >
                     {coin.rsi4h} ({coin.prev10CandleVolumeCount4h})
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{ backgroundColor: getBgColor(coin.rsi1d) }}
+                    style={{
+                      backgroundColor: getBgColor(coin.rsi1d)
+                    }}
                   >
                     {coin.rsi1d} ({coin.prev10CandleVolumeCount1d})
                   </td>
                   <td
                     className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{ backgroundColor: getBgColor(coin.rsi1w) }}
+                    style={{
+                      backgroundColor: getBgColor(coin.rsi1w)
+                    }}
                   >
                     {coin.rsi1w} ({coin.prev10CandleVolumeCount1w})
                   </td>
