@@ -89,6 +89,9 @@ export const Symbols = () => {
   const [volumeCount, setVolumeCount] = useState(3)
   const [minRSIFilter, setMinRSIFilter] = useState(30)
   const [maxRSIFilter, setMaxRSIFilter] = useState(70)
+  const [RSILenFilter, setRSILenFilter] = useState(14)
+  const [volumeLenFilter, setVolumeLenFilter] = useState(30)
+  const [volumeFactorFilter, setVolumeFactorFilter] = useState(2.5)
 
   const [pushFilter, setPushFilter] = useState(false)
   const [searchOnlyFilter, setSearchOnlyFilter] = useState(false)
@@ -131,6 +134,10 @@ export const Symbols = () => {
       // initialize rsi
       socket.emit('setMinRSI', minRSIFilter)
       socket.emit('setMaxRSI', maxRSIFilter)
+      socket.emit('setRSILength', RSILenFilter)
+      // volume factor (used to calculate the candle strength)
+      socket.emit('setVolumeLength', volumeLenFilter)
+      socket.emit('setVolumeFactor', volumeFactorFilter)
     }
 
     init()
@@ -363,6 +370,21 @@ export const Symbols = () => {
     const value = Number(e.target.value)
     setMaxRSIFilter(value)
     socket.emit('setMaxRSI', value)
+  }
+  const handleRSILenFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value)
+    setRSILenFilter(value)
+    socket.emit('setRSILength', value)
+  }
+  const handleVolumeLenFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value)
+    setVolumeLenFilter(value)
+    socket.emit('setVolumeLength', value)
+  }
+  const handleVolumeFactorFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value)
+    setVolumeFactorFilter(value)
+    socket.emit('setVolumeFactor', value)
   }
 
   const handleOverBoughtFilter = (e: ChangeEvent<HTMLInputElement>) => {
@@ -1067,7 +1089,7 @@ export const Symbols = () => {
             </label>
             <input
               type='number'
-              id='filter-minrsi'
+              id='rsi-min'
               className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
               min={0}
               max={100}
@@ -1084,7 +1106,7 @@ export const Symbols = () => {
             </label>
             <input
               type='number'
-              id='filter-maxrsi'
+              id='rsi-max'
               className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
               min={0}
               max={100}
@@ -1092,6 +1114,59 @@ export const Symbols = () => {
               onChange={handleMaxRSIFilter}
             />
           </div>
+          <div className='rsi-len my-2'>
+            <label
+              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+              htmlFor='rsi-len'
+            >
+              RSI Len
+            </label>
+            <input
+              type='number'
+              id='rsi-len'
+              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+              min={1}
+              max={100}
+              value={RSILenFilter}
+              onChange={handleRSILenFilter}
+            />
+          </div>
+          <div className='vol-len my-2'>
+            <label
+              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+              htmlFor='vol-len'
+            >
+              Volume Len
+            </label>
+            <input
+              type='number'
+              id='vol-len'
+              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+              min={5}
+              max={100}
+              value={volumeLenFilter}
+              onChange={handleVolumeLenFilter}
+            />
+          </div>
+          <div className='vol-factor my-2'>
+            <label
+              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+              htmlFor='vol-factor'
+            >
+              Volume factor
+            </label>
+            <input
+              type='number'
+              id='vol-factor'
+              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+              min={1}
+              max={3}
+              step={0.1}
+              value={volumeFactorFilter}
+              onChange={handleVolumeFactorFilter}
+            />
+          </div>
+
           <div className='search my-2'>
             <label
               className='mr-2 text-sm font-medium text-gray-900 dark:text-white'

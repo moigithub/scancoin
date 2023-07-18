@@ -9,7 +9,10 @@ import {
   installSockets,
   refreshData,
   setMinRSI,
-  setMaxRSI
+  setMaxRSI,
+  setRSILength,
+  setVolumeLength,
+  setVolumeFactor
 } from '@/app/binance'
 
 interface SocketServer extends HTTPServer {
@@ -58,6 +61,21 @@ export default async function SocketHandler(req: NextApiRequest, res: NextApiRes
     socket.on('setMaxRSI', (value: number) => {
       console.log('setting max rsi', value, typeof value)
       setMaxRSI(value)
+    })
+
+    socket.on('setRSILength', (value: number) => {
+      console.log('setting max rsi', value, typeof value)
+      setRSILength(value)
+    })
+
+    socket.on('setVolumeLength', (value: number) => {
+      console.log('setting max rsi', value, typeof value)
+      setVolumeLength(value)
+    })
+
+    socket.on('setVolumeFactor', (value: number) => {
+      console.log('setting max rsi', value, typeof value)
+      setVolumeFactor(value)
     })
 
     socket.on('bye', () => {

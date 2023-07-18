@@ -76,13 +76,13 @@ let symbols: Symbol[] = []
 let sockets: ReconnectingWebSocketHandler[] = []
 let exchangeInfo: any = null
 const TOTAL_BTC_CANDLES = 201
-const TOTAL_CANDLES = 31
 const TOTAL_CLIENT_CANDLES = 30 // lo que se manda al cliente, debe ser menor que TOTAL_CANDLES
 let RSI_LENGTH = 14
 let MIN_RSI = 30
 let MAX_RSI = 70
-let VOLUME_LENGTH = RSI_LENGTH // 20 // por ahora usar rsi length
-let VOL_FACTOR = 2 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
+let VOLUME_LENGTH = 30 //  por ahora usar rsi length
+let VOL_FACTOR = 2.5 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
+const TOTAL_CANDLES = Math.max(VOLUME_LENGTH, RSI_LENGTH, TOTAL_CLIENT_CANDLES + 1)
 const includeLastCandleData = true // add incomplete last candle to the data
 let timerHandler: any = null
 
@@ -214,10 +214,10 @@ const getCandles = async (coin: any, interval: MyCandleChartInterval = '15m') =>
   let data
 
   // get more data for BTC to calculate sma/ema
-  let totalCandles = Math.max(TOTAL_CLIENT_CANDLES + 2, TOTAL_CANDLES)
+  let totalCandles = TOTAL_CANDLES
 
   if (coin.symbol === 'BTCUSDT') {
-    totalCandles = Math.max(TOTAL_CLIENT_CANDLES + 2, TOTAL_BTC_CANDLES)
+    totalCandles = Math.max(TOTAL_CANDLES, TOTAL_BTC_CANDLES)
   }
 
   if (USE_FUTURES_DATA) {
@@ -516,6 +516,15 @@ export const setMinRSI = (value: number) => {
 }
 export const setMaxRSI = (value: number) => {
   MAX_RSI = value
+}
+export const setRSILength = (value: number) => {
+  RSI_LENGTH = value
+}
+export const setVolumeLength = (value: number) => {
+  VOLUME_LENGTH = value
+}
+export const setVolumeFactor = (value: number) => {
+  VOL_FACTOR = value
 }
 
 export const pingTime = async () => {
