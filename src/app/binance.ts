@@ -1,20 +1,86 @@
 import { sendAlert, sendData } from '@/pages/api/socket'
-import Binance, {
-  CandleChartInterval_LT,
-  CandleChartResult,
-  Candle,
-  ReconnectingWebSocketHandler
-} from 'binance-api-node'
+import Binance, { CandleChartResult, Candle, ReconnectingWebSocketHandler } from 'binance-api-node'
 import { EMA, RSI, SMA } from 'technicalindicators'
+
+type MyCandleChartInterval = '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w'
+
+interface CandleData {
+  time: number | undefined
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+  isFinal: boolean
+  volAverage: number
+  ema20?: number
+  sma50?: number
+  sma200?: number
+  rsi: number
+}
+
+interface Symbol {
+  symbol: string
+  status: string
+  baseAsset: string
+  minNotional: any //(minNotional as SymbolMinNotionalFilter).minNotional
+  price: number
+  data5m: CandleData[]
+  data15m: CandleData[] // open,high,low,close,volume data de rsiLength velas
+  data30m: CandleData[]
+  data1h: CandleData[]
+  data4h: CandleData[]
+  data1d: CandleData[]
+  data1w: CandleData[]
+
+  isRedCandle5m: boolean
+  isStopCandle5m: boolean //previous candle have high volume, next candle reverse.. showing loosing power
+  isPowerCandle5m: boolean //next candle entering with high volume and reversing
+  isBiggerThanPrevious5m: boolean
+  isRedCandle15m: boolean
+  isStopCandle15m: boolean //previous candle have high volume, next candle reverse.. showing loosing power
+  isPowerCandle15m: boolean //next candle entering with high volume and reversing
+  isBiggerThanPrevious15m: boolean
+  isRedCandle30m: boolean
+  isStopCandle30m: boolean //previous candle have high volume, next candle reverse.. showing loosing power
+  isPowerCandle30m: boolean //next candle entering with high volume and reversing
+  isBiggerThanPrevious30m: boolean
+  isRedCandle1h: boolean
+  isStopCandle1h: boolean //previous candle have high volume, next candle reverse.. showing loosing power
+  isPowerCandle1h: boolean //next candle entering with high volume and reversing
+  isBiggerThanPrevious1h: boolean
+  isRedCandle4h: boolean
+  isStopCandle4h: boolean //previous candle have high volume, next candle reverse.. showing loosing power
+  isPowerCandle4h: boolean //next candle entering with high volume and reversing
+  isBiggerThanPrevious4h: boolean
+  isRedCandle1d: boolean
+  isStopCandle1d: boolean //previous candle have high volume, next candle reverse.. showing loosing power
+  isPowerCandle1d: boolean //next candle entering with high volume and reversing
+  isBiggerThanPrevious1d: boolean
+  isRedCandle1w: boolean
+  isStopCandle1w: boolean //previous candle have high volume, next candle reverse.. showing loosing power
+  isPowerCandle1w: boolean //next candle entering with high volume and reversing
+  isBiggerThanPrevious1w: boolean
+  prev10CandleVolumeCount5m: number
+  prev10CandleVolumeCount15m: number
+  prev10CandleVolumeCount30m: number
+  prev10CandleVolumeCount1h: number
+  prev10CandleVolumeCount4h: number
+  prev10CandleVolumeCount1d: number
+  prev10CandleVolumeCount1w: number
+}
+
 const USE_FUTURES_DATA = true
 const client = Binance()
-let symbols: any[] = []
+let symbols: Symbol[] = []
 let sockets: ReconnectingWebSocketHandler[] = []
 let exchangeInfo: any = null
 const TOTAL_BTC_CANDLES = 201
 const TOTAL_CANDLES = 31
 const TOTAL_CLIENT_CANDLES = 30 // lo que se manda al cliente, debe ser menor que TOTAL_CANDLES
 let RSI_LENGTH = 14
+let MIN_RSI = 30
+let MAX_RSI = 70
 let VOLUME_LENGTH = RSI_LENGTH // 20 // por ahora usar rsi length
 let VOL_FACTOR = 2 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
 const includeLastCandleData = true // add incomplete last candle to the data
@@ -69,13 +135,6 @@ const getSymbols = async () => {
         data4h: [],
         data1d: [],
         data1w: [],
-        rsi5m: 0,
-        rsi15m: 0,
-        rsi30m: 0,
-        rsi1h: 0,
-        rsi4h: 0,
-        rsi1d: 0,
-        rsi1w: 0,
         isRedCandle5m: false,
         isStopCandle5m: false, //previous candle have high volume, next candle reverse.. showing loosing power
         isPowerCandle5m: false, //next candle entering with high volume and reversing
@@ -139,7 +198,7 @@ const populatePrice = async () => {
   })
 }
 
-const getCandles = async (coin: any, interval: CandleChartInterval_LT = '15m') => {
+const getCandles = async (coin: any, interval: MyCandleChartInterval = '15m') => {
   // console.log('getting initial candles', interval)
   // for (let coin of symbols) {
   // console.log('getting candles', coin)
@@ -185,7 +244,7 @@ const getCandles = async (coin: any, interval: CandleChartInterval_LT = '15m') =
 
 //--------------------------------
 type CandleType = Candle & CandleChartResult
-const getCandleData = (candle: Partial<CandleType>) => {
+const getCandleData = (candle: Partial<CandleType>): CandleData => {
   return {
     time: candle.openTime || candle.eventTime,
     open: Number(candle.open),
@@ -194,25 +253,23 @@ const getCandleData = (candle: Partial<CandleType>) => {
     close: Number(candle.close),
     volume: Number(candle.volume),
     isFinal: candle.isFinal ?? true,
-    volAverage: 0
+    volAverage: 0,
+    rsi: 0
   }
 }
 
 //---------------------------------------
-const calculateRSI = (values = []) => {
+const calculateRSI = (values: number[] = []) => {
   return RSI.calculate({ values, period: RSI_LENGTH })
 }
 
-const getLastRSIValue = (values = []) => {
+const getLastRSIValue = (values: number[] = []) => {
   const rsi = calculateRSI(values)
   return rsi.length > 0 ? rsi[rsi.length - 1] : 0
 }
 
-const addExtraCandleData = (coin: any, interval: CandleChartInterval_LT = '15m') => {
+const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m') => {
   const data = coin[`data${interval}`]
-  // calc rsi
-  const close = data.map((val: any) => Number(val.close))
-  coin[`rsi${interval}`] = getLastRSIValue(close)
 
   // isRedCandle
   const lastCandle = data[data.length - 1]
@@ -231,6 +288,9 @@ const addExtraCandleData = (coin: any, interval: CandleChartInterval_LT = '15m')
   const volAverage = volSMA[volSMA.length - 1] ?? 0
   const prevVolume = volume[volume.length - 2] ?? 0
 
+  // calc rsi
+  const close = data.map((val: any) => Number(val.close))
+
   const ema20 = EMA.calculate({ period: 20, values: close })
   const sma50 = SMA.calculate({ period: 50, values: close })
   const sma200 = SMA.calculate({ period: 200, values: close })
@@ -244,21 +304,22 @@ const addExtraCandleData = (coin: any, interval: CandleChartInterval_LT = '15m')
     volAverage,
     ema20: ema20last,
     sma50: sma50last,
-    sma200: sma200last
+    sma200: sma200last,
+    rsi: getLastRSIValue(close)
   }
 
   // prev candle have high volume
   const prevCandleHighVolume = prevVolume > volAverage * VOL_FACTOR
 
   // prev candle high volume, change candle color--- showing loosing power or attemp to reverse
-  coin[`isStopCandle${interval}`] = prevCandleHighVolume && isPrevCandleGreen && isLastCandleRed
+  coin[`isStopCandle${interval}`] = prevCandleHighVolume && isPrevCandleGreen === isLastCandleRed
   //----------------------------
   // isPowerCandle
   const lastVolume = volume[volume.length - 1] ?? 0
   const lastCandleHighVolume = lastVolume > volAverage * VOL_FACTOR
 
   // last candle high volume, change candle color--- showing interest, things gonna move!
-  coin[`isPowerCandle${interval}`] = lastCandleHighVolume && isPrevCandleGreen && isLastCandleRed
+  coin[`isPowerCandle${interval}`] = lastCandleHighVolume && isPrevCandleGreen === isLastCandleRed
   //----------------------------
   // isBiggerThanPrevious
   const lastCandleBodySize = lastCandle ? Math.abs(lastCandle.open - lastCandle.close) : 0
@@ -290,7 +351,7 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
       ]
       */
 
-  const interval = candle.interval as CandleChartInterval_LT
+  const interval = candle.interval as MyCandleChartInterval
   const symbol = candle.symbol
   const coin = symbols.find(s => s.symbol === symbol)
   if (!coin) return // symbol doesnt exist
@@ -299,6 +360,7 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
   const candleData = getCandleData(candle)
   const count = coin[`data${interval}`].length
   const lastCandle = coin[`data${interval}`][count - 1]
+  const prevCandle = coin[`data${interval}`][count - 2]
 
   if (candle.isFinal) {
     // append data at the end
@@ -325,8 +387,9 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
   }
 
   // set coin price
-  coin.price = candle.close
+  coin.price = Number(candle.close)
 
+  // add extra data like, ema,sma,ispowercandle,isbigger,isstop etc
   addExtraCandleData(coin, interval)
 
   // --------------------------
@@ -336,7 +399,10 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
     if (
       coin[`isPowerCandle${interval}`] &&
       coin[`isBiggerThanPrevious${interval}`] &&
-      (coin[`rsi${interval}`] > 70 || coin[`rsi${interval}`] < 30)
+      (lastCandle.rsi > MAX_RSI ||
+        lastCandle.rsi < MIN_RSI ||
+        prevCandle.rsi > MAX_RSI ||
+        prevCandle.rsi < MIN_RSI)
     ) {
       sendAlert(`alert:powercandle:${interval}`, coin)
     }
@@ -445,6 +511,13 @@ export const installSockets = () => {
   console.log('sockets installed', sockets.length)
 }
 
+export const setMinRSI = (value: number) => {
+  MIN_RSI = value
+}
+export const setMaxRSI = (value: number) => {
+  MAX_RSI = value
+}
+
 export const pingTime = async () => {
   const time = await client.time()
   console.log('ping time', time)
@@ -463,13 +536,7 @@ const getDataToSend = () => {
     data4h: coin.data4h.slice(-TOTAL_CLIENT_CANDLES),
     data1d: coin.data1d.slice(-TOTAL_CLIENT_CANDLES),
     data1w: coin.data1w.slice(-TOTAL_CLIENT_CANDLES),
-    rsi5m: coin.rsi5m,
-    rsi15m: coin.rsi15m,
-    rsi30m: coin.rsi30m,
-    rsi1h: coin.rsi1h,
-    rsi4h: coin.rsi4h,
-    rsi1d: coin.rsi1d,
-    rsi1w: coin.rsi1w,
+
     isRedCandle5m: coin.isRedCandle5m,
     isStopCandle5m: coin.isStopCandle5m,
     isPowerCandle5m: coin.isPowerCandle5m,

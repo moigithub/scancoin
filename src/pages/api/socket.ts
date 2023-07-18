@@ -7,7 +7,9 @@ import {
   initializeCandles,
   pingTime,
   installSockets,
-  refreshData
+  refreshData,
+  setMinRSI,
+  setMaxRSI
 } from '@/app/binance'
 
 interface SocketServer extends HTTPServer {
@@ -47,6 +49,16 @@ export default async function SocketHandler(req: NextApiRequest, res: NextApiRes
     socket.on('reconnect', installSockets) //refresh btn
 
     socket.on('ping', ping)
+
+    socket.on('setMinRSI', (value: number) => {
+      console.log('setting min rsi', value, typeof value)
+      setMinRSI(value)
+    })
+
+    socket.on('setMaxRSI', (value: number) => {
+      console.log('setting max rsi', value, typeof value)
+      setMaxRSI(value)
+    })
 
     socket.on('bye', () => {
       unsubscribeAll()
