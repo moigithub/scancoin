@@ -77,6 +77,10 @@ type Symbol = {
   prev10CandleVolumeCount1d: number
   prev10CandleVolumeCount1w: number
 }
+enum ALERT_TYPE {
+  'alert' = 'alert',
+  'volume' = 'volume'
+}
 
 let socket: Socket
 let snd: any = null
@@ -220,62 +224,62 @@ export const Symbols = () => {
     })
 
     socket.on('alert:powercandle:5m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('5m', 'Alert', coin), ...m])
+      setAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.alert, coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:powercandle:15m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('15m', 'Alert', coin), ...m])
+      setAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.alert, coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:powercandle:30m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('30m', 'Alert', coin), ...m])
+      setAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.alert, coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:powercandle:1h', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1h', 'Alert', coin), ...m])
+      setAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.alert, coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:powercandle:4h', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('4h', 'Alert', coin), ...m])
+      setAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.alert, coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:powercandle:1d', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1d', 'Alert', coin), ...m])
+      setAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.alert, coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:powercandle:1w', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1w', 'Alert', coin), ...m])
+      setAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.alert, coin), ...m])
       if (snd) snd.play()
     })
 
     // volume count alert
 
     socket.on('alert:volumecount:5m', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('5m', 'Vol', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.volume, coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:volumecount:15m', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('15m', 'Vol', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.volume, coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:volumecount:30m', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('30m', 'Vol', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.volume, coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:volumecount:1h', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('1h', 'Vol', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.volume, coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:volumecount:4h', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('4h', 'Vol', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.volume, coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:volumecount:1d', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('1d', 'Vol', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.volume, coin), ...m])
       if (snd) snd.play()
     })
     socket.on('alert:volumecount:1w', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('1w', 'Vol', coin), ...m])
+      setVolumeAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.volume, coin), ...m])
       if (snd) snd.play()
     })
   }
@@ -303,8 +307,15 @@ export const Symbols = () => {
   }
 
   const renderMessage = (msg: any, index: number) => {
+    const type = msg.type === ALERT_TYPE.alert ? 'Alert' : 'Volume'
+
     return (
-      <li key={index} className='my-2 border border-amber-500 '>
+      <li
+        key={index}
+        className={`my-2 border ${
+          msg.type === ALERT_TYPE.alert ? 'border-red-500' : 'border-amber-500'
+        }`}
+      >
         <span
           className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
           onClick={() => handleChangeInterval1(msg.symbol, msg.interval)}
@@ -333,7 +344,7 @@ export const Symbols = () => {
           <p>
             <span className='mx-2'>{msg.time}</span>
             <span className='mx-2'>
-              {msg.mode} {msg.type}
+              {msg.mode} {type}
             </span>
           </p>
           <p>
