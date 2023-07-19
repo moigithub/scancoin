@@ -309,7 +309,8 @@ export const Symbols = () => {
       mode,
       type,
       interval,
-      ...lastCandle
+      ...lastCandle,
+      ...coin
     }
     console.log('alert', data)
     return data
@@ -343,14 +344,7 @@ export const Symbols = () => {
       default:
         type = ''
     }
-
-    const data = msg[`data${msg.interval}`] ?? []
-    const totalCandles = data.length
-
-    if (totalCandles === 0) return null
-
-    const lastCandle = data[totalCandles - 1]
-
+    console.log('renderalert', msg)
     return (
       <li key={index} className={`my-2 border ${getBorderColorByAlertType(msg.type)}`}>
         <span
@@ -390,9 +384,9 @@ export const Symbols = () => {
             </span>
           </p>
           <p className='mx-2'>RSI: {msg.rsi}</p>
-          <p className='mx-2'>VolAvg: {lastCandle.volAverage}</p>
+          {/* <p className='mx-2'>VolAvg: {msg.volAverage}</p> */}
           <p className='mx-2'>VolumeCount: {msg.prev10CandleVolumeCount}</p>
-          <p className='mx-2'>Price:{msg.price}</p>
+          <p className='mx-2'>Price:{msg.close}</p>
         </a>
       </li>
     )
@@ -523,55 +517,69 @@ export const Symbols = () => {
     } //'Stop'
 
     //' SuperPush' // vol inc, bigger candle
-    if (
-      (lastCandle.isPowerCandle && lastCandle.isBiggerThanPrevious) ||
-      (prevCandle.isPowerCandle && prevCandle.isBiggerThanPrevious)
-    ) {
+    if (lastCandle.isPowerCandle && lastCandle.isBiggerThanPrevious) {
       // entrando volumen
 
       status.push(
         <span
+          key={`${coin.symbol}${interval}:last:superpush`}
           style={{
             padding: 0,
             flexShrink: 0,
             transform: lastCandle.isRedCandle ? 'rotate(90deg)' : 'none'
           }}
         >
-          <Image
-            alt='superpush'
-            key={`${coin.symbol}${interval}:superpush`}
-            src='/assets/superpush.png'
-            width={24}
-            height={24}
-          />
+          <Image alt='superpush' src='/assets/superpush.png' width={24} height={24} />
+        </span>
+      )
+    }
+    if (prevCandle.isPowerCandle && prevCandle.isBiggerThanPrevious) {
+      // entrando volumen
+
+      status.push(
+        <span
+          key={`${coin.symbol}${interval}:prev:superpush`}
+          style={{
+            padding: 0,
+            flexShrink: 0,
+            transform: prevCandle.isRedCandle ? 'rotate(90deg)' : 'none'
+          }}
+        >
+          <Image alt='superpush' src='/assets/superpush.png' width={24} height={24} />
         </span>
       )
     }
 
     //'Push' // vol inc
-    if (
-      (lastCandle.isPowerCandle && !lastCandle.isBiggerThanPrevious) ||
-      (prevCandle.isPowerCandle && !prevCandle.isBiggerThanPrevious)
-    ) {
+    if (lastCandle.isPowerCandle && !lastCandle.isBiggerThanPrevious) {
       status.push(
         <span
+          key={`${coin.symbol}${interval}:last:push`}
           style={{
             padding: 0,
             flexShrink: 0,
             transform: lastCandle.isRedCandle ? 'rotate(90deg)' : 'none'
           }}
         >
-          <Image
-            alt='push'
-            key={`${coin.symbol}${interval}:push`}
-            src='/assets/push.png'
-            width={24}
-            height={24}
-          />
+          <Image alt='push' src='/assets/push.png' width={24} height={24} />
         </span>
       )
     }
 
+    if (prevCandle.isPowerCandle && !prevCandle.isBiggerThanPrevious) {
+      status.push(
+        <span
+          key={`${coin.symbol}${interval}:prev:push`}
+          style={{
+            padding: 0,
+            flexShrink: 0,
+            transform: prevCandle.isRedCandle ? 'rotate(90deg)' : 'none'
+          }}
+        >
+          <Image alt='push' src='/assets/push.png' width={24} height={24} />
+        </span>
+      )
+    }
     return status
   }
 
@@ -612,13 +620,13 @@ export const Symbols = () => {
         const lastCandle1w = s[`data1w`][s[`data1w`].length - 1]
 
         return (
-          lastCandle5m.isPowerCandle ||
-          lastCandle15m.isPowerCandle ||
-          lastCandle30m.isPowerCandle ||
-          lastCandle1h.isPowerCandle ||
-          lastCandle4h.isPowerCandle ||
-          lastCandle1d.isPowerCandle ||
-          lastCandle1w.isPowerCandle
+          lastCandle5m?.isPowerCandle ||
+          lastCandle15m?.isPowerCandle ||
+          lastCandle30m?.isPowerCandle ||
+          lastCandle1h?.isPowerCandle ||
+          lastCandle4h?.isPowerCandle ||
+          lastCandle1d?.isPowerCandle ||
+          lastCandle1w?.isPowerCandle
         )
       })
     }
@@ -680,13 +688,13 @@ export const Symbols = () => {
     if (volumeCountFilter) {
       filterSymbols = filterSymbols.filter(s => {
         return (
-          s.data5m[s.data5m.length - 1].prev10CandleVolumeCount >= volumeCount ||
-          s.data15m[s.data15m.length - 1].prev10CandleVolumeCount >= volumeCount ||
-          s.data30m[s.data30m.length - 1].prev10CandleVolumeCount >= volumeCount ||
-          s.data1h[s.data1h.length - 1].prev10CandleVolumeCount >= volumeCount ||
-          s.data4h[s.data4h.length - 1].prev10CandleVolumeCount >= volumeCount ||
-          s.data1d[s.data1d.length - 1].prev10CandleVolumeCount >= volumeCount ||
-          s.data1w[s.data1w.length - 1].prev10CandleVolumeCount >= volumeCount
+          s.data5m[s.data5m.length - 1]?.prev10CandleVolumeCount >= volumeCount ||
+          s.data15m[s.data15m.length - 1]?.prev10CandleVolumeCount >= volumeCount ||
+          s.data30m[s.data30m.length - 1]?.prev10CandleVolumeCount >= volumeCount ||
+          s.data1h[s.data1h.length - 1]?.prev10CandleVolumeCount >= volumeCount ||
+          s.data4h[s.data4h.length - 1]?.prev10CandleVolumeCount >= volumeCount ||
+          s.data1d[s.data1d.length - 1]?.prev10CandleVolumeCount >= volumeCount ||
+          s.data1w[s.data1w.length - 1]?.prev10CandleVolumeCount >= volumeCount
         )
       })
     }
@@ -1325,93 +1333,92 @@ export const Symbols = () => {
           </div>
         </div>
         <div className='flex'></div>
-        <table className='table-auto min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-slate-500'>
+        <table className='table-auto min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-blue-500'>
           <thead>
             <tr>
               <th colSpan={2}>Symbol</th>
 
               <th
                 colSpan={7}
-                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 RSI ({rsiSelectedSort})
               </th>
               <th
                 colSpan={7}
-                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 candle status
               </th>
-              <th></th>
             </tr>
             <tr>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 Name
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 Curr.Price
               </th>
               <th
                 onClick={() => handleSelectSort('5m')}
-                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 5min
               </th>
               <th
                 onClick={() => handleSelectSort('15m')}
-                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 15min
               </th>
               <th
                 onClick={() => handleSelectSort('30m')}
-                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 30min
               </th>
               <th
                 onClick={() => handleSelectSort('1h')}
-                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 1Hra
               </th>
               <th
                 onClick={() => handleSelectSort('4h')}
-                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 4Hra
               </th>
               <th
                 onClick={() => handleSelectSort('1d')}
-                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 Dia
               </th>
               <th
                 onClick={() => handleSelectSort('1w')}
-                className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 1w
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 5m
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 15m
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 30m
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 1h
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 4h
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 1d
               </th>
-              <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 1w
               </th>
             </tr>
@@ -1419,7 +1426,7 @@ export const Symbols = () => {
           <tbody>
             {dataBTC.length > 0 && (
               <tr key={dataBTC[0].symbol} className='border-2 border-red-500'>
-                <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   {/* <a
                     href={`https://www.tradingview.com/symbols/${dataBTC[0].symbol}/?exchange=BINANCE`}
                     target='_blank'
@@ -1433,11 +1440,11 @@ export const Symbols = () => {
                     {dataBTC[0].symbol}
                   </a>
                 </td>
-                <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   {dataBTC[0].price}
                 </td>
                 <td
-                  className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                   style={{
                     backgroundColor: getBgColor(dataBTC[0].rsi5m)
                   }}
@@ -1445,7 +1452,7 @@ export const Symbols = () => {
                   {dataBTC[0].rsi5m}
                 </td>
                 <td
-                  className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                   style={{
                     backgroundColor: getBgColor(dataBTC[0].rsi15m)
                   }}
@@ -1453,7 +1460,7 @@ export const Symbols = () => {
                   {dataBTC[0].rsi15m}
                 </td>
                 <td
-                  className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                   style={{
                     backgroundColor: getBgColor(dataBTC[0].rsi30m)
                   }}
@@ -1461,7 +1468,7 @@ export const Symbols = () => {
                   {dataBTC[0].rsi30m}
                 </td>
                 <td
-                  className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                   style={{
                     backgroundColor: getBgColor(dataBTC[0].rsi1h)
                   }}
@@ -1469,7 +1476,7 @@ export const Symbols = () => {
                   {dataBTC[0].rsi1h}
                 </td>
                 <td
-                  className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                   style={{
                     backgroundColor: getBgColor(dataBTC[0].rsi4h)
                   }}
@@ -1477,7 +1484,7 @@ export const Symbols = () => {
                   {dataBTC[0].rsi4h}
                 </td>
                 <td
-                  className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                   style={{
                     backgroundColor: getBgColor(dataBTC[0].rsi1d)
                   }}
@@ -1485,7 +1492,7 @@ export const Symbols = () => {
                   {dataBTC[0].rsi1d}
                 </td>
                 <td
-                  className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                   style={{
                     backgroundColor: getBgColor(dataBTC[0].rsi1w)
                   }}
@@ -1493,7 +1500,7 @@ export const Symbols = () => {
                   {dataBTC[0].rsi1w}
                 </td>
 
-                <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   <div className='flex'>
                     <span
                       style={{
@@ -1523,7 +1530,7 @@ export const Symbols = () => {
                     </span>
                   </div>
                 </td>
-                <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   <div className='flex'>
                     <span
                       style={{
@@ -1553,7 +1560,7 @@ export const Symbols = () => {
                     </span>
                   </div>
                 </td>
-                <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   <div className='flex'>
                     <span
                       style={{
@@ -1583,7 +1590,7 @@ export const Symbols = () => {
                     </span>
                   </div>
                 </td>
-                <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   <div className='flex'>
                     <span
                       style={{
@@ -1613,7 +1620,7 @@ export const Symbols = () => {
                     </span>
                   </div>
                 </td>
-                <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   <div className='flex'>
                     <span
                       style={{
@@ -1643,7 +1650,7 @@ export const Symbols = () => {
                     </span>
                   </div>
                 </td>
-                <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   <div className='flex'>
                     <span
                       style={{
@@ -1673,7 +1680,7 @@ export const Symbols = () => {
                     </span>
                   </div>
                 </td>
-                <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   <div className='flex'>
                     <span
                       style={{
@@ -1709,7 +1716,7 @@ export const Symbols = () => {
             {dataSymbols.map(coin => {
               return (
                 <tr key={coin.symbol}>
-                  <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                  <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                     {/* <a
                     href={`https://www.tradingview.com/symbols/${coin.symbol}/?exchange=BINANCE`}
                     target='_blank'
@@ -1725,11 +1732,11 @@ export const Symbols = () => {
                       {coin.symbol}
                     </a>
                   </td>
-                  <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                  <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                     {coin.price}
                   </td>
                   <td
-                    className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(coin.rsi5m)
                     }}
@@ -1737,7 +1744,7 @@ export const Symbols = () => {
                     {coin.rsi5m} ({coin.prev10CandleVolumeCount5m})
                   </td>
                   <td
-                    className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(coin.rsi15m)
                     }}
@@ -1745,7 +1752,7 @@ export const Symbols = () => {
                     {coin.rsi15m} ({coin.prev10CandleVolumeCount15m})
                   </td>
                   <td
-                    className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(coin.rsi30m)
                     }}
@@ -1753,7 +1760,7 @@ export const Symbols = () => {
                     {coin.rsi30m} ({coin.prev10CandleVolumeCount30m})
                   </td>
                   <td
-                    className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(coin.rsi1h)
                     }}
@@ -1761,7 +1768,7 @@ export const Symbols = () => {
                     {coin.rsi1h} ({coin.prev10CandleVolumeCount1h})
                   </td>
                   <td
-                    className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(coin.rsi4h)
                     }}
@@ -1769,7 +1776,7 @@ export const Symbols = () => {
                     {coin.rsi4h} ({coin.prev10CandleVolumeCount4h})
                   </td>
                   <td
-                    className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(coin.rsi1d)
                     }}
@@ -1777,7 +1784,7 @@ export const Symbols = () => {
                     {coin.rsi1d} ({coin.prev10CandleVolumeCount1d})
                   </td>
                   <td
-                    className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(coin.rsi1w)
                     }}
@@ -1785,15 +1792,13 @@ export const Symbols = () => {
                     {coin.rsi1w} ({coin.prev10CandleVolumeCount1w})
                   </td>
 
-                  <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: coin.isRedCandle5m ? 'red' : 'green'
+                    }}
+                  >
                     <div className='flex'>
-                      <span
-                        style={{
-                          width: 8,
-                          height: 16,
-                          backgroundColor: coin.isRedCandle5m ? 'red' : 'green'
-                        }}
-                      ></span>
                       {renderIcons(coin, '5m')}
                       <span
                         className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
@@ -1815,15 +1820,13 @@ export const Symbols = () => {
                       </span>
                     </div>
                   </td>
-                  <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: coin.isRedCandle15m ? 'red' : 'green'
+                    }}
+                  >
                     <div className='flex'>
-                      <span
-                        style={{
-                          width: 8,
-                          height: 16,
-                          backgroundColor: coin.isRedCandle15m ? 'red' : 'green'
-                        }}
-                      ></span>
                       {renderIcons(coin, '15m')}
                       <span
                         className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
@@ -1845,15 +1848,13 @@ export const Symbols = () => {
                       </span>
                     </div>
                   </td>
-                  <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: coin.isRedCandle30m ? 'red' : 'green'
+                    }}
+                  >
                     <div className='flex'>
-                      <span
-                        style={{
-                          width: 8,
-                          height: 16,
-                          backgroundColor: coin.isRedCandle30m ? 'red' : 'green'
-                        }}
-                      ></span>
                       {renderIcons(coin, '30m')}
                       <span
                         className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
@@ -1875,15 +1876,13 @@ export const Symbols = () => {
                       </span>
                     </div>
                   </td>
-                  <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
+                    }}
+                  >
                     <div className='flex'>
-                      <span
-                        style={{
-                          width: 8,
-                          height: 16,
-                          backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
-                        }}
-                      ></span>
                       {renderIcons(coin, '1h')}
                       <span
                         className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
@@ -1905,15 +1904,13 @@ export const Symbols = () => {
                       </span>
                     </div>
                   </td>
-                  <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: coin.isRedCandle4h ? 'red' : 'green'
+                    }}
+                  >
                     <div className='flex'>
-                      <span
-                        style={{
-                          width: 8,
-                          height: 16,
-                          backgroundColor: coin.isRedCandle4h ? 'red' : 'green'
-                        }}
-                      ></span>
                       {renderIcons(coin, '4h')}
                       <span
                         className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
@@ -1935,15 +1932,13 @@ export const Symbols = () => {
                       </span>
                     </div>
                   </td>
-                  <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: coin.isRedCandle1d ? 'red' : 'green'
+                    }}
+                  >
                     <div className='flex'>
-                      <span
-                        style={{
-                          width: 8,
-                          height: 16,
-                          backgroundColor: coin.isRedCandle1d ? 'red' : 'green'
-                        }}
-                      ></span>
                       {renderIcons(coin, '1d')}
                       <span
                         className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
@@ -1965,15 +1960,13 @@ export const Symbols = () => {
                       </span>
                     </div>
                   </td>
-                  <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: coin.isRedCandle1w ? 'red' : 'green'
+                    }}
+                  >
                     <div className='flex'>
-                      <span
-                        style={{
-                          width: 8,
-                          height: 16,
-                          backgroundColor: coin.isRedCandle1w ? 'red' : 'green'
-                        }}
-                      ></span>
                       {renderIcons(coin, '1w')}
                       <span
                         className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
