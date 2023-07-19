@@ -73,7 +73,9 @@ const getSymbols = async () => {
 
   const bannedSymbols = [
     'BLURUSDT',
+    'TLMUSDT',
     'XVGUSDT',
+    'LEVERUSDT',
     'FOOTBALLUSDT',
     '1000LUNCUSDT',
     'USDCUSDT',

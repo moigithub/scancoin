@@ -76,6 +76,7 @@ export const Symbols = () => {
   const [overSoldFilter, setOverSoldFilter] = useState(true)
   const [alerts, setAlerts] = useState<any[]>([])
   const [volumeAlerts, setVolumeAlerts] = useState<any[]>([])
+  const [velotaAlerts, setVelotaAlerts] = useState<any[]>([])
   const [rsiSelectedSort, setRsiSelectedSort] = useState('5m:desc')
 
   const [btcData0, setBtcData0] = useState<any[]>([])
@@ -228,31 +229,31 @@ export const Symbols = () => {
     // velotas (powercandle only without rsi)
 
     socket.on('alert:strongcandle:5m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.velotas, coin), ...m])
+      setVelotaAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.velotas, coin), ...m])
       if (sndVelota) sndVelota.play()
     })
     socket.on('alert:strongcandle:15m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.velotas, coin), ...m])
+      setVelotaAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.velotas, coin), ...m])
       if (sndVelota) sndVelota.play()
     })
     socket.on('alert:strongcandle:30m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.velotas, coin), ...m])
+      setVelotaAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.velotas, coin), ...m])
       if (sndVelota) sndVelota.play()
     })
     socket.on('alert:strongcandle:1h', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.velotas, coin), ...m])
+      setVelotaAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.velotas, coin), ...m])
       if (sndVelota) sndVelota.play()
     })
     socket.on('alert:strongcandle:4h', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.velotas, coin), ...m])
+      setVelotaAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.velotas, coin), ...m])
       if (sndVelota) sndVelota.play()
     })
     socket.on('alert:strongcandle:1d', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.velotas, coin), ...m])
+      setVelotaAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.velotas, coin), ...m])
       if (sndVelota) sndVelota.play()
     })
     socket.on('alert:strongcandle:1w', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.velotas, coin), ...m])
+      setVelotaAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.velotas, coin), ...m])
       if (sndVelota) sndVelota.play()
     })
 
@@ -301,11 +302,10 @@ export const Symbols = () => {
     }
     const data = {
       time: time.toLocaleTimeString('en-US'),
-      rsi: lastCandle.rsi,
       mode,
       type,
       interval,
-      ...coin
+      ...lastCandle
     }
     console.log('alert', data)
     return data
@@ -339,6 +339,13 @@ export const Symbols = () => {
       default:
         type = ''
     }
+
+    const data = msg[`data${msg.interval}`] ?? []
+    const totalCandles = data.length
+
+    if (totalCandles === 0) return null
+
+    const lastCandle = data[totalCandles - 1]
 
     return (
       <li key={index} className={`my-2 border ${getBorderColorByAlertType(msg.type)}`}>
@@ -379,8 +386,8 @@ export const Symbols = () => {
             </span>
           </p>
           <p className='mx-2'>RSI: {msg.rsi}</p>
-          <p className='mx-2'>VolAvg: {msg.volAverage}</p>
-          <p className='mx-2'>VolumeCount: {msg[`prev10CandleVolumeCount${msg.interval}`]}</p>
+          <p className='mx-2'>VolAvg: {lastCandle.volAverage}</p>
+          <p className='mx-2'>VolumeCount: {msg.prev10CandleVolumeCount}</p>
           <p className='mx-2'>Price:{msg.price}</p>
         </a>
       </li>
@@ -1257,63 +1264,63 @@ export const Symbols = () => {
               onChange={handleVolumeCount}
             />
           </div>
-          <div className='flex'>
-            <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
-              onClick={() => socket.emit('reconnect')}
-            >
-              Reconnect
-            </button>
+        </div>
+        <div className='flex'>
+          <button
+            className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+            onClick={() => socket.emit('reconnect')}
+          >
+            Reconnect
+          </button>
 
-            <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
-              onClick={() => socket.emit('get-data')}
-            >
-              Refresh
-            </button>
+          <button
+            className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+            onClick={() => socket.emit('get-data')}
+          >
+            Refresh
+          </button>
 
-            <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
-              onClick={() => setAlerts([])}
-            >
-              Clear alerts
-            </button>
-            <button
-              className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
-              onClick={() => setVolumeAlerts([])}
-            >
-              Clear Vol alerts
-            </button>
-            <div className='group mx-5'>
-              <label htmlFor='filter-push'>Show push/superpush only</label>
-              <input
-                type='checkbox'
-                id='filter-push'
-                checked={pushFilter}
-                onChange={handlePushFilter}
-              />
-            </div>
-            <div className='group mx-5'>
-              <label htmlFor='filter-overbought'>Show overbought only</label>
-              <input
-                type='checkbox'
-                id='filter-overbought'
-                checked={overBoughtFilter}
-                onChange={handleOverBoughtFilter}
-              />
-            </div>
-            <div className='group mx-5'>
-              <label htmlFor='filter-oversold'>Show oversold only</label>
-              <input
-                type='checkbox'
-                id='filter-oversold'
-                checked={overSoldFilter}
-                onChange={handleOverSoldFilter}
-              />
-            </div>
+          <button
+            className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+            onClick={() => setAlerts([])}
+          >
+            Clear alerts
+          </button>
+          <button
+            className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
+            onClick={() => setVolumeAlerts([])}
+          >
+            Clear Vol alerts
+          </button>
+          <div className='group mx-5'>
+            <label htmlFor='filter-push'>Show push/superpush only</label>
+            <input
+              type='checkbox'
+              id='filter-push'
+              checked={pushFilter}
+              onChange={handlePushFilter}
+            />
+          </div>
+          <div className='group mx-5'>
+            <label htmlFor='filter-overbought'>Show overbought only</label>
+            <input
+              type='checkbox'
+              id='filter-overbought'
+              checked={overBoughtFilter}
+              onChange={handleOverBoughtFilter}
+            />
+          </div>
+          <div className='group mx-5'>
+            <label htmlFor='filter-oversold'>Show oversold only</label>
+            <input
+              type='checkbox'
+              id='filter-oversold'
+              checked={overSoldFilter}
+              onChange={handleOverSoldFilter}
+            />
           </div>
         </div>
-
+        <div className='flex'></div>
         <table className='table-auto min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-slate-500'>
           <thead>
             <tr>
@@ -2045,6 +2052,7 @@ export const Symbols = () => {
       </div>
       <div className='alerts flex flex-col w-[200px]'>
         <ul className='overflow-y-auto'>{alerts.map(renderMessage)}</ul>
+        <ul className='overflow-y-auto'>{velotaAlerts.map(renderMessage)}</ul>
         <ul className='overflow-y-auto'>{volumeAlerts.map(renderMessage)}</ul>
       </div>
     </div>
