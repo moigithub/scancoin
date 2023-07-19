@@ -17,6 +17,12 @@ interface CandleData {
   sma50?: number
   sma200?: number
   rsi: number
+  isRedCandle: boolean
+  isGreenCandle: boolean
+  isStopCandle: boolean //previous candle have high volume, next candle reverse.. showing loosing power
+  isPowerCandle: boolean //next candle entering with high volume and reversing
+  isBiggerThanPrevious: boolean
+  prev10CandleVolumeCount: number
 }
 
 interface Symbol {
@@ -32,42 +38,6 @@ interface Symbol {
   data4h: CandleData[]
   data1d: CandleData[]
   data1w: CandleData[]
-
-  isRedCandle5m: boolean
-  isStopCandle5m: boolean //previous candle have high volume, next candle reverse.. showing loosing power
-  isPowerCandle5m: boolean //next candle entering with high volume and reversing
-  isBiggerThanPrevious5m: boolean
-  isRedCandle15m: boolean
-  isStopCandle15m: boolean //previous candle have high volume, next candle reverse.. showing loosing power
-  isPowerCandle15m: boolean //next candle entering with high volume and reversing
-  isBiggerThanPrevious15m: boolean
-  isRedCandle30m: boolean
-  isStopCandle30m: boolean //previous candle have high volume, next candle reverse.. showing loosing power
-  isPowerCandle30m: boolean //next candle entering with high volume and reversing
-  isBiggerThanPrevious30m: boolean
-  isRedCandle1h: boolean
-  isStopCandle1h: boolean //previous candle have high volume, next candle reverse.. showing loosing power
-  isPowerCandle1h: boolean //next candle entering with high volume and reversing
-  isBiggerThanPrevious1h: boolean
-  isRedCandle4h: boolean
-  isStopCandle4h: boolean //previous candle have high volume, next candle reverse.. showing loosing power
-  isPowerCandle4h: boolean //next candle entering with high volume and reversing
-  isBiggerThanPrevious4h: boolean
-  isRedCandle1d: boolean
-  isStopCandle1d: boolean //previous candle have high volume, next candle reverse.. showing loosing power
-  isPowerCandle1d: boolean //next candle entering with high volume and reversing
-  isBiggerThanPrevious1d: boolean
-  isRedCandle1w: boolean
-  isStopCandle1w: boolean //previous candle have high volume, next candle reverse.. showing loosing power
-  isPowerCandle1w: boolean //next candle entering with high volume and reversing
-  isBiggerThanPrevious1w: boolean
-  prev10CandleVolumeCount5m: number
-  prev10CandleVolumeCount15m: number
-  prev10CandleVolumeCount30m: number
-  prev10CandleVolumeCount1h: number
-  prev10CandleVolumeCount4h: number
-  prev10CandleVolumeCount1d: number
-  prev10CandleVolumeCount1w: number
 }
 
 const USE_FUTURES_DATA = true
@@ -134,42 +104,7 @@ const getSymbols = async () => {
         data1h: [],
         data4h: [],
         data1d: [],
-        data1w: [],
-        isRedCandle5m: false,
-        isStopCandle5m: false, //previous candle have high volume, next candle reverse.. showing loosing power
-        isPowerCandle5m: false, //next candle entering with high volume and reversing
-        isBiggerThanPrevious5m: false,
-        isRedCandle15m: false,
-        isStopCandle15m: false, //previous candle have high volume, next candle reverse.. showing loosing power
-        isPowerCandle15m: false, //next candle entering with high volume and reversing
-        isBiggerThanPrevious15m: false,
-        isRedCandle30m: false,
-        isStopCandle30m: false, //previous candle have high volume, next candle reverse.. showing loosing power
-        isPowerCandle30m: false, //next candle entering with high volume and reversing
-        isBiggerThanPrevious30m: false,
-        isRedCandle1h: false,
-        isStopCandle1h: false, //previous candle have high volume, next candle reverse.. showing loosing power
-        isPowerCandle1h: false, //next candle entering with high volume and reversing
-        isBiggerThanPrevious1h: false,
-        isRedCandle4h: false,
-        isStopCandle4h: false, //previous candle have high volume, next candle reverse.. showing loosing power
-        isPowerCandle4h: false, //next candle entering with high volume and reversing
-        isBiggerThanPrevious4h: false,
-        isRedCandle1d: false,
-        isStopCandle1d: false, //previous candle have high volume, next candle reverse.. showing loosing power
-        isPowerCandle1d: false, //next candle entering with high volume and reversing
-        isBiggerThanPrevious1d: false,
-        isRedCandle1w: false,
-        isStopCandle1w: false, //previous candle have high volume, next candle reverse.. showing loosing power
-        isPowerCandle1w: false, //next candle entering with high volume and reversing
-        isBiggerThanPrevious1w: false,
-        prev10CandleVolumeCount5m: 0,
-        prev10CandleVolumeCount15m: 0,
-        prev10CandleVolumeCount30m: 0,
-        prev10CandleVolumeCount1h: 0,
-        prev10CandleVolumeCount4h: 0,
-        prev10CandleVolumeCount1d: 0,
-        prev10CandleVolumeCount1w: 0
+        data1w: []
       }
     })
   // .slice(0, 10) //TODO: remove slice
@@ -254,7 +189,13 @@ const getCandleData = (candle: Partial<CandleType>): CandleData => {
     volume: Number(candle.volume),
     isFinal: candle.isFinal ?? true,
     volAverage: 0,
-    rsi: 0
+    rsi: 0,
+    isRedCandle: false,
+    isGreenCandle: false,
+    isStopCandle: false,
+    isPowerCandle: false,
+    isBiggerThanPrevious: false,
+    prev10CandleVolumeCount: 0
   }
 }
 
@@ -275,7 +216,6 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
   const lastCandle = data[data.length - 1]
   const isLastCandleRed = lastCandle ? lastCandle.close < lastCandle.open : false
   const isLastCandleGreen = lastCandle ? lastCandle.close > lastCandle.open : false
-  coin[`isRedCandle${interval}`] = isLastCandleRed
 
   const prevCandle = data[data.length - 2]
   const isPrevCandleRed = prevCandle ? prevCandle.close < prevCandle.open : false
@@ -283,10 +223,11 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
 
   //----------------------------
   // isStopCandle
-  const volume = data.map((val: any) => Number(val.volume))
+  const volume = data.slice(-VOLUME_LENGTH).map((val: any) => Number(val.volume))
   const volSMA = SMA.calculate({ period: VOLUME_LENGTH, values: volume })
   const volAverage = volSMA[volSMA.length - 1] ?? 0
   const prevVolume = volume[volume.length - 2] ?? 0
+  const lastVolume = volume[volume.length - 1] ?? 0
 
   // calc rsi
   const close = data.map((val: any) => Number(val.close))
@@ -298,34 +239,14 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
   const sma50last = sma50[sma50.length - 1] ?? 0
   const sma200last = sma200[sma200.length - 1] ?? 0
 
-  // save vol avg on last candle
-  data[data.length - 1] = {
-    ...data[data.length - 1],
-    volAverage,
-    ema20: ema20last,
-    sma50: sma50last,
-    sma200: sma200last,
-    rsi: getLastRSIValue(close)
-  }
-
-  // prev candle have high volume
   const prevCandleHighVolume = prevVolume > volAverage * VOL_FACTOR
-
-  // prev candle high volume, change candle color--- showing loosing power or attemp to reverse
-  coin[`isStopCandle${interval}`] = prevCandleHighVolume && isPrevCandleGreen === isLastCandleRed
-  //----------------------------
-  // isPowerCandle
-  const lastVolume = volume[volume.length - 1] ?? 0
   const lastCandleHighVolume = lastVolume > volAverage * VOL_FACTOR
 
-  // last candle high volume, change candle color--- showing interest, things gonna move!
-  coin[`isPowerCandle${interval}`] = lastCandleHighVolume && isPrevCandleGreen === isLastCandleRed
   //----------------------------
   // isBiggerThanPrevious
   const lastCandleBodySize = lastCandle ? Math.abs(lastCandle.open - lastCandle.close) : 0
   const prevCandleBodySize = prevCandle ? Math.abs(prevCandle.open - prevCandle.close) : 0
   const lastCandleIsBigger = lastCandleBodySize > prevCandleBodySize
-  coin[`isBiggerThanPrevious${interval}`] = lastCandleIsBigger
 
   // prev 10 candle high volume count
   let prev10CandleVolumeCount = 0
@@ -333,7 +254,24 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
     prev10CandleVolumeCount =
       volume.slice(-10).filter((vol: number) => vol > volAverage * VOL_FACTOR).length ?? 0
   }
-  coin[`prev10CandleVolumeCount${interval}`] = prev10CandleVolumeCount
+
+  // save extra data on last candle
+  data[data.length - 1] = {
+    ...data[data.length - 1],
+    volAverage,
+    ema20: ema20last,
+    sma50: sma50last,
+    sma200: sma200last,
+    rsi: getLastRSIValue(close),
+    isRedCandle: isLastCandleRed,
+    isGreenCandle: isLastCandleGreen,
+    // prev candle high volume, change candle color--- showing loosing power or attemp to reverse
+    isStopCandle: prevCandleHighVolume && isPrevCandleGreen === isLastCandleRed,
+    // last candle high volume, change candle color--- showing interest, things gonna move!
+    isPowerCandle: lastCandleHighVolume && isPrevCandleGreen === isLastCandleRed,
+    isBiggerThanPrevious: lastCandleIsBigger,
+    prev10CandleVolumeCount: prev10CandleVolumeCount
+  }
 }
 
 const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle: Candle) => {
@@ -397,8 +335,8 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
   // --------------------------
   if (candle.isFinal) {
     if (
-      coin[`isPowerCandle${interval}`] &&
-      coin[`isBiggerThanPrevious${interval}`] &&
+      lastCandle.isPowerCandle &&
+      lastCandle.isBiggerThanPrevious &&
       (lastCandle.rsi > MAX_RSI ||
         lastCandle.rsi < MIN_RSI ||
         prevCandle.rsi > MAX_RSI ||
@@ -407,8 +345,16 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
       sendAlert(`alert:powercandle:${interval}`, coin)
     }
 
-    if (coin[`prev10CandleVolumeCount${interval}`] > 3) {
+    if (lastCandle.prev10CandleVolumeCount > 3) {
       sendAlert(`alert:volumecount:${interval}`, coin)
+    }
+
+    // strongs candles
+    // lastCandleHighVolume && candle change color
+    // maybe only on rsi?
+    // or outside bolinger band
+    if (lastCandle.isPowerCandle) {
+      sendAlert(`alert:strongcandle:${interval}`, coin)
     }
   }
 
@@ -544,43 +490,43 @@ const getDataToSend = () => {
     data1h: coin.data1h.slice(-TOTAL_CLIENT_CANDLES),
     data4h: coin.data4h.slice(-TOTAL_CLIENT_CANDLES),
     data1d: coin.data1d.slice(-TOTAL_CLIENT_CANDLES),
-    data1w: coin.data1w.slice(-TOTAL_CLIENT_CANDLES),
+    data1w: coin.data1w.slice(-TOTAL_CLIENT_CANDLES)
 
-    isRedCandle5m: coin.isRedCandle5m,
-    isStopCandle5m: coin.isStopCandle5m,
-    isPowerCandle5m: coin.isPowerCandle5m,
-    isBiggerThanPrevious5m: coin.isBiggerThanPrevious5m,
-    isRedCandle15m: coin.isRedCandle15m,
-    isStopCandle15m: coin.isStopCandle15m,
-    isPowerCandle15m: coin.isPowerCandle15m,
-    isBiggerThanPrevious15m: coin.isBiggerThanPrevious15m,
-    isRedCandle30m: coin.isRedCandle30m,
-    isStopCandle30m: coin.isStopCandle30m,
-    isPowerCandle30m: coin.isPowerCandle30m,
-    isBiggerThanPrevious30m: coin.isBiggerThanPrevious30m,
-    isRedCandle1h: coin.isRedCandle1h,
-    isStopCandle1h: coin.isStopCandle1h,
-    isPowerCandle1h: coin.isPowerCandle1h,
-    isBiggerThanPrevious1h: coin.isBiggerThanPrevious1h,
-    isRedCandle4h: coin.isRedCandle4h,
-    isStopCandle4h: coin.isStopCandle4h,
-    isPowerCandle4h: coin.isPowerCandle4h,
-    isBiggerThanPrevious4h: coin.isBiggerThanPrevious4h,
-    isRedCandle1d: coin.isRedCandle1d,
-    isStopCandle1d: coin.isStopCandle1d,
-    isPowerCandle1d: coin.isPowerCandle1d,
-    isBiggerThanPrevious1d: coin.isBiggerThanPrevious1d,
-    isRedCandle1w: coin.isRedCandle1w,
-    isStopCandle1w: coin.isStopCandle1w,
-    isPowerCandle1w: coin.isPowerCandle1w,
-    isBiggerThanPrevious1w: coin.isBiggerThanPrevious1w,
-    prev10CandleVolumeCount5m: coin.prev10CandleVolumeCount5m,
-    prev10CandleVolumeCount15m: coin.prev10CandleVolumeCount15m,
-    prev10CandleVolumeCount30m: coin.prev10CandleVolumeCount30m,
-    prev10CandleVolumeCount1h: coin.prev10CandleVolumeCount1h,
-    prev10CandleVolumeCount4h: coin.prev10CandleVolumeCount4h,
-    prev10CandleVolumeCount1d: coin.prev10CandleVolumeCount1d,
-    prev10CandleVolumeCount1w: coin.prev10CandleVolumeCount1w
+    // isRedCandle5m: coin.isRedCandle5m,
+    // isStopCandle5m: coin.isStopCandle5m,
+    // isPowerCandle5m: coin.isPowerCandle5m,
+    // isBiggerThanPrevious5m: coin.isBiggerThanPrevious5m,
+    // isRedCandle15m: coin.isRedCandle15m,
+    // isStopCandle15m: coin.isStopCandle15m,
+    // isPowerCandle15m: coin.isPowerCandle15m,
+    // isBiggerThanPrevious15m: coin.isBiggerThanPrevious15m,
+    // isRedCandle30m: coin.isRedCandle30m,
+    // isStopCandle30m: coin.isStopCandle30m,
+    // isPowerCandle30m: coin.isPowerCandle30m,
+    // isBiggerThanPrevious30m: coin.isBiggerThanPrevious30m,
+    // isRedCandle1h: coin.isRedCandle1h,
+    // isStopCandle1h: coin.isStopCandle1h,
+    // isPowerCandle1h: coin.isPowerCandle1h,
+    // isBiggerThanPrevious1h: coin.isBiggerThanPrevious1h,
+    // isRedCandle4h: coin.isRedCandle4h,
+    // isStopCandle4h: coin.isStopCandle4h,
+    // isPowerCandle4h: coin.isPowerCandle4h,
+    // isBiggerThanPrevious4h: coin.isBiggerThanPrevious4h,
+    // isRedCandle1d: coin.isRedCandle1d,
+    // isStopCandle1d: coin.isStopCandle1d,
+    // isPowerCandle1d: coin.isPowerCandle1d,
+    // isBiggerThanPrevious1d: coin.isBiggerThanPrevious1d,
+    // isRedCandle1w: coin.isRedCandle1w,
+    // isStopCandle1w: coin.isStopCandle1w,
+    // isPowerCandle1w: coin.isPowerCandle1w,
+    // isBiggerThanPrevious1w: coin.isBiggerThanPrevious1w,
+    // prev10CandleVolumeCount5m: coin.prev10CandleVolumeCount5m,
+    // prev10CandleVolumeCount15m: coin.prev10CandleVolumeCount15m,
+    // prev10CandleVolumeCount30m: coin.prev10CandleVolumeCount30m,
+    // prev10CandleVolumeCount1h: coin.prev10CandleVolumeCount1h,
+    // prev10CandleVolumeCount4h: coin.prev10CandleVolumeCount4h,
+    // prev10CandleVolumeCount1d: coin.prev10CandleVolumeCount1d,
+    // prev10CandleVolumeCount1w: coin.prev10CandleVolumeCount1w
   }))
 }
 

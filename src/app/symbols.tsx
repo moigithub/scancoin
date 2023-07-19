@@ -12,7 +12,6 @@ import {
 import io, { Socket } from 'socket.io-client'
 import { Chart } from './chart'
 import Image from 'next/image'
-import { abort } from 'process'
 
 interface CandleData {
   time: number | undefined
@@ -27,6 +26,12 @@ interface CandleData {
   sma50?: number
   sma200?: number
   rsi: number
+  isRedCandle: boolean
+  isGreenCandle: boolean
+  isStopCandle: boolean
+  isPowerCandle: boolean
+  isBiggerThanPrevious: boolean
+  prev10CandleVolumeCount: number
 }
 
 type Symbol = {
@@ -40,52 +45,18 @@ type Symbol = {
   data4h: CandleData[]
   data1d: CandleData[]
   data1w: CandleData[]
-
-  isRedCandle5m: boolean
-  isStopCandle5m: boolean
-  isPowerCandle5m: boolean
-  isBiggerThanPrevious5m: boolean
-  isRedCandle15m: boolean
-  isStopCandle15m: boolean
-  isPowerCandle15m: boolean
-  isBiggerThanPrevious15m: boolean
-  isRedCandle30m: boolean
-  isStopCandle30m: boolean
-  isPowerCandle30m: boolean
-  isBiggerThanPrevious30m: boolean
-  isRedCandle1h: boolean
-  isStopCandle1h: boolean
-  isPowerCandle1h: boolean
-  isBiggerThanPrevious1h: boolean
-  isRedCandle4h: boolean
-  isStopCandle4h: boolean
-  isPowerCandle4h: boolean
-  isBiggerThanPrevious4h: boolean
-  isRedCandle1d: boolean
-  isStopCandle1d: boolean
-  isPowerCandle1d: boolean
-  isBiggerThanPrevious1d: boolean
-  isRedCandle1w: boolean
-  isStopCandle1w: boolean
-  isPowerCandle1w: boolean
-  isBiggerThanPrevious1w: boolean
-  prev10CandleVolumeCount5m: number
-  prev10CandleVolumeCount15m: number
-  prev10CandleVolumeCount30m: number
-  prev10CandleVolumeCount1h: number
-  prev10CandleVolumeCount4h: number
-  prev10CandleVolumeCount1d: number
-  prev10CandleVolumeCount1w: number
 }
 enum ALERT_TYPE {
   'alert' = 'alert',
-  'volume' = 'volume'
+  'volume' = 'volume',
+  'velotas' = 'velotas'
 }
 
 let socket: Socket
-let snd: any = null
-let snd2: any = null
-let snd3: any = null
+let sndTick: any = null
+let sndCompra: any = null
+let sndVenta: any = null
+let sndVelota: any = null
 
 export const Symbols = () => {
   const [symbols, setSymbols] = useState<Symbol[]>([])
@@ -123,11 +94,12 @@ export const Symbols = () => {
   const pingInterval = useRef<NodeJS.Timer>()
 
   useEffect(() => {
-    snd = new Audio(
+    sndTick = new Audio(
       'data:audio/wav;base64,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qJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU='
     )
-    snd3 = new Audio('./ve.mp3')
-    snd2 = new Audio('./co.mp3')
+    sndVenta = new Audio('./ve.mp3')
+    sndCompra = new Audio('./co.mp3')
+    sndVelota = new Audio('./velota.m4a')
 
     const init = async () => {
       await socketInitializer()
@@ -223,71 +195,104 @@ export const Symbols = () => {
       setSymbols(data)
     })
 
+    // powercandle with rsi and bigger than previous
     socket.on('alert:powercandle:5m', (coin: any) => {
       setAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.alert, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
     socket.on('alert:powercandle:15m', (coin: any) => {
       setAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.alert, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
     socket.on('alert:powercandle:30m', (coin: any) => {
       setAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.alert, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
     socket.on('alert:powercandle:1h', (coin: any) => {
       setAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.alert, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
     socket.on('alert:powercandle:4h', (coin: any) => {
       setAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.alert, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
     socket.on('alert:powercandle:1d', (coin: any) => {
       setAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.alert, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
     socket.on('alert:powercandle:1w', (coin: any) => {
       setAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.alert, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
+    })
+
+    // velotas (powercandle only without rsi)
+
+    socket.on('alert:strongcandle:5m', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.velotas, coin), ...m])
+      if (sndVelota) sndVelota.play()
+    })
+    socket.on('alert:strongcandle:15m', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.velotas, coin), ...m])
+      if (sndVelota) sndVelota.play()
+    })
+    socket.on('alert:strongcandle:30m', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.velotas, coin), ...m])
+      if (sndVelota) sndVelota.play()
+    })
+    socket.on('alert:strongcandle:1h', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.velotas, coin), ...m])
+      if (sndVelota) sndVelota.play()
+    })
+    socket.on('alert:strongcandle:4h', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.velotas, coin), ...m])
+      if (sndVelota) sndVelota.play()
+    })
+    socket.on('alert:strongcandle:1d', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.velotas, coin), ...m])
+      if (sndVelota) sndVelota.play()
+    })
+    socket.on('alert:strongcandle:1w', (coin: any) => {
+      setAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.velotas, coin), ...m])
+      if (sndVelota) sndVelota.play()
     })
 
     // volume count alert
 
     socket.on('alert:volumecount:5m', (coin: any) => {
       setVolumeAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.volume, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
     socket.on('alert:volumecount:15m', (coin: any) => {
       setVolumeAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.volume, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
     socket.on('alert:volumecount:30m', (coin: any) => {
       setVolumeAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.volume, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
     socket.on('alert:volumecount:1h', (coin: any) => {
       setVolumeAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.volume, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
     socket.on('alert:volumecount:4h', (coin: any) => {
       setVolumeAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.volume, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
     socket.on('alert:volumecount:1d', (coin: any) => {
       setVolumeAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.volume, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
     socket.on('alert:volumecount:1w', (coin: any) => {
       setVolumeAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.volume, coin), ...m])
-      if (snd) snd.play()
+      if (sndTick) sndTick.play()
     })
   }
 
   const formatAlertMsg = (interval: string, type: string, coin: any) => {
     const time = new Date()
     let mode = ''
-    const lastCandle = coin[`data${interval}`][coin[`data${interval}`].length - 1]
+    const totalCandles = coin[`data${interval}`].length
+    const lastCandle = coin[`data${interval}`][totalCandles - 1]
     if (lastCandle.rsi < 30) {
       mode = 'BUY'
     }
@@ -306,16 +311,37 @@ export const Symbols = () => {
     return data
   }
 
+  const getBorderColorByAlertType = (alertType: ALERT_TYPE) => {
+    switch (alertType) {
+      case ALERT_TYPE.alert:
+        return 'border-red-500'
+      case ALERT_TYPE.volume:
+        return 'border-amber-500'
+      case ALERT_TYPE.velotas:
+        return 'border-blue-500'
+      default:
+        return ''
+    }
+  }
+
   const renderMessage = (msg: any, index: number) => {
-    const type = msg.type === ALERT_TYPE.alert ? 'Alert' : 'Volume'
+    let type
+    switch (msg.type) {
+      case ALERT_TYPE.alert:
+        type = 'Alert'
+        break
+      case ALERT_TYPE.volume:
+        type = 'Volume'
+        break
+      case ALERT_TYPE.velotas:
+        type = 'Velota'
+        break
+      default:
+        type = ''
+    }
 
     return (
-      <li
-        key={index}
-        className={`my-2 border ${
-          msg.type === ALERT_TYPE.alert ? 'border-red-500' : 'border-amber-500'
-        }`}
-      >
+      <li key={index} className={`my-2 border ${getBorderColorByAlertType(msg.type)}`}>
         <span
           className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
           onClick={() => handleChangeInterval1(msg.symbol, msg.interval)}
@@ -350,9 +376,10 @@ export const Symbols = () => {
           <p>
             <span className='mx-2'>
               {msg.symbol} {msg.interval}
-            </span>{' '}
+            </span>
           </p>
           <p className='mx-2'>RSI: {msg.rsi}</p>
+          <p className='mx-2'>VolAvg: {msg.volAverage}</p>
           <p className='mx-2'>VolumeCount: {msg[`prev10CandleVolumeCount${msg.interval}`]}</p>
           <p className='mx-2'>Price:{msg.price}</p>
         </a>
@@ -464,7 +491,15 @@ export const Symbols = () => {
 
   const renderIcons = (coin: any, interval: string) => {
     let status = []
-    if (coin[`isStopCandle${interval}`]) {
+    // console.log('rendericons coin', coin, interval)
+    const totalCandles = coin[`data${interval}`].length
+
+    if (totalCandles === 0) return null
+
+    const lastCandle = coin[`data${interval}`][totalCandles - 1]
+    const prevCandle = coin[`data${interval}`][totalCandles - 2]
+
+    if (lastCandle.isStopCandle || prevCandle.isStopCandle) {
       status.push(
         <Image
           alt='stop'
@@ -475,48 +510,57 @@ export const Symbols = () => {
         />
       )
     } //'Stop'
-    if (coin[`isPowerCandle${interval}`]) {
+
+    //' SuperPush' // vol inc, bigger candle
+    if (
+      (lastCandle.isPowerCandle && lastCandle.isBiggerThanPrevious) ||
+      (prevCandle.isPowerCandle && prevCandle.isBiggerThanPrevious)
+    ) {
       // entrando volumen
-      if (coin[`isBiggerThanPrevious${interval}`]) {
-        status.push(
-          <span
-            style={{
-              padding: 0,
-              transform: coin[`isRedCandle${interval}`] ? 'rotate(90deg)' : 'none'
-            }}
-          >
-            <Image
-              alt='superpush'
-              key={`${coin.symbol}${interval}:superpush`}
-              src='/assets/superpush.png'
-              width={24}
-              height={24}
-            />
-          </span>
-        )
-      }
-      //' SuperPush' // vol inc, bigger candle
-      else {
-        status.push(
-          <span
-            style={{
-              padding: 0,
-              transform: coin[`isRedCandle${interval}`] ? 'rotate(90deg)' : 'none'
-            }}
-          >
-            <Image
-              alt='push'
-              key={`${coin.symbol}${interval}:push`}
-              src='/assets/push.png'
-              width={24}
-              height={24}
-            />
-          </span>
-        )
-      }
+
+      status.push(
+        <span
+          style={{
+            padding: 0,
+            flexShrink: 0,
+            transform: lastCandle.isRedCandle ? 'rotate(90deg)' : 'none'
+          }}
+        >
+          <Image
+            alt='superpush'
+            key={`${coin.symbol}${interval}:superpush`}
+            src='/assets/superpush.png'
+            width={24}
+            height={24}
+          />
+        </span>
+      )
     }
 
-    // if (coin[`isBiggerThanPrevious${interval}`]) status += ' Big'
+    //'Push' // vol inc
+    if (
+      (lastCandle.isPowerCandle && !lastCandle.isBiggerThanPrevious) ||
+      (prevCandle.isPowerCandle && !prevCandle.isBiggerThanPrevious)
+    ) {
+      status.push(
+        <span
+          style={{
+            padding: 0,
+            flexShrink: 0,
+            transform: lastCandle.isRedCandle ? 'rotate(90deg)' : 'none'
+          }}
+        >
+          <Image
+            alt='push'
+            key={`${coin.symbol}${interval}:push`}
+            src='/assets/push.png'
+            width={24}
+            height={24}
+          />
+        </span>
+      )
+    }
+
     return status
   }
 
@@ -547,16 +591,25 @@ export const Symbols = () => {
 
   if (!searchOnlyFilter) {
     if (pushFilter) {
-      filterSymbols = filterSymbols.filter(
-        symbol =>
-          symbol.isPowerCandle5m ||
-          symbol.isPowerCandle15m ||
-          symbol.isPowerCandle30m ||
-          symbol.isPowerCandle1h ||
-          symbol.isPowerCandle4h ||
-          symbol.isPowerCandle1d ||
-          symbol.isPowerCandle1w
-      )
+      filterSymbols = filterSymbols.filter(s => {
+        const lastCandle5m = s[`data5m`][s[`data5m`].length - 1]
+        const lastCandle15m = s[`data15m`][s[`data15m`].length - 1]
+        const lastCandle30m = s[`data30m`][s[`data30m`].length - 1]
+        const lastCandle1h = s[`data1h`][s[`data1h`].length - 1]
+        const lastCandle4h = s[`data4h`][s[`data4h`].length - 1]
+        const lastCandle1d = s[`data1d`][s[`data1d`].length - 1]
+        const lastCandle1w = s[`data1w`][s[`data1w`].length - 1]
+
+        return (
+          lastCandle5m.isPowerCandle ||
+          lastCandle15m.isPowerCandle ||
+          lastCandle30m.isPowerCandle ||
+          lastCandle1h.isPowerCandle ||
+          lastCandle4h.isPowerCandle ||
+          lastCandle1d.isPowerCandle ||
+          lastCandle1w.isPowerCandle
+        )
+      })
     }
 
     filterSymbols = filterSymbols.filter(s => s.symbol.includes(searchFilter.toUpperCase()))
@@ -616,13 +669,13 @@ export const Symbols = () => {
     if (volumeCountFilter) {
       filterSymbols = filterSymbols.filter(s => {
         return (
-          s.prev10CandleVolumeCount5m >= volumeCount ||
-          s.prev10CandleVolumeCount15m >= volumeCount ||
-          s.prev10CandleVolumeCount30m >= volumeCount ||
-          s.prev10CandleVolumeCount1h >= volumeCount ||
-          s.prev10CandleVolumeCount4h >= volumeCount ||
-          s.prev10CandleVolumeCount1d >= volumeCount ||
-          s.prev10CandleVolumeCount1w >= volumeCount
+          s.data5m[s.data5m.length - 1].prev10CandleVolumeCount >= volumeCount ||
+          s.data15m[s.data15m.length - 1].prev10CandleVolumeCount >= volumeCount ||
+          s.data30m[s.data30m.length - 1].prev10CandleVolumeCount >= volumeCount ||
+          s.data1h[s.data1h.length - 1].prev10CandleVolumeCount >= volumeCount ||
+          s.data4h[s.data4h.length - 1].prev10CandleVolumeCount >= volumeCount ||
+          s.data1d[s.data1d.length - 1].prev10CandleVolumeCount >= volumeCount ||
+          s.data1w[s.data1w.length - 1].prev10CandleVolumeCount >= volumeCount
         )
       })
     }
@@ -630,6 +683,7 @@ export const Symbols = () => {
 
   const getData = (d: any) => {
     return {
+      ...d,
       symbol: d.symbol,
       price: d.price,
       rsi5m: d.data5m[d.data5m.length - 1]?.rsi ?? 0,
@@ -639,44 +693,44 @@ export const Symbols = () => {
       rsi4h: d.data4h[d.data4h.length - 1]?.rsi ?? 0,
       rsi1d: d.data1d[d.data1d.length - 1]?.rsi ?? 0,
       rsi1w: d.data1w[d.data1w.length - 1]?.rsi ?? 0,
-      prev10CandleVolumeCount5m: d.prev10CandleVolumeCount5m,
-      prev10CandleVolumeCount15m: d.prev10CandleVolumeCount15m,
-      prev10CandleVolumeCount30m: d.prev10CandleVolumeCount30m,
-      prev10CandleVolumeCount1h: d.prev10CandleVolumeCount1h,
-      prev10CandleVolumeCount4h: d.prev10CandleVolumeCount4h,
-      prev10CandleVolumeCount1d: d.prev10CandleVolumeCount1d,
-      prev10CandleVolumeCount1w: d.prev10CandleVolumeCount1w,
-      isRedCandle5m: d.isRedCandle5m,
-      isRedCandle15m: d.isRedCandle15m,
-      isRedCandle30m: d.isRedCandle30m,
-      isRedCandle1h: d.isRedCandle1h,
-      isRedCandle4h: d.isRedCandle4h,
-      isRedCandle1d: d.isRedCandle1d,
-      isRedCandle1w: d.isRedCandle1w,
+      prev10CandleVolumeCount5m: d.data5m[d.data5m.length - 1]?.prev10CandleVolumeCount ?? 0,
+      prev10CandleVolumeCount15m: d.data15m[d.data15m.length - 1]?.prev10CandleVolumeCount ?? 0,
+      prev10CandleVolumeCount30m: d.data30m[d.data30m.length - 1]?.prev10CandleVolumeCount ?? 0,
+      prev10CandleVolumeCount1h: d.data1h[d.data1h.length - 1]?.prev10CandleVolumeCount ?? 0,
+      prev10CandleVolumeCount4h: d.data4h[d.data4h.length - 1]?.prev10CandleVolumeCount ?? 0,
+      prev10CandleVolumeCount1d: d.data1d[d.data1d.length - 1]?.prev10CandleVolumeCount ?? 0,
+      prev10CandleVolumeCount1w: d.data1w[d.data1w.length - 1]?.prev10CandleVolumeCount ?? 0,
+      isRedCandle5m: d.data5m[d.data5m.length - 1]?.isRedCandle ?? 0,
+      isRedCandle15m: d.data15m[d.data15m.length - 1]?.isRedCandle ?? 0,
+      isRedCandle30m: d.data30m[d.data30m.length - 1]?.isRedCandle ?? 0,
+      isRedCandle1h: d.data1h[d.data1h.length - 1]?.isRedCandle ?? 0,
+      isRedCandle4h: d.data4h[d.data4h.length - 1]?.isRedCandle ?? 0,
+      isRedCandle1d: d.data1d[d.data1d.length - 1]?.isRedCandle ?? 0,
+      isRedCandle1w: d.data1w[d.data1w.length - 1]?.isRedCandle ?? 0,
 
-      isStopCandle5m: d.isStopCandle5m,
-      isStopCandle15m: d.isStopCandle15m,
-      isStopCandle30m: d.isStopCandle30m,
-      isStopCandle1h: d.isStopCandle1h,
-      isStopCandle4h: d.isStopCandle4h,
-      isStopCandle1d: d.isStopCandle1d,
-      isStopCandle1w: d.isStopCandle1w,
+      isStopCandle5m: d.data5m[d.data5m.length - 1]?.isStopCandle ?? 0,
+      isStopCandle15m: d.data15m[d.data15m.length - 1]?.isStopCandle ?? 0,
+      isStopCandle30m: d.data30m[d.data30m.length - 1]?.isStopCandle ?? 0,
+      isStopCandle1h: d.data1h[d.data1h.length - 1]?.isStopCandle ?? 0,
+      isStopCandle4h: d.data4h[d.data4h.length - 1]?.isStopCandle ?? 0,
+      isStopCandle1d: d.data1d[d.data1d.length - 1]?.isStopCandle ?? 0,
+      isStopCandle1w: d.data1w[d.data1w.length - 1]?.isStopCandle ?? 0,
 
-      isPowerCandle5m: d.isPowerCandle5m,
-      isPowerCandle15m: d.isPowerCandle15m,
-      isPowerCandle30m: d.isPowerCandle30m,
-      isPowerCandle1h: d.isPowerCandle1h,
-      isPowerCandle4h: d.isPowerCandle4h,
-      isPowerCandle1d: d.isPowerCandle1d,
-      isPowerCandle1w: d.isPowerCandle1w,
+      isPowerCandle5m: d.data5m[d.data5m.length - 1]?.isPowerCandle ?? 0,
+      isPowerCandle15m: d.data15m[d.data15m.length - 1]?.isPowerCandle ?? 0,
+      isPowerCandle30m: d.data30m[d.data30m.length - 1]?.isPowerCandle ?? 0,
+      isPowerCandle1h: d.data1h[d.data1h.length - 1]?.isPowerCandle ?? 0,
+      isPowerCandle4h: d.data4h[d.data4h.length - 1]?.isPowerCandle ?? 0,
+      isPowerCandle1d: d.data1d[d.data1d.length - 1]?.isPowerCandle ?? 0,
+      isPowerCandle1w: d.data1w[d.data1w.length - 1]?.isPowerCandle ?? 0,
 
-      isBiggerThanPrevious5m: d.isBiggerThanPrevious5m,
-      isBiggerThanPrevious15m: d.isBiggerThanPrevious15m,
-      isBiggerThanPrevious30m: d.isBiggerThanPrevious30m,
-      isBiggerThanPrevious1h: d.isBiggerThanPrevious1h,
-      isBiggerThanPrevious4h: d.isBiggerThanPrevious4h,
-      isBiggerThanPrevious1d: d.isBiggerThanPrevious1d,
-      isBiggerThanPrevious1w: d.isBiggerThanPrevious1w
+      isBiggerThanPrevious5m: d.data5m[d.data5m.length - 1]?.isBiggerThanPrevious ?? 0,
+      isBiggerThanPrevious15m: d.data15m[d.data15m.length - 1]?.isBiggerThanPrevious ?? 0,
+      isBiggerThanPrevious30m: d.data30m[d.data30m.length - 1]?.isBiggerThanPrevious ?? 0,
+      isBiggerThanPrevious1h: d.data1h[d.data1h.length - 1]?.isBiggerThanPrevious ?? 0,
+      isBiggerThanPrevious4h: d.data4h[d.data4h.length - 1]?.isBiggerThanPrevious ?? 0,
+      isBiggerThanPrevious1d: d.data1d[d.data1d.length - 1]?.isBiggerThanPrevious ?? 0,
+      isBiggerThanPrevious1w: d.data1w[d.data1w.length - 1]?.isBiggerThanPrevious ?? 0
     }
   }
 
@@ -731,7 +785,7 @@ export const Symbols = () => {
 
   return (
     <div className='p-3 flex'>
-      <div className='p-1 flex flex-col' style={{ width: 'calc(100% - 300px)' }}>
+      <div className='p-1 flex flex-col' style={{ width: 'calc(100% - 200px)' }}>
         <div className='charts flex flex-col'>
           <div className='chart-group flex'>
             <div className='chart m-2 flex-1' id='chart-btc0'>
@@ -1349,7 +1403,6 @@ export const Symbols = () => {
               <th className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 1w
               </th>
-              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -1639,7 +1692,6 @@ export const Symbols = () => {
                     </span>
                   </div>
                 </td>
-                <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'></td>
               </tr>
             )}
 
@@ -1932,7 +1984,6 @@ export const Symbols = () => {
                       </span>
                     </div>
                   </td>
-                  <td className='border border-slate-500 px-2 py-1 whitespace-nowrap text-sm font-medium'></td>
                 </tr>
               )
             })}
@@ -1992,7 +2043,7 @@ export const Symbols = () => {
           </tfoot>
         </table>
       </div>
-      <div className='alerts flex flex-col w-[300px]'>
+      <div className='alerts flex flex-col w-[200px]'>
         <ul className='overflow-y-auto'>{alerts.map(renderMessage)}</ul>
         <ul className='overflow-y-auto'>{volumeAlerts.map(renderMessage)}</ul>
       </div>
