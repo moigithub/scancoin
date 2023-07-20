@@ -1,6 +1,6 @@
 import { sendAlert, sendData } from '@/pages/api/socket'
 import Binance, { CandleChartResult, Candle, ReconnectingWebSocketHandler } from 'binance-api-node'
-import { EMA, RSI, SMA } from 'technicalindicators'
+import { BollingerBands, EMA, RSI, SMA } from 'technicalindicators'
 
 type MyCandleChartInterval = '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w'
 
@@ -23,6 +23,11 @@ interface CandleData {
   isPowerCandle: boolean //next candle entering with high volume and reversing
   isBiggerThanPrevious: boolean
   prev10CandleVolumeCount: number
+  bollinger: { middle: number; upper: number; lower: number }
+  crossUp: boolean
+  crossDown: boolean
+  candlePercentAbove: number
+  candlePercentBelow: number
 }
 
 interface Symbol {
@@ -50,6 +55,7 @@ const TOTAL_CLIENT_CANDLES = 30 // lo que se manda al cliente, debe ser menor qu
 let RSI_LENGTH = 14
 let MIN_RSI = 30
 let MAX_RSI = 70
+let BB_CANDLE_PERCENT_OUT = 40
 let VOLUME_LENGTH = 30 //  por ahora usar rsi length
 let VOL_FACTOR = 2.5 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
 const TOTAL_CANDLES = Math.max(VOLUME_LENGTH, RSI_LENGTH, TOTAL_CLIENT_CANDLES + 1)
@@ -72,7 +78,18 @@ const getSymbols = async () => {
   }
 
   const bannedSymbols = [
+    'ASTRUSDT',
+    'API3USDT',
+    'BANDUSDT',
+    'CELOUSDT',
+    'KNCUSDT',
     'BLURUSDT',
+    'DEFIUSDT',
+    'OMGUSDT',
+    'BNXUSDT',
+    'TRUUSDT',
+    'ENSUSDT',
+    'BLUEBIRDUSDT',
     'TLMUSDT',
     'XVGUSDT',
     'LEVERUSDT',
@@ -197,7 +214,12 @@ const getCandleData = (candle: Partial<CandleType>): CandleData => {
     isStopCandle: false,
     isPowerCandle: false,
     isBiggerThanPrevious: false,
-    prev10CandleVolumeCount: 0
+    prev10CandleVolumeCount: 0,
+    bollinger: { middle: 0, upper: 0, lower: 0 },
+    crossUp: false,
+    crossDown: false,
+    candlePercentAbove: 0,
+    candlePercentBelow: 0
   }
 }
 
@@ -241,6 +263,33 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
   const sma50last = sma50[sma50.length - 1] ?? 0
   const sma200last = sma200[sma200.length - 1] ?? 0
 
+  // bollinger band
+  const bbPeriod = 20
+  const bolinger = BollingerBands.calculate({ period: bbPeriod, values: close, stdDev: 2 })
+  const bblast = bolinger[bolinger.length - 1] ?? { middle: 0, upper: 0, lower: 0 }
+
+  let crossUp = false
+  if (lastCandle.high > bblast.lower && lastCandle.low < bblast.lower && isLastCandleGreen) {
+    crossUp = true
+  }
+
+  let crossDown = false
+  if (lastCandle.high > bblast.upper && lastCandle.low < bblast.upper && isLastCandleRed) {
+    crossDown = true
+  }
+
+  const candleSize = lastCandle.high - lastCandle.low //100%
+  let candlePercentAbove = 0
+  if (lastCandle.high > bblast.upper && lastCandle.low < bblast.upper) {
+    const candleSliceAbove = lastCandle.high - bblast.upper
+    candlePercentAbove = (candleSliceAbove * 100) / candleSize
+  }
+  let candlePercentBelow = 0
+  if (lastCandle.low < bblast.lower && lastCandle.high > bblast.lower) {
+    const candleSliceBelow = bblast.lower - lastCandle.low
+    candlePercentBelow = (candleSliceBelow * 100) / candleSize
+  }
+
   const prevCandleHighVolume = prevVolume > volAverage * VOL_FACTOR
   const lastCandleHighVolume = lastVolume > volAverage * VOL_FACTOR
 
@@ -272,7 +321,12 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
     // last candle high volume, change candle color--- showing interest, things gonna move!
     isPowerCandle: lastCandleHighVolume && isPrevCandleGreen === isLastCandleRed,
     isBiggerThanPrevious: lastCandleIsBigger,
-    prev10CandleVolumeCount: prev10CandleVolumeCount
+    prev10CandleVolumeCount: prev10CandleVolumeCount,
+    bollinger: bblast,
+    crossUp,
+    crossDown,
+    candlePercentAbove,
+    candlePercentBelow
   }
 }
 
@@ -347,16 +401,30 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
       sendAlert(`alert:powercandle:${interval}`, coin)
     }
 
-    if (lastCandle.prev10CandleVolumeCount > 3) {
-      sendAlert(`alert:volumecount:${interval}`, coin)
-    }
+    // if (lastCandle.prev10CandleVolumeCount > 3) {
+    //   sendAlert(`alert:volumecount:${interval}`, coin)
+    // }
 
-    // strongs candles
+    // strongs candles (VELOTAS)
     // lastCandleHighVolume && candle change color
     // maybe only on rsi?
     // or outside bolinger band
-    if (lastCandle.isPowerCandle) {
-      sendAlert(`alert:strongcandle:${interval}`, coin)
+    // if (lastCandle.isPowerCandle) {
+    //   sendAlert(`alert:strongcandle:${interval}`, coin)
+    // }
+
+    if (
+      lastCandle.rsi > MAX_RSI ||
+      lastCandle.rsi < MIN_RSI ||
+      prevCandle.rsi > MAX_RSI ||
+      prevCandle.rsi < MIN_RSI
+    ) {
+      if (lastCandle.crossUp && lastCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT) {
+        sendAlert(`alert:bollingerUp:${interval}`, coin)
+      }
+      if (lastCandle.crossDown && lastCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT) {
+        sendAlert(`alert:bollingerDown:${interval}`, coin)
+      }
     }
   }
 
@@ -410,7 +478,7 @@ export const initializeCandles = async () => {
     await getCandles(coin, '1h')
     await getCandles(coin, '4h')
     await getCandles(coin, '1d')
-    await getCandles(coin, '1w')
+    // await getCandles(coin, '1w')
     sendData(getDataToSend())
     // console.log('symbol', symbols[0])
   }
@@ -442,8 +510,8 @@ export const installSockets = () => {
       client.ws.futuresCandles(allCoins, '30m', addCandleData(sendAlert)),
       client.ws.futuresCandles(allCoins, '1h', addCandleData(sendAlert)),
       client.ws.futuresCandles(allCoins, '4h', addCandleData(sendAlert)),
-      client.ws.futuresCandles(allCoins, '1d', addCandleData(sendAlert)),
-      client.ws.futuresCandles(allCoins, '1w', addCandleData(sendAlert))
+      client.ws.futuresCandles(allCoins, '1d', addCandleData(sendAlert))
+      // client.ws.futuresCandles(allCoins, '1w', addCandleData(sendAlert))
     )
   } else {
     sockets.push(
@@ -452,13 +520,16 @@ export const installSockets = () => {
       client.ws.candles(allCoins, '30m', addCandleData(sendAlert)),
       client.ws.candles(allCoins, '1h', addCandleData(sendAlert)),
       client.ws.candles(allCoins, '4h', addCandleData(sendAlert)),
-      client.ws.candles(allCoins, '1d', addCandleData(sendAlert)),
-      client.ws.candles(allCoins, '1w', addCandleData(sendAlert))
+      client.ws.candles(allCoins, '1d', addCandleData(sendAlert))
+      // client.ws.candles(allCoins, '1w', addCandleData(sendAlert))
     )
   }
   console.log('sockets installed', sockets.length)
 }
 
+export const setBBCandlePercentOut = (value: number) => {
+  BB_CANDLE_PERCENT_OUT = value
+}
 export const setMinRSI = (value: number) => {
   MIN_RSI = value
 }
@@ -491,44 +562,8 @@ const getDataToSend = () => {
     data30m: coin.data30m.slice(-TOTAL_CLIENT_CANDLES),
     data1h: coin.data1h.slice(-TOTAL_CLIENT_CANDLES),
     data4h: coin.data4h.slice(-TOTAL_CLIENT_CANDLES),
-    data1d: coin.data1d.slice(-TOTAL_CLIENT_CANDLES),
-    data1w: coin.data1w.slice(-TOTAL_CLIENT_CANDLES)
-
-    // isRedCandle5m: coin.isRedCandle5m,
-    // isStopCandle5m: coin.isStopCandle5m,
-    // isPowerCandle5m: coin.isPowerCandle5m,
-    // isBiggerThanPrevious5m: coin.isBiggerThanPrevious5m,
-    // isRedCandle15m: coin.isRedCandle15m,
-    // isStopCandle15m: coin.isStopCandle15m,
-    // isPowerCandle15m: coin.isPowerCandle15m,
-    // isBiggerThanPrevious15m: coin.isBiggerThanPrevious15m,
-    // isRedCandle30m: coin.isRedCandle30m,
-    // isStopCandle30m: coin.isStopCandle30m,
-    // isPowerCandle30m: coin.isPowerCandle30m,
-    // isBiggerThanPrevious30m: coin.isBiggerThanPrevious30m,
-    // isRedCandle1h: coin.isRedCandle1h,
-    // isStopCandle1h: coin.isStopCandle1h,
-    // isPowerCandle1h: coin.isPowerCandle1h,
-    // isBiggerThanPrevious1h: coin.isBiggerThanPrevious1h,
-    // isRedCandle4h: coin.isRedCandle4h,
-    // isStopCandle4h: coin.isStopCandle4h,
-    // isPowerCandle4h: coin.isPowerCandle4h,
-    // isBiggerThanPrevious4h: coin.isBiggerThanPrevious4h,
-    // isRedCandle1d: coin.isRedCandle1d,
-    // isStopCandle1d: coin.isStopCandle1d,
-    // isPowerCandle1d: coin.isPowerCandle1d,
-    // isBiggerThanPrevious1d: coin.isBiggerThanPrevious1d,
-    // isRedCandle1w: coin.isRedCandle1w,
-    // isStopCandle1w: coin.isStopCandle1w,
-    // isPowerCandle1w: coin.isPowerCandle1w,
-    // isBiggerThanPrevious1w: coin.isBiggerThanPrevious1w,
-    // prev10CandleVolumeCount5m: coin.prev10CandleVolumeCount5m,
-    // prev10CandleVolumeCount15m: coin.prev10CandleVolumeCount15m,
-    // prev10CandleVolumeCount30m: coin.prev10CandleVolumeCount30m,
-    // prev10CandleVolumeCount1h: coin.prev10CandleVolumeCount1h,
-    // prev10CandleVolumeCount4h: coin.prev10CandleVolumeCount4h,
-    // prev10CandleVolumeCount1d: coin.prev10CandleVolumeCount1d,
-    // prev10CandleVolumeCount1w: coin.prev10CandleVolumeCount1w
+    data1d: coin.data1d.slice(-TOTAL_CLIENT_CANDLES)
+    // data1w: coin.data1w.slice(-TOTAL_CLIENT_CANDLES)
   }))
 }
 

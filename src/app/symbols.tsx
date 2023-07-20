@@ -49,7 +49,9 @@ type Symbol = {
 enum ALERT_TYPE {
   'alert' = 'alert',
   'volume' = 'volume',
-  'velotas' = 'velotas'
+  'velotas' = 'velotas',
+  'bollingerup' = 'bolli-up',
+  'bollingerdown' = 'bolli-down'
 }
 
 let socket: Socket
@@ -59,6 +61,8 @@ let sndCompra: any = null
 let sndVenta: any = null
 let sndVelota: any = null
 let sndVolume: any = null
+let sndBoliUp: any = null
+let sndBoliDown: any = null
 
 export const Symbols = () => {
   const [symbols, setSymbols] = useState<Symbol[]>([])
@@ -69,6 +73,7 @@ export const Symbols = () => {
   const [RSILenFilter, setRSILenFilter] = useState(14)
   const [volumeLenFilter, setVolumeLenFilter] = useState(30)
   const [volumeFactorFilter, setVolumeFactorFilter] = useState(2.5)
+  const [bbCandlePercentOutFilter, setBbCandlePercentOutFilter] = useState(40)
 
   const [pushFilter, setPushFilter] = useState(false)
   const [searchOnlyFilter, setSearchOnlyFilter] = useState(false)
@@ -76,9 +81,20 @@ export const Symbols = () => {
 
   const [overBoughtFilter, setOverBoughtFilter] = useState(true)
   const [overSoldFilter, setOverSoldFilter] = useState(true)
-  const [alerts, setAlerts] = useState<any[]>([])
+  const [alerts, setAlerts] = useState<any[]>([
+    // {
+    //   type: ALERT_TYPE.alert,
+    //   symbol: 'test',
+    //   interval: '5m',
+    //   rsi: 2,
+    //   prev10CandleVolumeCount: 1,
+    //   time: '123'
+    // },
+  ])
   const [volumeAlerts, setVolumeAlerts] = useState<any[]>([])
   const [velotaAlerts, setVelotaAlerts] = useState<any[]>([])
+  const [bollingerAlerts, setBollingerAlerts] = useState<any[]>([])
+
   const [rsiSelectedSort, setRsiSelectedSort] = useState('5m:desc')
 
   const [btcData0, setBtcData0] = useState<any[]>([])
@@ -105,6 +121,8 @@ export const Symbols = () => {
     sndPowa = new Audio('./powercandle.m4a')
     sndVelota = new Audio('./velota.m4a')
     sndVolume = new Audio('./volume.m4a')
+    sndBoliUp = new Audio('./boliup.m4a')
+    sndBoliDown = new Audio('./bolidown.m4a')
 
     const init = async () => {
       await socketInitializer()
@@ -119,6 +137,7 @@ export const Symbols = () => {
       // volume factor (used to calculate the candle strength)
       socket.emit('setVolumeLength', volumeLenFilter)
       socket.emit('setVolumeFactor', volumeFactorFilter)
+      socket.emit('setBBCandlePercentOut', bbCandlePercentOutFilter)
     }
 
     init()
@@ -161,9 +180,9 @@ export const Symbols = () => {
             case '1d':
               setter(data.data1d)
               break
-            case '1w':
-              setter(data.data1w)
-              break
+            // case '1w':
+            //   setter(data.data1w)
+            //   break
             default:
               console.log('wrong inteval passed', interval)
           }
@@ -202,115 +221,186 @@ export const Symbols = () => {
 
     // powercandle with rsi and bigger than previous
     socket.on('alert:powercandle:5m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.alert, coin), ...m])
+      setAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.alert, coin), ...m].slice(-20))
       if (sndPowa) sndPowa.play()
     })
     socket.on('alert:powercandle:15m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.alert, coin), ...m])
+      setAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.alert, coin), ...m].slice(-20))
       if (sndPowa) sndPowa.play()
     })
     socket.on('alert:powercandle:30m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.alert, coin), ...m])
+      setAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.alert, coin), ...m].slice(-20))
       if (sndPowa) sndPowa.play()
     })
     socket.on('alert:powercandle:1h', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.alert, coin), ...m])
+      setAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.alert, coin), ...m].slice(-20))
       if (sndPowa) sndPowa.play()
     })
     socket.on('alert:powercandle:4h', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.alert, coin), ...m])
+      setAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.alert, coin), ...m].slice(-20))
       if (sndPowa) sndPowa.play()
     })
     socket.on('alert:powercandle:1d', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.alert, coin), ...m])
+      setAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.alert, coin), ...m].slice(-20))
       if (sndPowa) sndPowa.play()
     })
-    socket.on('alert:powercandle:1w', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.alert, coin), ...m])
-      if (sndPowa) sndPowa.play()
-    })
+    // socket.on('alert:powercandle:1w', (coin: any) => {
+    //   setAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.alert, coin), ...m].slice(-20))
+    //   if (sndPowa) sndPowa.play()
+    // })
 
     // velotas (powercandle only without rsi)
 
-    socket.on('alert:strongcandle:5m', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.velotas, coin), ...m])
-      if (sndVelota) sndVelota.play()
-    })
-    socket.on('alert:strongcandle:15m', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.velotas, coin), ...m])
-      if (sndVelota) sndVelota.play()
-    })
-    socket.on('alert:strongcandle:30m', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.velotas, coin), ...m])
-      if (sndVelota) sndVelota.play()
-    })
-    socket.on('alert:strongcandle:1h', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.velotas, coin), ...m])
-      if (sndVelota) sndVelota.play()
-    })
-    socket.on('alert:strongcandle:4h', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.velotas, coin), ...m])
-      if (sndVelota) sndVelota.play()
-    })
-    socket.on('alert:strongcandle:1d', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.velotas, coin), ...m])
-      if (sndVelota) sndVelota.play()
-    })
-    socket.on('alert:strongcandle:1w', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.velotas, coin), ...m])
-      if (sndVelota) sndVelota.play()
-    })
+    // socket.on('alert:strongcandle:5m', (coin: any) => {
+    //   setVelotaAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   if (sndVelota) sndVelota.play()
+    // })
+    // socket.on('alert:strongcandle:15m', (coin: any) => {
+    //   setVelotaAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   if (sndVelota) sndVelota.play()
+    // })
+    // socket.on('alert:strongcandle:30m', (coin: any) => {
+    //   setVelotaAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   if (sndVelota) sndVelota.play()
+    // })
+    // socket.on('alert:strongcandle:1h', (coin: any) => {
+    //   setVelotaAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   if (sndVelota) sndVelota.play()
+    // })
+    // socket.on('alert:strongcandle:4h', (coin: any) => {
+    //   setVelotaAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   if (sndVelota) sndVelota.play()
+    // })
+    // socket.on('alert:strongcandle:1d', (coin: any) => {
+    //   setVelotaAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   if (sndVelota) sndVelota.play()
+    // })
+    // socket.on('alert:strongcandle:1w', (coin: any) => {
+    //   setVelotaAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   if (sndVelota) sndVelota.play()
+    // })
 
     // volume count alert
+    // socket.on('alert:volumecount:5m', (coin: any) => {
+    //   setVolumeAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   if (sndVolume) sndVolume.play()
+    // })
+    // socket.on('alert:volumecount:15m', (coin: any) => {
+    //   setVolumeAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   if (sndVolume) sndVolume.play()
+    // })
+    // socket.on('alert:volumecount:30m', (coin: any) => {
+    //   setVolumeAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   if (sndVolume) sndVolume.play()
+    // })
+    // socket.on('alert:volumecount:1h', (coin: any) => {
+    //   setVolumeAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   if (sndVolume) sndVolume.play()
+    // })
+    // socket.on('alert:volumecount:4h', (coin: any) => {
+    //   setVolumeAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   if (sndVolume) sndVolume.play()
+    // })
+    // socket.on('alert:volumecount:1d', (coin: any) => {
+    //   setVolumeAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   if (sndVolume) sndVolume.play()
+    // })
+    // socket.on('alert:volumecount:1w', (coin: any) => {
+    //   setVolumeAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   if (sndVolume) sndVolume.play()
+    // })
 
-    socket.on('alert:volumecount:5m', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.volume, coin), ...m])
-      if (sndVolume) sndVolume.play()
+    // bolinger cross up alert
+    socket.on('alert:bollingerUp:5m', (coin: any) => {
+      setBollingerAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.bollingerup, coin), ...m].slice(-20))
+      if (sndBoliUp) sndBoliUp.play()
     })
-    socket.on('alert:volumecount:15m', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.volume, coin), ...m])
-      if (sndVolume) sndVolume.play()
+    socket.on('alert:bollingerUp:15m', (coin: any) => {
+      setBollingerAlerts(m =>
+        [formatAlertMsg('15m', ALERT_TYPE.bollingerup, coin), ...m].slice(-20)
+      )
+      if (sndBoliUp) sndBoliUp.play()
     })
-    socket.on('alert:volumecount:30m', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.volume, coin), ...m])
-      if (sndVolume) sndVolume.play()
+    socket.on('alert:bollingerUp:30m', (coin: any) => {
+      setBollingerAlerts(m =>
+        [formatAlertMsg('30m', ALERT_TYPE.bollingerup, coin), ...m].slice(-20)
+      )
+      if (sndBoliUp) sndBoliUp.play()
     })
-    socket.on('alert:volumecount:1h', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.volume, coin), ...m])
-      if (sndVolume) sndVolume.play()
+    socket.on('alert:bollingerUp:1h', (coin: any) => {
+      setBollingerAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.bollingerup, coin), ...m].slice(-20))
+      if (sndBoliUp) sndBoliUp.play()
     })
-    socket.on('alert:volumecount:4h', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.volume, coin), ...m])
-      if (sndVolume) sndVolume.play()
+    socket.on('alert:bollingerUp:4h', (coin: any) => {
+      setBollingerAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.bollingerup, coin), ...m].slice(-20))
+      if (sndBoliUp) sndBoliUp.play()
     })
-    socket.on('alert:volumecount:1d', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.volume, coin), ...m])
-      if (sndVolume) sndVolume.play()
+    socket.on('alert:bollingerUp:1d', (coin: any) => {
+      setBollingerAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.bollingerup, coin), ...m].slice(-20))
+      if (sndBoliUp) sndBoliUp.play()
     })
-    socket.on('alert:volumecount:1w', (coin: any) => {
-      setVolumeAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.volume, coin), ...m])
-      if (sndVolume) sndVolume.play()
+    // socket.on('alert:bollingerUp:1w', (coin: any) => {
+    //   setBollingerAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.bollingerup, coin), ...m].slice(-20))
+    //   if (sndBoliUp) sndBoliUp.play()
+    // })
+
+    // bolinger cross down alert
+    socket.on('alert:bollingerDown:5m', (coin: any) => {
+      setBollingerAlerts(m =>
+        [formatAlertMsg('5m', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+      )
+      if (sndBoliDown) sndBoliDown.play()
     })
+    socket.on('alert:bollingerDown:15m', (coin: any) => {
+      setBollingerAlerts(m =>
+        [formatAlertMsg('15m', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+      )
+      if (sndBoliDown) sndBoliDown.play()
+    })
+    socket.on('alert:bollingerDown:30m', (coin: any) => {
+      setBollingerAlerts(m =>
+        [formatAlertMsg('30m', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+      )
+      if (sndBoliDown) sndBoliDown.play()
+    })
+    socket.on('alert:bollingerDown:1h', (coin: any) => {
+      setBollingerAlerts(m =>
+        [formatAlertMsg('1h', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+      )
+      if (sndBoliDown) sndBoliDown.play()
+    })
+    socket.on('alert:bollingerDown:4h', (coin: any) => {
+      setBollingerAlerts(m =>
+        [formatAlertMsg('4h', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+      )
+      if (sndBoliDown) sndBoliDown.play()
+    })
+    socket.on('alert:bollingerDown:1d', (coin: any) => {
+      setBollingerAlerts(m =>
+        [formatAlertMsg('1d', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+      )
+      if (sndBoliDown) sndBoliDown.play()
+    })
+    // socket.on('alert:bollingerDown:1w', (coin: any) => {
+    //   setBollingerAlerts(m =>
+    //     [formatAlertMsg('1w', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+    //   )
+    //   if (sndBoliDown) sndBoliDown.play()
+    // })
   }
 
   const formatAlertMsg = (interval: string, type: string, coin: any) => {
     const time = new Date()
-    let mode = ''
+
     const totalCandles = coin[`data${interval}`].length
     const lastCandle = coin[`data${interval}`][totalCandles - 1]
-    if (lastCandle.rsi < 30) {
-      mode = 'BUY'
-    }
-    if (lastCandle.rsi > 70) {
-      mode = 'SELL'
-    }
+
     const data = {
-      time: time.toLocaleTimeString('en-US'),
-      mode,
       type,
       interval,
       ...lastCandle,
-      ...coin
+      ...coin,
+      time: time.toLocaleTimeString('en-US')
     }
     console.log('alert', data)
     return data
@@ -324,69 +414,56 @@ export const Symbols = () => {
         return 'border-amber-500'
       case ALERT_TYPE.velotas:
         return 'border-blue-500'
+      case ALERT_TYPE.bollingerup:
+      case ALERT_TYPE.bollingerdown:
+        return 'border-green-500'
+
       default:
         return ''
     }
   }
 
   const renderMessage = (msg: any, index: number) => {
-    let type
-    switch (msg.type) {
-      case ALERT_TYPE.alert:
-        type = 'Alert'
-        break
-      case ALERT_TYPE.volume:
-        type = 'Volume'
-        break
-      case ALERT_TYPE.velotas:
-        type = 'Velota'
-        break
-      default:
-        type = ''
-    }
-    console.log('renderalert', msg)
+    // console.log('renderalert', msg)
     return (
-      <li key={index} className={`my-2 border ${getBorderColorByAlertType(msg.type)}`}>
-        <span
-          className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-          onClick={() => handleChangeInterval1(msg.symbol, msg.interval)}
-        >
-          1
-        </span>
-        <span
-          className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-          onClick={() => handleChangeInterval2(msg.symbol, msg.interval)}
-        >
-          2
-        </span>
-        <span
-          className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-          onClick={() => handleChangeInterval3(msg.symbol, msg.interval)}
-        >
-          3
-        </span>
+      <li
+        key={index}
+        className={`my-1 flex flex-col border ${getBorderColorByAlertType(msg.type)}`}
+      >
+        <div className='buttons flex'>
+          <span
+            className='bg-blue-200 hover:bg-blue-400 text-black text-xs cursor-pointer mx-0.5 px-1'
+            onClick={() => handleChangeInterval1(msg.symbol, msg.interval)}
+          >
+            1
+          </span>
+          <span
+            className='bg-blue-200 hover:bg-blue-400 text-black text-xs cursor-pointer mx-1 px-1'
+            onClick={() => handleChangeInterval2(msg.symbol, msg.interval)}
+          >
+            2
+          </span>
+          <span
+            className='bg-blue-200 hover:bg-blue-400 text-black text-xs cursor-pointer mx-1 px-1'
+            onClick={() => handleChangeInterval3(msg.symbol, msg.interval)}
+          >
+            3
+          </span>
+          <span>{msg.type}</span>
+        </div>
         <a
-          className='mx-2 '
           href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
             msg.symbol
           )}&interval=${getTradingViewInterval(msg.interval)}`}
           target='_blank'
         >
-          <p>
-            <span className='mx-2'>{msg.time}</span>
-            <span className='mx-2'>
-              {msg.mode} {type}
-            </span>
-          </p>
-          <p>
-            <span className='mx-2'>
-              {msg.symbol} {msg.interval}
-            </span>
+          <p className='mx-2'>{msg.time}</p>
+          <p className='mx-2'>
+            {msg.symbol} {msg.interval}
           </p>
           <p className='mx-2'>RSI: {msg.rsi}</p>
-          {/* <p className='mx-2'>VolAvg: {msg.volAverage}</p> */}
-          <p className='mx-2'>VolumeCount: {msg.prev10CandleVolumeCount}</p>
-          <p className='mx-2'>Price:{msg.close}</p>
+          <p className='mx-2'>VolCount: {msg.prev10CandleVolumeCount}</p>
+          {/* <p className='mx-2'>Price:{msg.close}</p> */}
         </a>
       </li>
     )
@@ -428,6 +505,11 @@ export const Symbols = () => {
     const value = Number(e.target.value)
     setVolumeFactorFilter(value)
     socket.emit('setVolumeFactor', value)
+  }
+  const handleBbCandlePercentOutFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value)
+    setBbCandlePercentOutFilter(value)
+    socket.emit('setBBCandlePercentOut', value)
   }
 
   const handleOverBoughtFilter = (e: ChangeEvent<HTMLInputElement>) => {
@@ -642,14 +724,14 @@ export const Symbols = () => {
           s.data1h[s.data1h.length - 1]?.rsi > maxRSIFilter ||
           s.data4h[s.data4h.length - 1]?.rsi > maxRSIFilter ||
           s.data1d[s.data1d.length - 1]?.rsi > maxRSIFilter ||
-          s.data1w[s.data1w.length - 1]?.rsi > maxRSIFilter ||
+          // s.data1w[s.data1w.length - 1]?.rsi > maxRSIFilter ||
           s.data5m[s.data5m.length - 1]?.rsi < minRSIFilter ||
           s.data15m[s.data15m.length - 1]?.rsi < minRSIFilter ||
           s.data30m[s.data30m.length - 1]?.rsi < minRSIFilter ||
           s.data1h[s.data1h.length - 1]?.rsi < minRSIFilter ||
           s.data4h[s.data4h.length - 1]?.rsi < minRSIFilter ||
-          s.data1d[s.data1d.length - 1]?.rsi < minRSIFilter ||
-          s.data1w[s.data1w.length - 1]?.rsi < minRSIFilter
+          s.data1d[s.data1d.length - 1]?.rsi < minRSIFilter
+          // || s.data1w[s.data1w.length - 1]?.rsi < minRSIFilter
         )
       })
     } else if (overBoughtFilter) {
@@ -660,8 +742,8 @@ export const Symbols = () => {
           s.data30m[s.data30m.length - 1]?.rsi > maxRSIFilter ||
           s.data1h[s.data1h.length - 1]?.rsi > maxRSIFilter ||
           s.data4h[s.data4h.length - 1]?.rsi > maxRSIFilter ||
-          s.data1d[s.data1d.length - 1]?.rsi > maxRSIFilter ||
-          s.data1w[s.data1w.length - 1]?.rsi > maxRSIFilter
+          s.data1d[s.data1d.length - 1]?.rsi > maxRSIFilter
+          // ||s.data1w[s.data1w.length - 1]?.rsi > maxRSIFilter
         )
       })
     } else if (overSoldFilter) {
@@ -678,9 +760,9 @@ export const Symbols = () => {
           (s.data4h[s.data4h.length - 1]?.rsi > 0 &&
             s.data4h[s.data4h.length - 1]?.rsi < minRSIFilter) ||
           (s.data1d[s.data1d.length - 1]?.rsi > 0 &&
-            s.data1d[s.data1d.length - 1]?.rsi < minRSIFilter) ||
-          (s.data1w[s.data1w.length - 1]?.rsi > 0 &&
-            s.data1w[s.data1w.length - 1]?.rsi < minRSIFilter)
+            s.data1d[s.data1d.length - 1]?.rsi < minRSIFilter)
+          // || (s.data1w[s.data1w.length - 1]?.rsi > 0 &&
+          //   s.data1w[s.data1w.length - 1]?.rsi < minRSIFilter)
         )
       })
     }
@@ -693,8 +775,8 @@ export const Symbols = () => {
           s.data30m[s.data30m.length - 1]?.prev10CandleVolumeCount >= volumeCount ||
           s.data1h[s.data1h.length - 1]?.prev10CandleVolumeCount >= volumeCount ||
           s.data4h[s.data4h.length - 1]?.prev10CandleVolumeCount >= volumeCount ||
-          s.data1d[s.data1d.length - 1]?.prev10CandleVolumeCount >= volumeCount ||
-          s.data1w[s.data1w.length - 1]?.prev10CandleVolumeCount >= volumeCount
+          s.data1d[s.data1d.length - 1]?.prev10CandleVolumeCount >= volumeCount
+          //  ||s.data1w[s.data1w.length - 1]?.prev10CandleVolumeCount >= volumeCount
         )
       })
     }
@@ -711,21 +793,21 @@ export const Symbols = () => {
       rsi1h: d.data1h[d.data1h.length - 1]?.rsi ?? 0,
       rsi4h: d.data4h[d.data4h.length - 1]?.rsi ?? 0,
       rsi1d: d.data1d[d.data1d.length - 1]?.rsi ?? 0,
-      rsi1w: d.data1w[d.data1w.length - 1]?.rsi ?? 0,
+      // rsi1w: d.data1w[d.data1w.length - 1]?.rsi ?? 0,
       prev10CandleVolumeCount5m: d.data5m[d.data5m.length - 1]?.prev10CandleVolumeCount ?? 0,
       prev10CandleVolumeCount15m: d.data15m[d.data15m.length - 1]?.prev10CandleVolumeCount ?? 0,
       prev10CandleVolumeCount30m: d.data30m[d.data30m.length - 1]?.prev10CandleVolumeCount ?? 0,
       prev10CandleVolumeCount1h: d.data1h[d.data1h.length - 1]?.prev10CandleVolumeCount ?? 0,
       prev10CandleVolumeCount4h: d.data4h[d.data4h.length - 1]?.prev10CandleVolumeCount ?? 0,
       prev10CandleVolumeCount1d: d.data1d[d.data1d.length - 1]?.prev10CandleVolumeCount ?? 0,
-      prev10CandleVolumeCount1w: d.data1w[d.data1w.length - 1]?.prev10CandleVolumeCount ?? 0,
+      // prev10CandleVolumeCount1w: d.data1w[d.data1w.length - 1]?.prev10CandleVolumeCount ?? 0,
       isRedCandle5m: d.data5m[d.data5m.length - 1]?.isRedCandle ?? 0,
       isRedCandle15m: d.data15m[d.data15m.length - 1]?.isRedCandle ?? 0,
       isRedCandle30m: d.data30m[d.data30m.length - 1]?.isRedCandle ?? 0,
       isRedCandle1h: d.data1h[d.data1h.length - 1]?.isRedCandle ?? 0,
       isRedCandle4h: d.data4h[d.data4h.length - 1]?.isRedCandle ?? 0,
       isRedCandle1d: d.data1d[d.data1d.length - 1]?.isRedCandle ?? 0,
-      isRedCandle1w: d.data1w[d.data1w.length - 1]?.isRedCandle ?? 0,
+      // isRedCandle1w: d.data1w[d.data1w.length - 1]?.isRedCandle ?? 0,
 
       isStopCandle5m: d.data5m[d.data5m.length - 1]?.isStopCandle ?? 0,
       isStopCandle15m: d.data15m[d.data15m.length - 1]?.isStopCandle ?? 0,
@@ -733,7 +815,7 @@ export const Symbols = () => {
       isStopCandle1h: d.data1h[d.data1h.length - 1]?.isStopCandle ?? 0,
       isStopCandle4h: d.data4h[d.data4h.length - 1]?.isStopCandle ?? 0,
       isStopCandle1d: d.data1d[d.data1d.length - 1]?.isStopCandle ?? 0,
-      isStopCandle1w: d.data1w[d.data1w.length - 1]?.isStopCandle ?? 0,
+      // isStopCandle1w: d.data1w[d.data1w.length - 1]?.isStopCandle ?? 0,
 
       isPowerCandle5m: d.data5m[d.data5m.length - 1]?.isPowerCandle ?? 0,
       isPowerCandle15m: d.data15m[d.data15m.length - 1]?.isPowerCandle ?? 0,
@@ -741,15 +823,15 @@ export const Symbols = () => {
       isPowerCandle1h: d.data1h[d.data1h.length - 1]?.isPowerCandle ?? 0,
       isPowerCandle4h: d.data4h[d.data4h.length - 1]?.isPowerCandle ?? 0,
       isPowerCandle1d: d.data1d[d.data1d.length - 1]?.isPowerCandle ?? 0,
-      isPowerCandle1w: d.data1w[d.data1w.length - 1]?.isPowerCandle ?? 0,
+      // isPowerCandle1w: d.data1w[d.data1w.length - 1]?.isPowerCandle ?? 0,
 
       isBiggerThanPrevious5m: d.data5m[d.data5m.length - 1]?.isBiggerThanPrevious ?? 0,
       isBiggerThanPrevious15m: d.data15m[d.data15m.length - 1]?.isBiggerThanPrevious ?? 0,
       isBiggerThanPrevious30m: d.data30m[d.data30m.length - 1]?.isBiggerThanPrevious ?? 0,
       isBiggerThanPrevious1h: d.data1h[d.data1h.length - 1]?.isBiggerThanPrevious ?? 0,
       isBiggerThanPrevious4h: d.data4h[d.data4h.length - 1]?.isBiggerThanPrevious ?? 0,
-      isBiggerThanPrevious1d: d.data1d[d.data1d.length - 1]?.isBiggerThanPrevious ?? 0,
-      isBiggerThanPrevious1w: d.data1w[d.data1w.length - 1]?.isBiggerThanPrevious ?? 0
+      isBiggerThanPrevious1d: d.data1d[d.data1d.length - 1]?.isBiggerThanPrevious ?? 0
+      // isBiggerThanPrevious1w: d.data1w[d.data1w.length - 1]?.isBiggerThanPrevious ?? 0
     }
   }
 
@@ -791,357 +873,373 @@ export const Symbols = () => {
       } else {
         return b.rsi1d - a.rsi1d
       }
-    } else if (currentSort[0] === '1w') {
-      if (currentSort[1] === 'asc') {
-        return a.rsi1w - b.rsi1w
-      } else {
-        return b.rsi1w - a.rsi1w
-      }
     }
+    // else if (currentSort[0] === '1w') {
+    //   if (currentSort[1] === 'asc') {
+    //     return a.rsi1w - b.rsi1w
+    //   } else {
+    //     return b.rsi1w - a.rsi1w
+    //   }
+    // }
     return 0
   })
   const dataBTC = BTC.map(getData)
 
   return (
     <div className='p-3 flex'>
-      <div className='p-1 flex flex-col' style={{ width: 'calc(100% - 200px)' }}>
-        <div className='charts flex flex-col'>
-          <div className='chart-group flex'>
-            <div className='chart m-2 flex-1' id='chart-btc0'>
-              <div className='chart-header flex'>
-                <h3>{btcCoin0.current}</h3>
-                <div className='btc-btns mx-5 '>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart0(`BTCUSDT:5m`)}
-                  >
-                    5m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart0(`BTCUSDT:15m`)}
-                  >
-                    15m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart0(`BTCUSDT:30m`)}
-                  >
-                    30m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart0(`BTCUSDT:1h`)}
-                  >
-                    1h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart0(`BTCUSDT:4h`)}
-                  >
-                    4h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart0(`BTCUSDT:1d`)}
-                  >
-                    1d
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart0(`BTCUSDT:1w`)}
-                  >
-                    1w
-                  </span>
+      <div className='p-1 flex flex-col'>
+        <div className='head flex '>
+          <div className='charts flex flex-col'>
+            <div className='chart-group flex'>
+              <div className='chart m-2 flex-1' id='chart-btc0'>
+                <div className='chart-header flex'>
+                  <h3>{btcCoin0.current}</h3>
+                  <div className='btc-btns mx-5 '>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart0(`BTCUSDT:5m`)}
+                    >
+                      5m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart0(`BTCUSDT:15m`)}
+                    >
+                      15m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart0(`BTCUSDT:30m`)}
+                    >
+                      30m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart0(`BTCUSDT:1h`)}
+                    >
+                      1h
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart0(`BTCUSDT:4h`)}
+                    >
+                      4h
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart0(`BTCUSDT:1d`)}
+                    >
+                      1d
+                    </span>
+                    {/* <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart0(`BTCUSDT:1w`)}
+                    >
+                      1w
+                    </span> */}
+                  </div>
                 </div>
+                <Chart data={btcData0} ema20 sma50 sma200 height={200} />
               </div>
-              <Chart data={btcData0} ema20 sma50 sma200 height={200} />
-            </div>
 
-            <div className='chart m-2 flex-1' id='chart-btc1'>
-              <div className='chart-header flex'>
-                <h3>{btcCoin1.current}</h3>
-                <div className='btc-btns mx-5 '>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart1(`BTCUSDT:5m`)}
-                  >
-                    5m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart1(`BTCUSDT:15m`)}
-                  >
-                    15m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart1(`BTCUSDT:30m`)}
-                  >
-                    30m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart1(`BTCUSDT:1h`)}
-                  >
-                    1h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart1(`BTCUSDT:4h`)}
-                  >
-                    4h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart1(`BTCUSDT:1d`)}
-                  >
-                    1d
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart1(`BTCUSDT:1w`)}
-                  >
-                    1w
-                  </span>
+              <div className='chart m-2 flex-1' id='chart-btc1'>
+                <div className='chart-header flex'>
+                  <h3>{btcCoin1.current}</h3>
+                  <div className='btc-btns mx-5 '>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart1(`BTCUSDT:5m`)}
+                    >
+                      5m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart1(`BTCUSDT:15m`)}
+                    >
+                      15m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart1(`BTCUSDT:30m`)}
+                    >
+                      30m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart1(`BTCUSDT:1h`)}
+                    >
+                      1h
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart1(`BTCUSDT:4h`)}
+                    >
+                      4h
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart1(`BTCUSDT:1d`)}
+                    >
+                      1d
+                    </span>
+                    {/* <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart1(`BTCUSDT:1w`)}
+                    >
+                      1w
+                    </span> */}
+                  </div>
                 </div>
+                <Chart data={btcData1} ema20 sma50 sma200 height={200} />
               </div>
-              <Chart data={btcData1} ema20 sma50 sma200 height={200} />
-            </div>
 
-            <div className='chart m-2 flex-1' id='chart-btc2'>
-              <div className='chart-header flex'>
-                <h3>{btcCoin2.current}</h3>
-                <div className='btc-btns mx-5 '>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:5m`)}
-                  >
-                    5m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:15m`)}
-                  >
-                    15m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:30m`)}
-                  >
-                    30m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:1h`)}
-                  >
-                    1h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:4h`)}
-                  >
-                    4h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:1d`)}
-                  >
-                    1d
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:1w`)}
-                  >
-                    1w
-                  </span>
+              <div className='chart m-2 flex-1' id='chart-btc2'>
+                <div className='chart-header flex'>
+                  <h3>{btcCoin2.current}</h3>
+                  <div className='btc-btns mx-5 '>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`BTCUSDT:5m`)}
+                    >
+                      5m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`BTCUSDT:15m`)}
+                    >
+                      15m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`BTCUSDT:30m`)}
+                    >
+                      30m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`BTCUSDT:1h`)}
+                    >
+                      1h
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`BTCUSDT:4h`)}
+                    >
+                      4h
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`BTCUSDT:1d`)}
+                    >
+                      1d
+                    </span>
+                    {/* <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleViewChart2(`BTCUSDT:1w`)}
+                    >
+                      1w
+                    </span> */}
+                  </div>
                 </div>
+                <Chart data={btcData2} ema20 sma50 sma200 height={200} />
               </div>
-              <Chart data={btcData2} ema20 sma50 sma200 height={200} />
+            </div>
+            <div className='chart-group flex items-start'>
+              <div className='chart m-2 flex-1' id='chart-1'>
+                <div className='chart-header flex'>
+                  {selectedCoin1.current && (
+                    <a
+                      href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
+                        selectedCoin1.current.split(':')[0]
+                      )}&interval=${getTradingViewInterval(selectedCoin1.current.split(':')[1])}`}
+                      target='_blank'
+                    >
+                      {selectedCoin1.current}
+                    </a>
+                  )}
+                  <div className='btc-btns mx-5 '>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1('', `5m`)}
+                    >
+                      5m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1('', `15m`)}
+                    >
+                      15m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1('', `30m`)}
+                    >
+                      30m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1('', `1h`)}
+                    >
+                      1h
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1('', `4h`)}
+                    >
+                      4h
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1('', `1d`)}
+                    >
+                      1d
+                    </span>
+                    {/* <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1('', `1w`)}
+                    >
+                      1w
+                    </span> */}
+                  </div>
+                </div>
+                <Chart data={chartData1} />
+              </div>
+
+              <div className='chart m-2 flex-1' id='chart-2'>
+                <div className='chart-header flex'>
+                  {selectedCoin2.current && (
+                    <a
+                      href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
+                        selectedCoin2.current.split(':')[0]
+                      )}&interval=${getTradingViewInterval(selectedCoin2.current.split(':')[1])}`}
+                      target='_blank'
+                    >
+                      {selectedCoin2.current}
+                    </a>
+                  )}
+                  <div className='btc-btns mx-5 '>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2('', `5m`)}
+                    >
+                      5m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2('', `15m`)}
+                    >
+                      15m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2('', `30m`)}
+                    >
+                      30m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2('', `1h`)}
+                    >
+                      1h
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2('', `4h`)}
+                    >
+                      4h
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2('', `1d`)}
+                    >
+                      1d
+                    </span>
+                    {/* <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2('', `1w`)}
+                    >
+                      1w
+                    </span> */}
+                  </div>
+                </div>
+                <Chart data={chartData2} />
+              </div>
+
+              <div className='chart m-2 flex-1' id='chart-3'>
+                <div className='chart-header flex'>
+                  {selectedCoin3.current && (
+                    <a
+                      href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
+                        selectedCoin3.current.split(':')[0]
+                      )}&interval=${getTradingViewInterval(selectedCoin3.current.split(':')[1])}`}
+                      target='_blank'
+                    >
+                      {selectedCoin3.current}
+                    </a>
+                  )}
+                  <div className='btc-btns mx-5 '>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3('', `5m`)}
+                    >
+                      5m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3('', `15m`)}
+                    >
+                      15m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3('', `30m`)}
+                    >
+                      30m
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3('', `1h`)}
+                    >
+                      1h
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3('', `4h`)}
+                    >
+                      4h
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3('', `1d`)}
+                    >
+                      1d
+                    </span>
+                    {/* <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3('', `1w`)}
+                    >
+                      1w
+                    </span> */}
+                  </div>
+                </div>
+                <Chart data={chartData3} />
+              </div>
             </div>
           </div>
-          <div className='chart-group flex items-start'>
-            <div className='chart m-2 flex-1' id='chart-1'>
-              <div className='chart-header flex'>
-                {selectedCoin1.current && (
-                  <a
-                    href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
-                      selectedCoin1.current.split(':')[0]
-                    )}&interval=${getTradingViewInterval(selectedCoin1.current.split(':')[1])}`}
-                    target='_blank'
-                  >
-                    {selectedCoin1.current}
-                  </a>
-                )}
-                <div className='btc-btns mx-5 '>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1('', `5m`)}
-                  >
-                    5m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1('', `15m`)}
-                  >
-                    15m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1('', `30m`)}
-                  >
-                    30m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1('', `1h`)}
-                  >
-                    1h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1('', `4h`)}
-                  >
-                    4h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1('', `1d`)}
-                  >
-                    1d
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1('', `1w`)}
-                  >
-                    1w
-                  </span>
-                </div>
-              </div>
-              <Chart data={chartData1} />
-            </div>
-
-            <div className='chart m-2 flex-1' id='chart-2'>
-              <div className='chart-header flex'>
-                {selectedCoin2.current && (
-                  <a
-                    href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
-                      selectedCoin2.current.split(':')[0]
-                    )}&interval=${getTradingViewInterval(selectedCoin2.current.split(':')[1])}`}
-                    target='_blank'
-                  >
-                    {selectedCoin2.current}
-                  </a>
-                )}
-                <div className='btc-btns mx-5 '>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2('', `5m`)}
-                  >
-                    5m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2('', `15m`)}
-                  >
-                    15m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2('', `30m`)}
-                  >
-                    30m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2('', `1h`)}
-                  >
-                    1h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2('', `4h`)}
-                  >
-                    4h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2('', `1d`)}
-                  >
-                    1d
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2('', `1w`)}
-                  >
-                    1w
-                  </span>
-                </div>
-              </div>
-              <Chart data={chartData2} />
-            </div>
-
-            <div className='chart m-2 flex-1' id='chart-3'>
-              <div className='chart-header flex'>
-                {selectedCoin3.current && (
-                  <a
-                    href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
-                      selectedCoin3.current.split(':')[0]
-                    )}&interval=${getTradingViewInterval(selectedCoin3.current.split(':')[1])}`}
-                    target='_blank'
-                  >
-                    {selectedCoin3.current}
-                  </a>
-                )}
-                <div className='btc-btns mx-5 '>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `5m`)}
-                  >
-                    5m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `15m`)}
-                  >
-                    15m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `30m`)}
-                  >
-                    30m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `1h`)}
-                  >
-                    1h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `4h`)}
-                  >
-                    4h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `1d`)}
-                  >
-                    1d
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `1w`)}
-                  >
-                    1w
-                  </span>
-                </div>
-              </div>
-              <Chart data={chartData3} />
-            </div>
+          <div className='alerts flex  w-[300px]'>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              changeColor, lastCandleHigherVol, biggerThanPrev, rsi
+              {alerts.map(renderMessage)}
+            </ul>
+            {/* <ul className='overflow-y-auto'>{velotaAlerts.map(renderMessage)}</ul> */}
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              crossBBBand, candlePercentOutBB, rsi
+              {bollingerAlerts.map(renderMessage)}
+            </ul>
+            {/* <ul className='overflow-y-auto'>{volumeAlerts.map(renderMessage)}</ul> */}
           </div>
         </div>
+
         <div className='filter flex justify-between items-center'>
           <div className='search my-2'>
             <label
@@ -1250,6 +1348,23 @@ export const Symbols = () => {
               onChange={handleVolumeFactorFilter}
             />
           </div>
+          <div className='bb-candle-percent-out my-2'>
+            <label
+              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+              htmlFor='bb-candle-percent-out'
+            >
+              Volume factor
+            </label>
+            <input
+              type='number'
+              id='bb-candle-percent-out'
+              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+              min={30}
+              max={99}
+              value={bbCandlePercentOutFilter}
+              onChange={handleBbCandlePercentOutFilter}
+            />
+          </div>
 
           <div className='search my-2'>
             <label
@@ -1298,12 +1413,24 @@ export const Symbols = () => {
           >
             Clear alerts
           </button>
-          <button
+          {/* <button
             className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
             onClick={() => setVolumeAlerts([])}
           >
             Clear Vol alerts
+          </button> */}
+          <button
+            className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
+            onClick={() => setBollingerAlerts([])}
+          >
+            Clear Boli alerts
           </button>
+          {/* <button
+            className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
+            onClick={() => setVelotaAlerts([])}
+          >
+            Clear Velota alerts
+          </button> */}
           <div className='group mx-5'>
             <label htmlFor='filter-push'>Show push/superpush only</label>
             <input
@@ -1339,13 +1466,13 @@ export const Symbols = () => {
               <th colSpan={2}>Symbol</th>
 
               <th
-                colSpan={7}
+                colSpan={6}
                 className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 RSI ({rsiSelectedSort})
               </th>
               <th
-                colSpan={7}
+                colSpan={6}
                 className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 candle status
@@ -1394,12 +1521,12 @@ export const Symbols = () => {
               >
                 Dia
               </th>
-              <th
+              {/* <th
                 onClick={() => handleSelectSort('1w')}
                 className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 1w
-              </th>
+              </th> */}
               <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 5m
               </th>
@@ -1418,9 +1545,9 @@ export const Symbols = () => {
               <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 1d
               </th>
-              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              {/* <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 1w
-              </th>
+              </th> */}
             </tr>
           </thead>
           <tbody>
@@ -1491,14 +1618,14 @@ export const Symbols = () => {
                 >
                   {dataBTC[0].rsi1d}
                 </td>
-                <td
+                {/* <td
                   className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                   style={{
                     backgroundColor: getBgColor(dataBTC[0].rsi1w)
                   }}
                 >
                   {dataBTC[0].rsi1w}
-                </td>
+                </td> */}
 
                 <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   <div className='flex'>
@@ -1680,7 +1807,7 @@ export const Symbols = () => {
                     </span>
                   </div>
                 </td>
-                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                {/* <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   <div className='flex'>
                     <span
                       style={{
@@ -1709,7 +1836,7 @@ export const Symbols = () => {
                       3
                     </span>
                   </div>
-                </td>
+                </td> */}
               </tr>
             )}
 
@@ -1783,14 +1910,14 @@ export const Symbols = () => {
                   >
                     {coin.rsi1d} ({coin.prev10CandleVolumeCount1d})
                   </td>
-                  <td
+                  {/* <td
                     className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(coin.rsi1w)
                     }}
                   >
                     {coin.rsi1w} ({coin.prev10CandleVolumeCount1w})
-                  </td>
+                  </td> */}
 
                   <td
                     className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
@@ -1960,7 +2087,7 @@ export const Symbols = () => {
                       </span>
                     </div>
                   </td>
-                  <td
+                  {/* <td
                     className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{
                       backgroundColor: coin.isRedCandle1w ? 'red' : 'green'
@@ -1987,7 +2114,7 @@ export const Symbols = () => {
                         3
                       </span>
                     </div>
-                  </td>
+                  </td> */}
                 </tr>
               )
             })}
@@ -2046,11 +2173,6 @@ export const Symbols = () => {
             </tr>
           </tfoot>
         </table>
-      </div>
-      <div className='alerts flex flex-col w-[200px]'>
-        <ul className='overflow-y-auto'>{alerts.map(renderMessage)}</ul>
-        <ul className='overflow-y-auto'>{velotaAlerts.map(renderMessage)}</ul>
-        <ul className='overflow-y-auto'>{volumeAlerts.map(renderMessage)}</ul>
       </div>
     </div>
   )

@@ -12,7 +12,8 @@ import {
   setMaxRSI,
   setRSILength,
   setVolumeLength,
-  setVolumeFactor
+  setVolumeFactor,
+  setBBCandlePercentOut
 } from '@/app/binance'
 
 interface SocketServer extends HTTPServer {
@@ -52,6 +53,11 @@ export default async function SocketHandler(req: NextApiRequest, res: NextApiRes
     socket.on('reconnect', installSockets) //refresh btn
 
     socket.on('ping', ping)
+
+    socket.on('setBBCandlePercentOut', (value: number) => {
+      console.log('setting BB candle percent outside', value, typeof value)
+      setBBCandlePercentOut(value)
+    })
 
     socket.on('setMinRSI', (value: number) => {
       console.log('setting min rsi', value, typeof value)
