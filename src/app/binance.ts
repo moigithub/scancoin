@@ -58,7 +58,8 @@ let MAX_RSI = 70
 let BB_CANDLE_PERCENT_OUT = 40
 let VOLUME_LENGTH = 30 //  por ahora usar rsi length
 let VOL_FACTOR = 2.5 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
-const TOTAL_CANDLES = Math.max(VOLUME_LENGTH, RSI_LENGTH, TOTAL_CLIENT_CANDLES + 1)
+// segun el ejemplo del technical indicator.. la data para calcular (el sma, rsi) es casi el doble
+const TOTAL_CANDLES = Math.max(VOLUME_LENGTH * 2, RSI_LENGTH * 2, TOTAL_CLIENT_CANDLES + 1)
 const includeLastCandleData = true // add incomplete last candle to the data
 let timerHandler: any = null
 
@@ -78,27 +79,28 @@ const getSymbols = async () => {
   }
 
   const bannedSymbols = [
+    '1000LUNCUSDT',
     'ASTRUSDT',
     'API3USDT',
     'BANDUSDT',
-    'CELOUSDT',
-    'KNCUSDT',
     'BLURUSDT',
-    'DEFIUSDT',
-    'OMGUSDT',
-    'BNXUSDT',
-    'TRUUSDT',
-    'ENSUSDT',
     'BLUEBIRDUSDT',
-    'TLMUSDT',
-    'XVGUSDT',
-    'LEVERUSDT',
-    'FOOTBALLUSDT',
-    '1000LUNCUSDT',
-    'USDCUSDT',
     'BTCDOMUSDT',
     'BTCUSDT_230929',
-    'ETHUSDT_230929'
+    'BNXUSDT',
+    'CELOUSDT',
+    'CTKUSDT',
+    'DEFIUSDT',
+    'ETHUSDT_230929',
+    'ENSUSDT',
+    'FOOTBALLUSDT',
+    'KNCUSDT',
+    'LEVERUSDT',
+    'OMGUSDT',
+    'TRUUSDT',
+    'TLMUSDT',
+    'USDCUSDT',
+    'XVGUSDT'
   ]
   symbols = exchangeInfo.symbols
     .filter((coin: any) => coin.quoteAsset === 'USDT' && coin.status === 'TRADING')
@@ -247,7 +249,7 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
 
   //----------------------------
   // isStopCandle
-  const volume = data.slice(-VOLUME_LENGTH).map((val: any) => Number(val.volume))
+  const volume = data.map((val: any) => Number(val.volume))
   const volSMA = SMA.calculate({ period: VOLUME_LENGTH, values: volume })
   const volAverage = volSMA[volSMA.length - 1] ?? 0
   const prevVolume = volume[volume.length - 2] ?? 0
@@ -413,15 +415,15 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
     //   sendAlert(`alert:strongcandle:${interval}`, coin)
     // }
 
-    if (
-      lastCandle.rsi > MAX_RSI ||
-      lastCandle.rsi < MIN_RSI ||
-      prevCandle.rsi > MAX_RSI ||
-      prevCandle.rsi < MIN_RSI
-    ) {
+    if (lastCandle.rsi < MIN_RSI || prevCandle.rsi < MIN_RSI) {
+      //sobreventa rsi <30
       if (lastCandle.crossUp && lastCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT) {
         sendAlert(`alert:bollingerUp:${interval}`, coin)
       }
+    }
+
+    if (lastCandle.rsi > MAX_RSI || prevCandle.rsi > MAX_RSI) {
+      //sobrecompra rsi > 70
       if (lastCandle.crossDown && lastCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT) {
         sendAlert(`alert:bollingerDown:${interval}`, coin)
       }

@@ -886,739 +886,743 @@ export const Symbols = () => {
   const dataBTC = BTC.map(getData)
 
   return (
-    <div className='p-3 flex'>
-      <div className='p-1 flex flex-col'>
-        <div className='head flex '>
-          <div className='charts flex flex-col'>
-            <div className='chart-group flex'>
-              <div className='chart m-2 flex-1' id='chart-btc0'>
-                <div className='chart-header flex'>
-                  <h3>{btcCoin0.current}</h3>
-                  <div className='btc-btns mx-5 '>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart0(`BTCUSDT:5m`)}
-                    >
-                      5m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart0(`BTCUSDT:15m`)}
-                    >
-                      15m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart0(`BTCUSDT:30m`)}
-                    >
-                      30m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart0(`BTCUSDT:1h`)}
-                    >
-                      1h
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart0(`BTCUSDT:4h`)}
-                    >
-                      4h
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart0(`BTCUSDT:1d`)}
-                    >
-                      1d
-                    </span>
-                    {/* <span
+    <div className='p-3 flex flex-col'>
+      <div className='head flex '>
+        <div className='charts flex flex-col'>
+          <div className='chart-group flex'>
+            <div className='chart m-2 flex-1' id='chart-btc0'>
+              <div className='chart-header flex'>
+                <h3>{btcCoin0.current}</h3>
+                <div className='btc-btns mx-5 '>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart0(`BTCUSDT:5m`)}
+                  >
+                    5m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart0(`BTCUSDT:15m`)}
+                  >
+                    15m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart0(`BTCUSDT:30m`)}
+                  >
+                    30m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart0(`BTCUSDT:1h`)}
+                  >
+                    1h
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart0(`BTCUSDT:4h`)}
+                  >
+                    4h
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart0(`BTCUSDT:1d`)}
+                  >
+                    1d
+                  </span>
+                  {/* <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
                       onClick={() => handleViewChart0(`BTCUSDT:1w`)}
                     >
                       1w
                     </span> */}
-                  </div>
                 </div>
-                <Chart data={btcData0} ema20 sma50 sma200 height={200} />
               </div>
+              <Chart data={btcData0} ema20 sma50 sma200 height={200} />
+            </div>
 
-              <div className='chart m-2 flex-1' id='chart-btc1'>
-                <div className='chart-header flex'>
-                  <h3>{btcCoin1.current}</h3>
-                  <div className='btc-btns mx-5 '>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart1(`BTCUSDT:5m`)}
-                    >
-                      5m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart1(`BTCUSDT:15m`)}
-                    >
-                      15m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart1(`BTCUSDT:30m`)}
-                    >
-                      30m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart1(`BTCUSDT:1h`)}
-                    >
-                      1h
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart1(`BTCUSDT:4h`)}
-                    >
-                      4h
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart1(`BTCUSDT:1d`)}
-                    >
-                      1d
-                    </span>
-                    {/* <span
+            <div className='chart m-2 flex-1' id='chart-btc1'>
+              <div className='chart-header flex'>
+                <h3>{btcCoin1.current}</h3>
+                <div className='btc-btns mx-5 '>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart1(`BTCUSDT:5m`)}
+                  >
+                    5m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart1(`BTCUSDT:15m`)}
+                  >
+                    15m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart1(`BTCUSDT:30m`)}
+                  >
+                    30m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart1(`BTCUSDT:1h`)}
+                  >
+                    1h
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart1(`BTCUSDT:4h`)}
+                  >
+                    4h
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart1(`BTCUSDT:1d`)}
+                  >
+                    1d
+                  </span>
+                  {/* <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
                       onClick={() => handleViewChart1(`BTCUSDT:1w`)}
                     >
                       1w
                     </span> */}
-                  </div>
                 </div>
-                <Chart data={btcData1} ema20 sma50 sma200 height={200} />
               </div>
+              <Chart data={btcData1} ema20 sma50 sma200 height={200} />
+            </div>
 
-              <div className='chart m-2 flex-1' id='chart-btc2'>
-                <div className='chart-header flex'>
-                  <h3>{btcCoin2.current}</h3>
-                  <div className='btc-btns mx-5 '>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart2(`BTCUSDT:5m`)}
-                    >
-                      5m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart2(`BTCUSDT:15m`)}
-                    >
-                      15m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart2(`BTCUSDT:30m`)}
-                    >
-                      30m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart2(`BTCUSDT:1h`)}
-                    >
-                      1h
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart2(`BTCUSDT:4h`)}
-                    >
-                      4h
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart2(`BTCUSDT:1d`)}
-                    >
-                      1d
-                    </span>
-                    {/* <span
+            <div className='chart m-2 flex-1' id='chart-btc2'>
+              <div className='chart-header flex'>
+                <h3>{btcCoin2.current}</h3>
+                <div className='btc-btns mx-5 '>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`BTCUSDT:5m`)}
+                  >
+                    5m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`BTCUSDT:15m`)}
+                  >
+                    15m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`BTCUSDT:30m`)}
+                  >
+                    30m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`BTCUSDT:1h`)}
+                  >
+                    1h
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`BTCUSDT:4h`)}
+                  >
+                    4h
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleViewChart2(`BTCUSDT:1d`)}
+                  >
+                    1d
+                  </span>
+                  {/* <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
                       onClick={() => handleViewChart2(`BTCUSDT:1w`)}
                     >
                       1w
                     </span> */}
-                  </div>
                 </div>
-                <Chart data={btcData2} ema20 sma50 sma200 height={200} />
               </div>
+              <Chart data={btcData2} ema20 sma50 sma200 height={200} />
             </div>
-            <div className='chart-group flex items-start'>
-              <div className='chart m-2 flex-1' id='chart-1'>
-                <div className='chart-header flex'>
-                  {selectedCoin1.current && (
-                    <a
-                      href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
-                        selectedCoin1.current.split(':')[0]
-                      )}&interval=${getTradingViewInterval(selectedCoin1.current.split(':')[1])}`}
-                      target='_blank'
-                    >
-                      {selectedCoin1.current}
-                    </a>
-                  )}
-                  <div className='btc-btns mx-5 '>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1('', `5m`)}
-                    >
-                      5m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1('', `15m`)}
-                    >
-                      15m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1('', `30m`)}
-                    >
-                      30m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1('', `1h`)}
-                    >
-                      1h
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1('', `4h`)}
-                    >
-                      4h
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1('', `1d`)}
-                    >
-                      1d
-                    </span>
-                    {/* <span
+          </div>
+          <div className='chart-group flex items-start'>
+            <div className='chart m-2 flex-1' id='chart-1'>
+              <div className='chart-header flex'>
+                {selectedCoin1.current && (
+                  <a
+                    href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
+                      selectedCoin1.current.split(':')[0]
+                    )}&interval=${getTradingViewInterval(selectedCoin1.current.split(':')[1])}`}
+                    target='_blank'
+                  >
+                    {selectedCoin1.current}
+                  </a>
+                )}
+                <div className='btc-btns mx-5 '>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1('', `5m`)}
+                  >
+                    5m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1('', `15m`)}
+                  >
+                    15m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1('', `30m`)}
+                  >
+                    30m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1('', `1h`)}
+                  >
+                    1h
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1('', `4h`)}
+                  >
+                    4h
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1('', `1d`)}
+                  >
+                    1d
+                  </span>
+                  {/* <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
                       onClick={() => handleChangeInterval1('', `1w`)}
                     >
                       1w
                     </span> */}
-                  </div>
                 </div>
-                <Chart data={chartData1} />
               </div>
+              <Chart data={chartData1} />
+            </div>
 
-              <div className='chart m-2 flex-1' id='chart-2'>
-                <div className='chart-header flex'>
-                  {selectedCoin2.current && (
-                    <a
-                      href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
-                        selectedCoin2.current.split(':')[0]
-                      )}&interval=${getTradingViewInterval(selectedCoin2.current.split(':')[1])}`}
-                      target='_blank'
-                    >
-                      {selectedCoin2.current}
-                    </a>
-                  )}
-                  <div className='btc-btns mx-5 '>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2('', `5m`)}
-                    >
-                      5m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2('', `15m`)}
-                    >
-                      15m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2('', `30m`)}
-                    >
-                      30m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2('', `1h`)}
-                    >
-                      1h
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2('', `4h`)}
-                    >
-                      4h
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2('', `1d`)}
-                    >
-                      1d
-                    </span>
-                    {/* <span
+            <div className='chart m-2 flex-1' id='chart-2'>
+              <div className='chart-header flex'>
+                {selectedCoin2.current && (
+                  <a
+                    href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
+                      selectedCoin2.current.split(':')[0]
+                    )}&interval=${getTradingViewInterval(selectedCoin2.current.split(':')[1])}`}
+                    target='_blank'
+                  >
+                    {selectedCoin2.current}
+                  </a>
+                )}
+                <div className='btc-btns mx-5 '>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2('', `5m`)}
+                  >
+                    5m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2('', `15m`)}
+                  >
+                    15m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2('', `30m`)}
+                  >
+                    30m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2('', `1h`)}
+                  >
+                    1h
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2('', `4h`)}
+                  >
+                    4h
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2('', `1d`)}
+                  >
+                    1d
+                  </span>
+                  {/* <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
                       onClick={() => handleChangeInterval2('', `1w`)}
                     >
                       1w
                     </span> */}
-                  </div>
                 </div>
-                <Chart data={chartData2} />
               </div>
+              <Chart data={chartData2} />
+            </div>
 
-              <div className='chart m-2 flex-1' id='chart-3'>
-                <div className='chart-header flex'>
-                  {selectedCoin3.current && (
-                    <a
-                      href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
-                        selectedCoin3.current.split(':')[0]
-                      )}&interval=${getTradingViewInterval(selectedCoin3.current.split(':')[1])}`}
-                      target='_blank'
-                    >
-                      {selectedCoin3.current}
-                    </a>
-                  )}
-                  <div className='btc-btns mx-5 '>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3('', `5m`)}
-                    >
-                      5m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3('', `15m`)}
-                    >
-                      15m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3('', `30m`)}
-                    >
-                      30m
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3('', `1h`)}
-                    >
-                      1h
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3('', `4h`)}
-                    >
-                      4h
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3('', `1d`)}
-                    >
-                      1d
-                    </span>
-                    {/* <span
+            <div className='chart m-2 flex-1' id='chart-3'>
+              <div className='chart-header flex'>
+                {selectedCoin3.current && (
+                  <a
+                    href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
+                      selectedCoin3.current.split(':')[0]
+                    )}&interval=${getTradingViewInterval(selectedCoin3.current.split(':')[1])}`}
+                    target='_blank'
+                  >
+                    {selectedCoin3.current}
+                  </a>
+                )}
+                <div className='btc-btns mx-5 '>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval3('', `5m`)}
+                  >
+                    5m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval3('', `15m`)}
+                  >
+                    15m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval3('', `30m`)}
+                  >
+                    30m
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval3('', `1h`)}
+                  >
+                    1h
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval3('', `4h`)}
+                  >
+                    4h
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval3('', `1d`)}
+                  >
+                    1d
+                  </span>
+                  {/* <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
                       onClick={() => handleChangeInterval3('', `1w`)}
                     >
                       1w
                     </span> */}
-                  </div>
                 </div>
-                <Chart data={chartData3} />
               </div>
+              <Chart data={chartData3} />
             </div>
           </div>
-          <div className='alerts flex  w-[300px]'>
-            <ul className='overflow-y-auto text-xs h-[500px]'>
+        </div>
+        <div className='alerts flex'>
+          <div className='flex flex-col'>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setBollingerAlerts([])}
+            >
+              Clear Boli alerts
+            </button>
+            <ul className='flex-1 overflow-y-auto text-xs h-[500px]'>
               changeColor, lastCandleHigherVol, biggerThanPrev, rsi
               {alerts.map(renderMessage)}
             </ul>
-            {/* <ul className='overflow-y-auto'>{velotaAlerts.map(renderMessage)}</ul> */}
-            <ul className='overflow-y-auto text-xs h-[500px]'>
+          </div>
+          {/* <ul className='overflow-y-auto'>{velotaAlerts.map(renderMessage)}</ul> */}
+          <div className='flex flex-col'>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setAlerts([])}
+            >
+              Clear alerts
+            </button>
+            <ul className='flex-1 overflow-y-auto text-xs h-[500px]'>
               crossBBBand, candlePercentOutBB, rsi
               {bollingerAlerts.map(renderMessage)}
             </ul>
-            {/* <ul className='overflow-y-auto'>{volumeAlerts.map(renderMessage)}</ul> */}
           </div>
+          {/* <ul className='overflow-y-auto'>{volumeAlerts.map(renderMessage)}</ul> */}
+        </div>
+      </div>
+
+      <div className='filter flex justify-between items-center'>
+        <div className='search my-2'>
+          <label
+            className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+            htmlFor='filter-search'
+          >
+            Search symbol
+          </label>
+          <input
+            type='checkbox'
+            id='filter-searchOnly'
+            checked={searchOnlyFilter}
+            onChange={handleSearchOnlyFilter}
+          />
+          <input
+            type='text'
+            id='filter-search'
+            className='bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+            value={searchFilter}
+            onChange={handleSearchFilter}
+          />
+        </div>
+        <div className='rsi-min my-2'>
+          <label
+            className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+            htmlFor='rsi-min'
+          >
+            Min RSI (oversold)
+          </label>
+          <input
+            type='number'
+            id='rsi-min'
+            className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+            min={0}
+            max={100}
+            value={minRSIFilter}
+            onChange={handleMinRSIFilter}
+          />
+        </div>
+        <div className='rsi-max my-2'>
+          <label
+            className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+            htmlFor='rsi-max'
+          >
+            Max RSI (overbought)
+          </label>
+          <input
+            type='number'
+            id='rsi-max'
+            className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+            min={0}
+            max={100}
+            value={maxRSIFilter}
+            onChange={handleMaxRSIFilter}
+          />
+        </div>
+        <div className='rsi-len my-2'>
+          <label
+            className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+            htmlFor='rsi-len'
+          >
+            RSI Len
+          </label>
+          <input
+            type='number'
+            id='rsi-len'
+            className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+            min={1}
+            max={100}
+            value={RSILenFilter}
+            onChange={handleRSILenFilter}
+          />
+        </div>
+        <div className='vol-len my-2'>
+          <label
+            className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+            htmlFor='vol-len'
+          >
+            Volume Len
+          </label>
+          <input
+            type='number'
+            id='vol-len'
+            className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+            min={5}
+            max={100}
+            value={volumeLenFilter}
+            onChange={handleVolumeLenFilter}
+          />
+        </div>
+        <div className='vol-factor my-2'>
+          <label
+            className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+            htmlFor='vol-factor'
+          >
+            Volume factor
+          </label>
+          <input
+            type='number'
+            id='vol-factor'
+            className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+            min={1}
+            max={3}
+            step={0.1}
+            value={volumeFactorFilter}
+            onChange={handleVolumeFactorFilter}
+          />
+        </div>
+        <div className='bb-candle-percent-out my-2'>
+          <label
+            className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+            htmlFor='bb-candle-percent-out'
+          >
+            Bolinger % candle out
+          </label>
+          <input
+            type='number'
+            id='bb-candle-percent-out'
+            className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+            min={30}
+            max={99}
+            value={bbCandlePercentOutFilter}
+            onChange={handleBbCandlePercentOutFilter}
+          />
         </div>
 
-        <div className='filter flex justify-between items-center'>
-          <div className='search my-2'>
-            <label
-              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
-              htmlFor='filter-search'
-            >
-              Search symbol
-            </label>
-            <input
-              type='checkbox'
-              id='filter-searchOnly'
-              checked={searchOnlyFilter}
-              onChange={handleSearchOnlyFilter}
-            />
-            <input
-              type='text'
-              id='filter-search'
-              className='bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
-              value={searchFilter}
-              onChange={handleSearchFilter}
-            />
-          </div>
-          <div className='rsi-min my-2'>
-            <label
-              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
-              htmlFor='rsi-min'
-            >
-              Min RSI (oversold)
-            </label>
-            <input
-              type='number'
-              id='rsi-min'
-              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
-              min={0}
-              max={100}
-              value={minRSIFilter}
-              onChange={handleMinRSIFilter}
-            />
-          </div>
-          <div className='rsi-max my-2'>
-            <label
-              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
-              htmlFor='rsi-max'
-            >
-              Max RSI (overbought)
-            </label>
-            <input
-              type='number'
-              id='rsi-max'
-              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
-              min={0}
-              max={100}
-              value={maxRSIFilter}
-              onChange={handleMaxRSIFilter}
-            />
-          </div>
-          <div className='rsi-len my-2'>
-            <label
-              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
-              htmlFor='rsi-len'
-            >
-              RSI Len
-            </label>
-            <input
-              type='number'
-              id='rsi-len'
-              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
-              min={1}
-              max={100}
-              value={RSILenFilter}
-              onChange={handleRSILenFilter}
-            />
-          </div>
-          <div className='vol-len my-2'>
-            <label
-              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
-              htmlFor='vol-len'
-            >
-              Volume Len
-            </label>
-            <input
-              type='number'
-              id='vol-len'
-              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
-              min={5}
-              max={100}
-              value={volumeLenFilter}
-              onChange={handleVolumeLenFilter}
-            />
-          </div>
-          <div className='vol-factor my-2'>
-            <label
-              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
-              htmlFor='vol-factor'
-            >
-              Volume factor
-            </label>
-            <input
-              type='number'
-              id='vol-factor'
-              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
-              min={1}
-              max={3}
-              step={0.1}
-              value={volumeFactorFilter}
-              onChange={handleVolumeFactorFilter}
-            />
-          </div>
-          <div className='bb-candle-percent-out my-2'>
-            <label
-              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
-              htmlFor='bb-candle-percent-out'
-            >
-              Volume factor
-            </label>
-            <input
-              type='number'
-              id='bb-candle-percent-out'
-              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
-              min={30}
-              max={99}
-              value={bbCandlePercentOutFilter}
-              onChange={handleBbCandlePercentOutFilter}
-            />
-          </div>
+        <div className='search my-2'>
+          <label
+            className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+            htmlFor='volume-count'
+          >
+            Volume Count
+          </label>
+          <input
+            type='checkbox'
+            id='filter-volCount'
+            checked={volumeCountFilter}
+            onChange={handleVolumeCountFilter}
+          />
 
-          <div className='search my-2'>
-            <label
-              className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
-              htmlFor='volume-count'
-            >
-              Volume Count
-            </label>
-            <input
-              type='checkbox'
-              id='filter-volCount'
-              checked={volumeCountFilter}
-              onChange={handleVolumeCountFilter}
-            />
-
-            <input
-              type='number'
-              step={1}
-              min={0}
-              max={10}
-              id='volume-count'
-              className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
-              value={volumeCount}
-              onChange={handleVolumeCount}
-            />
-          </div>
+          <input
+            type='number'
+            step={1}
+            min={0}
+            max={10}
+            id='volume-count'
+            className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+            value={volumeCount}
+            onChange={handleVolumeCount}
+          />
         </div>
-        <div className='flex'>
-          <button
-            className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
-            onClick={() => socket.emit('reconnect')}
-          >
-            Reconnect
-          </button>
+      </div>
+      <div className='flex'>
+        <button
+          className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+          onClick={() => socket.emit('reconnect')}
+        >
+          Reconnect
+        </button>
 
-          <button
-            className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
-            onClick={() => socket.emit('get-data')}
-          >
-            Refresh
-          </button>
+        <button
+          className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+          onClick={() => socket.emit('get-data')}
+        >
+          Refresh
+        </button>
 
-          <button
-            className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
-            onClick={() => setAlerts([])}
-          >
-            Clear alerts
-          </button>
-          {/* <button
+        {/* <button
             className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
             onClick={() => setVolumeAlerts([])}
           >
             Clear Vol alerts
           </button> */}
-          <button
-            className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
-            onClick={() => setBollingerAlerts([])}
-          >
-            Clear Boli alerts
-          </button>
-          {/* <button
+
+        {/* <button
             className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
             onClick={() => setVelotaAlerts([])}
           >
             Clear Velota alerts
           </button> */}
-          <div className='group mx-5'>
-            <label htmlFor='filter-push'>Show push/superpush only</label>
-            <input
-              type='checkbox'
-              id='filter-push'
-              checked={pushFilter}
-              onChange={handlePushFilter}
-            />
-          </div>
-          <div className='group mx-5'>
-            <label htmlFor='filter-overbought'>Show overbought only</label>
-            <input
-              type='checkbox'
-              id='filter-overbought'
-              checked={overBoughtFilter}
-              onChange={handleOverBoughtFilter}
-            />
-          </div>
-          <div className='group mx-5'>
-            <label htmlFor='filter-oversold'>Show oversold only</label>
-            <input
-              type='checkbox'
-              id='filter-oversold'
-              checked={overSoldFilter}
-              onChange={handleOverSoldFilter}
-            />
-          </div>
+        <div className='group mx-5'>
+          <label htmlFor='filter-push'>Show push/superpush only</label>
+          <input
+            type='checkbox'
+            id='filter-push'
+            checked={pushFilter}
+            onChange={handlePushFilter}
+          />
         </div>
-        <div className='flex'></div>
-        <table className='table-auto min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-blue-500'>
-          <thead>
-            <tr>
-              <th colSpan={2}>Symbol</th>
+        <div className='group mx-5'>
+          <label htmlFor='filter-overbought'>Show overbought only</label>
+          <input
+            type='checkbox'
+            id='filter-overbought'
+            checked={overBoughtFilter}
+            onChange={handleOverBoughtFilter}
+          />
+        </div>
+        <div className='group mx-5'>
+          <label htmlFor='filter-oversold'>Show oversold only</label>
+          <input
+            type='checkbox'
+            id='filter-oversold'
+            checked={overSoldFilter}
+            onChange={handleOverSoldFilter}
+          />
+        </div>
+      </div>
+      <div className='flex'></div>
+      <table className='table-auto min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-blue-500'>
+        <thead>
+          <tr>
+            <th colSpan={2}>Symbol</th>
 
-              <th
-                colSpan={6}
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-              >
-                RSI ({rsiSelectedSort})
-              </th>
-              <th
-                colSpan={6}
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-              >
-                candle status
-              </th>
-            </tr>
-            <tr>
-              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                Name
-              </th>
-              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                Curr.Price
-              </th>
-              <th
-                onClick={() => handleSelectSort('5m')}
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-              >
-                5min
-              </th>
-              <th
-                onClick={() => handleSelectSort('15m')}
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-              >
-                15min
-              </th>
-              <th
-                onClick={() => handleSelectSort('30m')}
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-              >
-                30min
-              </th>
-              <th
-                onClick={() => handleSelectSort('1h')}
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-              >
-                1Hra
-              </th>
-              <th
-                onClick={() => handleSelectSort('4h')}
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-              >
-                4Hra
-              </th>
-              <th
-                onClick={() => handleSelectSort('1d')}
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-              >
-                Dia
-              </th>
-              {/* <th
+            <th
+              colSpan={6}
+              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+            >
+              RSI ({rsiSelectedSort})
+            </th>
+            <th
+              colSpan={6}
+              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+            >
+              candle status
+            </th>
+          </tr>
+          <tr>
+            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              Name
+            </th>
+            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              Curr.Price
+            </th>
+            <th
+              onClick={() => handleSelectSort('5m')}
+              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+            >
+              5min
+            </th>
+            <th
+              onClick={() => handleSelectSort('15m')}
+              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+            >
+              15min
+            </th>
+            <th
+              onClick={() => handleSelectSort('30m')}
+              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+            >
+              30min
+            </th>
+            <th
+              onClick={() => handleSelectSort('1h')}
+              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+            >
+              1Hra
+            </th>
+            <th
+              onClick={() => handleSelectSort('4h')}
+              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+            >
+              4Hra
+            </th>
+            <th
+              onClick={() => handleSelectSort('1d')}
+              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+            >
+              Dia
+            </th>
+            {/* <th
                 onClick={() => handleSelectSort('1w')}
                 className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
               >
                 1w
               </th> */}
-              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                5m
-              </th>
-              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                15m
-              </th>
-              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                30m
-              </th>
-              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                1h
-              </th>
-              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                4h
-              </th>
-              <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                1d
-              </th>
-              {/* <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              5m
+            </th>
+            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              15m
+            </th>
+            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              30m
+            </th>
+            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              1h
+            </th>
+            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              4h
+            </th>
+            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              1d
+            </th>
+            {/* <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                 1w
               </th> */}
-            </tr>
-          </thead>
-          <tbody>
-            {dataBTC.length > 0 && (
-              <tr key={dataBTC[0].symbol} className='border-2 border-red-500'>
-                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  {/* <a
+          </tr>
+        </thead>
+        <tbody>
+          {dataBTC.length > 0 && (
+            <tr key={dataBTC[0].symbol} className='border-2 border-red-500'>
+              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                {/* <a
                     href={`https://www.tradingview.com/symbols/${dataBTC[0].symbol}/?exchange=BINANCE`}
                     target='_blank'
                   >
                     {dataBTC[0].symbol}
                   </a> */}
-                  <a
-                    href={`https://www.tradingview.com/chart?symbol=BINANCE:${dataBTC[0].symbol}`}
-                    target='_blank'
-                  >
-                    {dataBTC[0].symbol}
-                  </a>
-                </td>
-                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  {dataBTC[0].price}
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: getBgColor(dataBTC[0].rsi5m)
-                  }}
+                <a
+                  href={`https://www.tradingview.com/chart?symbol=BINANCE:${dataBTC[0].symbol}`}
+                  target='_blank'
                 >
-                  {dataBTC[0].rsi5m}
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: getBgColor(dataBTC[0].rsi15m)
-                  }}
-                >
-                  {dataBTC[0].rsi15m}
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: getBgColor(dataBTC[0].rsi30m)
-                  }}
-                >
-                  {dataBTC[0].rsi30m}
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: getBgColor(dataBTC[0].rsi1h)
-                  }}
-                >
-                  {dataBTC[0].rsi1h}
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: getBgColor(dataBTC[0].rsi4h)
-                  }}
-                >
-                  {dataBTC[0].rsi4h}
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: getBgColor(dataBTC[0].rsi1d)
-                  }}
-                >
-                  {dataBTC[0].rsi1d}
-                </td>
-                {/* <td
+                  {dataBTC[0].symbol}
+                </a>
+              </td>
+              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                {dataBTC[0].price}
+              </td>
+              <td
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{
+                  backgroundColor: getBgColor(dataBTC[0].rsi5m)
+                }}
+              >
+                {dataBTC[0].rsi5m}
+              </td>
+              <td
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{
+                  backgroundColor: getBgColor(dataBTC[0].rsi15m)
+                }}
+              >
+                {dataBTC[0].rsi15m}
+              </td>
+              <td
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{
+                  backgroundColor: getBgColor(dataBTC[0].rsi30m)
+                }}
+              >
+                {dataBTC[0].rsi30m}
+              </td>
+              <td
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{
+                  backgroundColor: getBgColor(dataBTC[0].rsi1h)
+                }}
+              >
+                {dataBTC[0].rsi1h}
+              </td>
+              <td
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{
+                  backgroundColor: getBgColor(dataBTC[0].rsi4h)
+                }}
+              >
+                {dataBTC[0].rsi4h}
+              </td>
+              <td
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                style={{
+                  backgroundColor: getBgColor(dataBTC[0].rsi1d)
+                }}
+              >
+                {dataBTC[0].rsi1d}
+              </td>
+              {/* <td
                   className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                   style={{
                     backgroundColor: getBgColor(dataBTC[0].rsi1w)
@@ -1627,187 +1631,187 @@ export const Symbols = () => {
                   {dataBTC[0].rsi1w}
                 </td> */}
 
-                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <div className='flex'>
-                    <span
-                      style={{
-                        width: 8,
-                        height: 16,
-                        backgroundColor: dataBTC[0].isRedCandle5m ? 'red' : 'green'
-                      }}
-                    ></span>
-                    {renderIcons(dataBTC[0], '5m')}
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `5m`)}
-                    >
-                      1
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `5m`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `5m`)}
-                    >
-                      3
-                    </span>
-                  </div>
-                </td>
-                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <div className='flex'>
-                    <span
-                      style={{
-                        width: 8,
-                        height: 16,
-                        backgroundColor: dataBTC[0].isRedCandle15m ? 'red' : 'green'
-                      }}
-                    ></span>
-                    {renderIcons(dataBTC[0], '15m')}
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `15m`)}
-                    >
-                      1
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `15m`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `15m`)}
-                    >
-                      3
-                    </span>
-                  </div>
-                </td>
-                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <div className='flex'>
-                    <span
-                      style={{
-                        width: 8,
-                        height: 16,
-                        backgroundColor: dataBTC[0].isRedCandle30m ? 'red' : 'green'
-                      }}
-                    ></span>
-                    {renderIcons(dataBTC[0], '30m')}
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `30m`)}
-                    >
-                      1
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `30m`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `30m`)}
-                    >
-                      3
-                    </span>
-                  </div>
-                </td>
-                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <div className='flex'>
-                    <span
-                      style={{
-                        width: 8,
-                        height: 16,
-                        backgroundColor: dataBTC[0].isRedCandle1h ? 'red' : 'green'
-                      }}
-                    ></span>
-                    {renderIcons(dataBTC[0], '1h')}
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `1h`)}
-                    >
-                      1
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `1h`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `1h`)}
-                    >
-                      3
-                    </span>
-                  </div>
-                </td>
-                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <div className='flex'>
-                    <span
-                      style={{
-                        width: 8,
-                        height: 16,
-                        backgroundColor: dataBTC[0].isRedCandle4h ? 'red' : 'green'
-                      }}
-                    ></span>
-                    {renderIcons(dataBTC[0], '4h')}
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `4h`)}
-                    >
-                      1
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `4h`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `4h`)}
-                    >
-                      3
-                    </span>
-                  </div>
-                </td>
-                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <div className='flex'>
-                    <span
-                      style={{
-                        width: 8,
-                        height: 16,
-                        backgroundColor: dataBTC[0].isRedCandle1d ? 'red' : 'green'
-                      }}
-                    ></span>
-                    {renderIcons(dataBTC[0], '1d')}
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `1d`)}
-                    >
-                      1
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `1d`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `1d`)}
-                    >
-                      3
-                    </span>
-                  </div>
-                </td>
-                {/* <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: dataBTC[0].isRedCandle5m ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(dataBTC[0], '5m')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(dataBTC[0].symbol, `5m`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(dataBTC[0].symbol, `5m`)}
+                  >
+                    2
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval3(dataBTC[0].symbol, `5m`)}
+                  >
+                    3
+                  </span>
+                </div>
+              </td>
+              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: dataBTC[0].isRedCandle15m ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(dataBTC[0], '15m')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(dataBTC[0].symbol, `15m`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(dataBTC[0].symbol, `15m`)}
+                  >
+                    2
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval3(dataBTC[0].symbol, `15m`)}
+                  >
+                    3
+                  </span>
+                </div>
+              </td>
+              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: dataBTC[0].isRedCandle30m ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(dataBTC[0], '30m')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(dataBTC[0].symbol, `30m`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(dataBTC[0].symbol, `30m`)}
+                  >
+                    2
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval3(dataBTC[0].symbol, `30m`)}
+                  >
+                    3
+                  </span>
+                </div>
+              </td>
+              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: dataBTC[0].isRedCandle1h ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(dataBTC[0], '1h')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(dataBTC[0].symbol, `1h`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(dataBTC[0].symbol, `1h`)}
+                  >
+                    2
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval3(dataBTC[0].symbol, `1h`)}
+                  >
+                    3
+                  </span>
+                </div>
+              </td>
+              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: dataBTC[0].isRedCandle4h ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(dataBTC[0], '4h')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(dataBTC[0].symbol, `4h`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(dataBTC[0].symbol, `4h`)}
+                  >
+                    2
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval3(dataBTC[0].symbol, `4h`)}
+                  >
+                    3
+                  </span>
+                </div>
+              </td>
+              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                <div className='flex'>
+                  <span
+                    style={{
+                      width: 8,
+                      height: 16,
+                      backgroundColor: dataBTC[0].isRedCandle1d ? 'red' : 'green'
+                    }}
+                  ></span>
+                  {renderIcons(dataBTC[0], '1d')}
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval1(dataBTC[0].symbol, `1d`)}
+                  >
+                    1
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval2(dataBTC[0].symbol, `1d`)}
+                  >
+                    2
+                  </span>
+                  <span
+                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                    onClick={() => handleChangeInterval3(dataBTC[0].symbol, `1d`)}
+                  >
+                    3
+                  </span>
+                </div>
+              </td>
+              {/* <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
                   <div className='flex'>
                     <span
                       style={{
@@ -1837,80 +1841,80 @@ export const Symbols = () => {
                     </span>
                   </div>
                 </td> */}
-              </tr>
-            )}
+            </tr>
+          )}
 
-            {dataSymbols.map(coin => {
-              return (
-                <tr key={coin.symbol}>
-                  <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                    {/* <a
+          {dataSymbols.map(coin => {
+            return (
+              <tr key={coin.symbol}>
+                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                  {/* <a
                     href={`https://www.tradingview.com/symbols/${coin.symbol}/?exchange=BINANCE`}
                     target='_blank'
                   >
                     {coin.symbol}
                   </a> */}
-                    <a
-                      href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
-                        coin.symbol
-                      )}`}
-                      target='_blank'
-                    >
-                      {coin.symbol}
-                    </a>
-                  </td>
-                  <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                    {coin.price}
-                  </td>
-                  <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: getBgColor(coin.rsi5m)
-                    }}
+                  <a
+                    href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
+                      coin.symbol
+                    )}`}
+                    target='_blank'
                   >
-                    {coin.rsi5m} ({coin.prev10CandleVolumeCount5m})
-                  </td>
-                  <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: getBgColor(coin.rsi15m)
-                    }}
-                  >
-                    {coin.rsi15m} ({coin.prev10CandleVolumeCount15m})
-                  </td>
-                  <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: getBgColor(coin.rsi30m)
-                    }}
-                  >
-                    {coin.rsi30m} ({coin.prev10CandleVolumeCount30m})
-                  </td>
-                  <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: getBgColor(coin.rsi1h)
-                    }}
-                  >
-                    {coin.rsi1h} ({coin.prev10CandleVolumeCount1h})
-                  </td>
-                  <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: getBgColor(coin.rsi4h)
-                    }}
-                  >
-                    {coin.rsi4h} ({coin.prev10CandleVolumeCount4h})
-                  </td>
-                  <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: getBgColor(coin.rsi1d)
-                    }}
-                  >
-                    {coin.rsi1d} ({coin.prev10CandleVolumeCount1d})
-                  </td>
-                  {/* <td
+                    {coin.symbol}
+                  </a>
+                </td>
+                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                  {coin.price}
+                </td>
+                <td
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  style={{
+                    backgroundColor: getBgColor(coin.rsi5m)
+                  }}
+                >
+                  {coin.rsi5m} ({coin.prev10CandleVolumeCount5m})
+                </td>
+                <td
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  style={{
+                    backgroundColor: getBgColor(coin.rsi15m)
+                  }}
+                >
+                  {coin.rsi15m} ({coin.prev10CandleVolumeCount15m})
+                </td>
+                <td
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  style={{
+                    backgroundColor: getBgColor(coin.rsi30m)
+                  }}
+                >
+                  {coin.rsi30m} ({coin.prev10CandleVolumeCount30m})
+                </td>
+                <td
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  style={{
+                    backgroundColor: getBgColor(coin.rsi1h)
+                  }}
+                >
+                  {coin.rsi1h} ({coin.prev10CandleVolumeCount1h})
+                </td>
+                <td
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  style={{
+                    backgroundColor: getBgColor(coin.rsi4h)
+                  }}
+                >
+                  {coin.rsi4h} ({coin.prev10CandleVolumeCount4h})
+                </td>
+                <td
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  style={{
+                    backgroundColor: getBgColor(coin.rsi1d)
+                  }}
+                >
+                  {coin.rsi1d} ({coin.prev10CandleVolumeCount1d})
+                </td>
+                {/* <td
                     className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(coin.rsi1w)
@@ -1919,175 +1923,175 @@ export const Symbols = () => {
                     {coin.rsi1w} ({coin.prev10CandleVolumeCount1w})
                   </td> */}
 
-                  <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: coin.isRedCandle5m ? 'red' : 'green'
-                    }}
-                  >
-                    <div className='flex'>
-                      {renderIcons(coin, '5m')}
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval1(coin.symbol, `5m`)}
-                      >
-                        1
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval2(coin.symbol, `5m`)}
-                      >
-                        2
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval3(coin.symbol, `5m`)}
-                      >
-                        3
-                      </span>
-                    </div>
-                  </td>
-                  <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: coin.isRedCandle15m ? 'red' : 'green'
-                    }}
-                  >
-                    <div className='flex'>
-                      {renderIcons(coin, '15m')}
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval1(coin.symbol, `15m`)}
-                      >
-                        1
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval2(coin.symbol, `15m`)}
-                      >
-                        2
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval3(coin.symbol, `15m`)}
-                      >
-                        3
-                      </span>
-                    </div>
-                  </td>
-                  <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: coin.isRedCandle30m ? 'red' : 'green'
-                    }}
-                  >
-                    <div className='flex'>
-                      {renderIcons(coin, '30m')}
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval1(coin.symbol, `30m`)}
-                      >
-                        1
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval2(coin.symbol, `30m`)}
-                      >
-                        2
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval3(coin.symbol, `30m`)}
-                      >
-                        3
-                      </span>
-                    </div>
-                  </td>
-                  <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
-                    }}
-                  >
-                    <div className='flex'>
-                      {renderIcons(coin, '1h')}
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval1(coin.symbol, `1h`)}
-                      >
-                        1
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval2(coin.symbol, `1h`)}
-                      >
-                        2
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval3(coin.symbol, `1h`)}
-                      >
-                        3
-                      </span>
-                    </div>
-                  </td>
-                  <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: coin.isRedCandle4h ? 'red' : 'green'
-                    }}
-                  >
-                    <div className='flex'>
-                      {renderIcons(coin, '4h')}
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval1(coin.symbol, `4h`)}
-                      >
-                        1
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval2(coin.symbol, `4h`)}
-                      >
-                        2
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval3(coin.symbol, `4h`)}
-                      >
-                        3
-                      </span>
-                    </div>
-                  </td>
-                  <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: coin.isRedCandle1d ? 'red' : 'green'
-                    }}
-                  >
-                    <div className='flex'>
-                      {renderIcons(coin, '1d')}
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval1(coin.symbol, `1d`)}
-                      >
-                        1
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval2(coin.symbol, `1d`)}
-                      >
-                        2
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval3(coin.symbol, `1d`)}
-                      >
-                        3
-                      </span>
-                    </div>
-                  </td>
-                  {/* <td
+                <td
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  style={{
+                    backgroundColor: coin.isRedCandle5m ? 'red' : 'green'
+                  }}
+                >
+                  <div className='flex'>
+                    {renderIcons(coin, '5m')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1(coin.symbol, `5m`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2(coin.symbol, `5m`)}
+                    >
+                      2
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3(coin.symbol, `5m`)}
+                    >
+                      3
+                    </span>
+                  </div>
+                </td>
+                <td
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  style={{
+                    backgroundColor: coin.isRedCandle15m ? 'red' : 'green'
+                  }}
+                >
+                  <div className='flex'>
+                    {renderIcons(coin, '15m')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1(coin.symbol, `15m`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2(coin.symbol, `15m`)}
+                    >
+                      2
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3(coin.symbol, `15m`)}
+                    >
+                      3
+                    </span>
+                  </div>
+                </td>
+                <td
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  style={{
+                    backgroundColor: coin.isRedCandle30m ? 'red' : 'green'
+                  }}
+                >
+                  <div className='flex'>
+                    {renderIcons(coin, '30m')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1(coin.symbol, `30m`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2(coin.symbol, `30m`)}
+                    >
+                      2
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3(coin.symbol, `30m`)}
+                    >
+                      3
+                    </span>
+                  </div>
+                </td>
+                <td
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  style={{
+                    backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
+                  }}
+                >
+                  <div className='flex'>
+                    {renderIcons(coin, '1h')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1(coin.symbol, `1h`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2(coin.symbol, `1h`)}
+                    >
+                      2
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3(coin.symbol, `1h`)}
+                    >
+                      3
+                    </span>
+                  </div>
+                </td>
+                <td
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  style={{
+                    backgroundColor: coin.isRedCandle4h ? 'red' : 'green'
+                  }}
+                >
+                  <div className='flex'>
+                    {renderIcons(coin, '4h')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1(coin.symbol, `4h`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2(coin.symbol, `4h`)}
+                    >
+                      2
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3(coin.symbol, `4h`)}
+                    >
+                      3
+                    </span>
+                  </div>
+                </td>
+                <td
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  style={{
+                    backgroundColor: coin.isRedCandle1d ? 'red' : 'green'
+                  }}
+                >
+                  <div className='flex'>
+                    {renderIcons(coin, '1d')}
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval1(coin.symbol, `1d`)}
+                    >
+                      1
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval2(coin.symbol, `1d`)}
+                    >
+                      2
+                    </span>
+                    <span
+                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                      onClick={() => handleChangeInterval3(coin.symbol, `1d`)}
+                    >
+                      3
+                    </span>
+                  </div>
+                </td>
+                {/* <td
                     className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{
                       backgroundColor: coin.isRedCandle1w ? 'red' : 'green'
@@ -2115,65 +2119,52 @@ export const Symbols = () => {
                       </span>
                     </div>
                   </td> */}
-                </tr>
-              )
-            })}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td colSpan={17}>
-                <Image
-                  className='inline'
-                  alt='push'
-                  src='/assets/push.png'
-                  width={24}
-                  height={24}
-                />
-                <span>
-                  PUSH (isPowerCandle) : Cuando entra nueva vela de otro color con mucho volumen
-                </span>
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={17}>
-                <Image
-                  className='inline'
-                  alt='superpush'
-                  src='/assets/superpush.png'
-                  width={24}
-                  height={24}
-                />
-                <span>
-                  SuperPUSH (isPowerCandle+big) : igual q PUSH pero la vela es mas grande(elefante)
-                </span>
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={17}>
-                <Image
-                  className='inline'
-                  alt='stop'
-                  src='/assets/stop.png'
-                  width={24}
-                  height={24}
-                />
-                <span>
-                  STOP: Cuando la vela anterior tiene mucho volumen, y aparece nueva vela con otro
-                  color
-                </span>
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={17}>
-                ( n )
-                <span>
-                  n: Cuantas velas con alto volumen (buy or sell) hubieron en las ultimas 10 velas
-                </span>
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+              </tr>
+            )
+          })}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={17}>
+              <Image className='inline' alt='push' src='/assets/push.png' width={24} height={24} />
+              <span>
+                PUSH (isPowerCandle) : Cuando entra nueva vela de otro color con mucho volumen
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td colSpan={17}>
+              <Image
+                className='inline'
+                alt='superpush'
+                src='/assets/superpush.png'
+                width={24}
+                height={24}
+              />
+              <span>
+                SuperPUSH (isPowerCandle+big) : igual q PUSH pero la vela es mas grande(elefante)
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td colSpan={17}>
+              <Image className='inline' alt='stop' src='/assets/stop.png' width={24} height={24} />
+              <span>
+                STOP: Cuando la vela anterior tiene mucho volumen, y aparece nueva vela con otro
+                color
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td colSpan={17}>
+              ( n )
+              <span>
+                n: Cuantas velas con alto volumen (buy or sell) hubieron en las ultimas 10 velas
+              </span>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   )
 }
