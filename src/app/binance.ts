@@ -1,10 +1,22 @@
 import { sendAlert, sendData } from '@/pages/api/socket'
 import Binance, { CandleChartResult, Candle, ReconnectingWebSocketHandler } from 'binance-api-node'
-import { BollingerBands, EMA, RSI, SMA } from 'technicalindicators'
+import {
+  ADX,
+  ATR,
+  AwesomeOscillator,
+  BollingerBands,
+  EMA,
+  MACD,
+  RSI,
+  SMA
+} from 'technicalindicators'
+import { ADXOutput } from 'technicalindicators/declarations/directionalmovement/ADX'
+import { MACDOutput } from 'technicalindicators/declarations/moving_averages/MACD'
+import { BollingerBandsOutput } from 'technicalindicators/declarations/volatility/BollingerBands'
 
 type MyCandleChartInterval = '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w'
 
-interface CandleData {
+export interface CandleData {
   time: number | undefined
   open: number
   high: number
@@ -17,17 +29,26 @@ interface CandleData {
   sma50?: number
   sma200?: number
   rsi: number
-  isRedCandle: boolean
-  isGreenCandle: boolean
-  isStopCandle: boolean //previous candle have high volume, next candle reverse.. showing loosing power
-  isPowerCandle: boolean //next candle entering with high volume and reversing
-  isBiggerThanPrevious: boolean
-  prev10CandleVolumeCount: number
-  bollinger: { middle: number; upper: number; lower: number }
+  bollinger: BollingerBandsOutput //{ middle: number; upper: number; lower: number }
+  atr: number
+  ao: number
+  adx: ADXOutput
+  // {
+  //   "adx": number,
+  //   "mdi": number,  //-di
+  //   "pdi": number // +di
+  // }
+  macd: MACDOutput
   crossUp: boolean
   crossDown: boolean
   candlePercentAbove: number
   candlePercentBelow: number
+  isRedCandle: boolean
+  isGreenCandle: boolean
+  hasPrevCandleHighVolAndRevert: boolean //previous candle have high volume, next candle reverse.. showing loosing power
+  hasLastCandleHighVolumeAndRevert: boolean //next candle entering with high volume and reversing
+  isBiggerThanPrevious: boolean
+  prev10CandleVolumeCount: number
 }
 
 interface Symbol {
@@ -53,13 +74,29 @@ let exchangeInfo: any = null
 const TOTAL_BTC_CANDLES = 201
 const TOTAL_CLIENT_CANDLES = 30 // lo que se manda al cliente, debe ser menor que TOTAL_CANDLES
 let RSI_LENGTH = 14
+let ATR_PERIOD = 14
+let ADX_PERIOD = 14
+let AWESOME_OSC_FAST_PERIOD = 5
+let AWESOME_OSC_SLOW_PERIOD = 34
+let MACD_FAST_PERIOD = 12
+let MACD_SLOW_PERIOD = 26
+let MACD_SIGNAL_PERIOD = 9
 let MIN_RSI = 30
 let MAX_RSI = 70
 let BB_CANDLE_PERCENT_OUT = 40
 let VOLUME_LENGTH = 30 //  por ahora usar rsi length
 let VOL_FACTOR = 2.5 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
 // segun el ejemplo del technical indicator.. la data para calcular (el sma, rsi) es casi el doble
-const TOTAL_CANDLES = Math.max(VOLUME_LENGTH * 2, RSI_LENGTH * 2, TOTAL_CLIENT_CANDLES + 1)
+const TOTAL_CANDLES = Math.max(
+  VOLUME_LENGTH * 2,
+  RSI_LENGTH * 2,
+  AWESOME_OSC_FAST_PERIOD * 2,
+  AWESOME_OSC_SLOW_PERIOD * 2,
+  MACD_FAST_PERIOD * 2,
+  MACD_SLOW_PERIOD * 2,
+  MACD_SIGNAL_PERIOD * 2,
+  TOTAL_CLIENT_CANDLES + 1
+)
 const includeLastCandleData = true // add incomplete last candle to the data
 let timerHandler: any = null
 
@@ -80,6 +117,7 @@ const getSymbols = async () => {
 
   const bannedSymbols = [
     '1000LUNCUSDT',
+    'XVSUSDT',
     'ASTRUSDT',
     'API3USDT',
     'BANDUSDT',
@@ -89,18 +127,24 @@ const getSymbols = async () => {
     'BTCUSDT_230929',
     'BNXUSDT',
     'CELOUSDT',
+    'COMBOUSDT',
     'CTKUSDT',
     'DEFIUSDT',
+    'DGBUSDT',
     'ETHUSDT_230929',
     'ENSUSDT',
     'FOOTBALLUSDT',
+    'JOEUSDT',
     'KNCUSDT',
     'LEVERUSDT',
+    'MTLUSDT',
     'OMGUSDT',
     'TRUUSDT',
+    'TUSDT',
     'TLMUSDT',
     'USDCUSDT',
-    'XVGUSDT'
+    'XVGUSDT',
+    'ZENUSDT'
   ]
   symbols = exchangeInfo.symbols
     .filter((coin: any) => coin.quoteAsset === 'USDT' && coin.status === 'TRADING')
@@ -213,11 +257,19 @@ const getCandleData = (candle: Partial<CandleType>): CandleData => {
     rsi: 0,
     isRedCandle: false,
     isGreenCandle: false,
-    isStopCandle: false,
-    isPowerCandle: false,
+    hasPrevCandleHighVolAndRevert: false,
+    hasLastCandleHighVolumeAndRevert: false,
     isBiggerThanPrevious: false,
     prev10CandleVolumeCount: 0,
-    bollinger: { middle: 0, upper: 0, lower: 0 },
+    bollinger: { middle: 0, upper: 0, lower: 0, pb: 0 },
+    atr: 0,
+    ao: 0,
+    adx: {
+      adx: 0,
+      mdi: 0, //-di
+      pdi: 0 // +di
+    },
+    macd: { MACD: 0, histogram: 0, signal: 0 },
     crossUp: false,
     crossDown: false,
     candlePercentAbove: 0,
@@ -237,6 +289,10 @@ const getLastRSIValue = (values: number[] = []) => {
 
 const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m') => {
   const data = coin[`data${interval}`]
+  // calc rsi
+  const close = data.map((val: any) => Number(val.close))
+  const high = data.map((val: any) => Number(val.high))
+  const low = data.map((val: any) => Number(val.low))
 
   // isRedCandle
   const lastCandle = data[data.length - 1]
@@ -248,15 +304,12 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
   const isPrevCandleGreen = prevCandle ? prevCandle.close > prevCandle.open : false
 
   //----------------------------
-  // isStopCandle
+  // hasPrevCandleHighVolAndRevert
   const volume = data.map((val: any) => Number(val.volume))
   const volSMA = SMA.calculate({ period: VOLUME_LENGTH, values: volume })
   const volAverage = volSMA[volSMA.length - 1] ?? 0
   const prevVolume = volume[volume.length - 2] ?? 0
   const lastVolume = volume[volume.length - 1] ?? 0
-
-  // calc rsi
-  const close = data.map((val: any) => Number(val.close))
 
   const ema20 = EMA.calculate({ period: 20, values: close })
   const sma50 = SMA.calculate({ period: 50, values: close })
@@ -308,6 +361,52 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
       volume.slice(-10).filter((vol: number) => vol > volAverage * VOL_FACTOR).length ?? 0
   }
 
+  // ATR (volatilidad)
+  const atrInput = { high, low, close, period: ATR_PERIOD }
+  const atr = ATR.calculate(atrInput)
+  const atrLast = atr[atr.length - 1] ?? 0
+
+  // ADX (direccionalidad sube o baja)
+  // Valor del ADX	Fortaleza de latendencia
+  // 0-25	Ausencia de tendencia
+  // 25-50	Tendencia fuerte
+  // 50-75	Tendencia muy fuerte
+  // 75-100	Tendencia extremadamente fuerte
+  const adxInput = { high, low, close, period: ADX_PERIOD }
+  const adx = ADX.calculate(adxInput)
+  const adxLast = adx[adx.length - 1] ?? {
+    adx: 0,
+    mdi: 0, //-di
+    pdi: 0 // +di
+  }
+
+  // Awesome oscilator
+  // mayor 0 compras
+  //menor a 0 ventas
+  // AO = SMA5 - SMA34
+
+  const aoInput = {
+    high,
+    low,
+    fastPeriod: AWESOME_OSC_FAST_PERIOD,
+    slowPeriod: AWESOME_OSC_SLOW_PERIOD,
+    format: (a: any) => parseFloat(a.toFixed(2))
+  }
+  const ao = AwesomeOscillator.calculate(aoInput)
+  const aoLast = ao[ao.length - 1] ?? 0
+
+  // MACD 12,26,9
+  const MACDInput = {
+    values: close,
+    fastPeriod: MACD_FAST_PERIOD,
+    slowPeriod: MACD_SLOW_PERIOD,
+    signalPeriod: MACD_SIGNAL_PERIOD,
+    SimpleMAOscillator: false,
+    SimpleMASignal: false
+  }
+  const macd = MACD.calculate(MACDInput)
+  const macdLast = macd[macd.length - 1] ?? { MACD: 0, histogram: 0, signal: 0 }
+
   // save extra data on last candle
   data[data.length - 1] = {
     ...data[data.length - 1],
@@ -319,12 +418,16 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
     isRedCandle: isLastCandleRed,
     isGreenCandle: isLastCandleGreen,
     // prev candle high volume, change candle color--- showing loosing power or attemp to reverse
-    isStopCandle: prevCandleHighVolume && isPrevCandleGreen === isLastCandleRed,
+    hasPrevCandleHighVolAndRevert: prevCandleHighVolume && isPrevCandleGreen === isLastCandleRed,
     // last candle high volume, change candle color--- showing interest, things gonna move!
-    isPowerCandle: lastCandleHighVolume && isPrevCandleGreen === isLastCandleRed,
+    hasLastCandleHighVolumeAndRevert: lastCandleHighVolume && isPrevCandleGreen === isLastCandleRed,
     isBiggerThanPrevious: lastCandleIsBigger,
     prev10CandleVolumeCount: prev10CandleVolumeCount,
     bollinger: bblast,
+    atr: atrLast,
+    ao: aoLast, // awesome oscilator
+    adx: adxLast, // direccionalidad
+    macd: macdLast,
     crossUp,
     crossDown,
     candlePercentAbove,
@@ -385,7 +488,7 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
   // set coin price
   coin.price = Number(candle.close)
 
-  // add extra data like, ema,sma,ispowercandle,isbigger,isstop etc
+  // add extra data like, ema,sma,hasLastCandleHighVolumeAndRevert,isbigger,isstop etc
   addExtraCandleData(coin, interval)
 
   // --------------------------
@@ -393,12 +496,12 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
   // --------------------------
   if (candle.isFinal) {
     if (
-      lastCandle.isPowerCandle &&
+      lastCandle.hasLastCandleHighVolumeAndRevert &&
       lastCandle.isBiggerThanPrevious &&
-      (lastCandle.rsi > MAX_RSI ||
-        lastCandle.rsi < MIN_RSI ||
-        prevCandle.rsi > MAX_RSI ||
-        prevCandle.rsi < MIN_RSI)
+      (isOverBought(lastCandle) ||
+        isOverSold(lastCandle) ||
+        isOverBought(prevCandle) ||
+        isOverSold(prevCandle))
     ) {
       sendAlert(`alert:powercandle:${interval}`, coin)
     }
@@ -411,22 +514,46 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
     // lastCandleHighVolume && candle change color
     // maybe only on rsi?
     // or outside bolinger band
-    // if (lastCandle.isPowerCandle) {
+    // if (lastCandle.hasLastCandleHighVolumeAndRevert) {
     //   sendAlert(`alert:strongcandle:${interval}`, coin)
     // }
 
-    if (lastCandle.rsi < MIN_RSI || prevCandle.rsi < MIN_RSI) {
+    if (isOverSold(lastCandle) || isOverSold(prevCandle)) {
       //sobreventa rsi <30
       if (lastCandle.crossUp && lastCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT) {
         sendAlert(`alert:bollingerUp:${interval}`, coin)
       }
     }
 
-    if (lastCandle.rsi > MAX_RSI || prevCandle.rsi > MAX_RSI) {
+    if (isOverBought(lastCandle) || isOverBought(prevCandle)) {
       //sobrecompra rsi > 70
       if (lastCandle.crossDown && lastCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT) {
         sendAlert(`alert:bollingerDown:${interval}`, coin)
       }
+    }
+
+    // candle verde ..con mayor volumen rojo
+    const sellVolume = getSellVolume(lastCandle)
+    const buyVolume = getBuyVolume(lastCandle)
+
+    if (
+      lastCandle.hasLastCandleHighVolumeAndRevert &&
+      lastCandle.isGreenCandle &&
+      sellVolume > buyVolume &&
+      isOverBought(lastCandle) &&
+      lastCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT
+    ) {
+      sendAlert(`alert:bigCandleDown:${interval}`, coin)
+    }
+
+    if (
+      lastCandle.hasLastCandleHighVolumeAndRevert &&
+      lastCandle.isRedCandle &&
+      sellVolume < buyVolume &&
+      isOverSold(lastCandle) &&
+      lastCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT
+    ) {
+      sendAlert(`alert:bigCandleUp:${interval}`, coin)
     }
   }
 
@@ -541,6 +668,9 @@ export const setMaxRSI = (value: number) => {
 export const setRSILength = (value: number) => {
   RSI_LENGTH = value
 }
+export const setATRLength = (value: number) => {
+  ATR_PERIOD = value
+}
 export const setVolumeLength = (value: number) => {
   VOLUME_LENGTH = value
 }
@@ -568,6 +698,18 @@ const getDataToSend = () => {
     // data1w: coin.data1w.slice(-TOTAL_CLIENT_CANDLES)
   }))
 }
+
+const isOverSold = (candle: any) => candle.rsi < MIN_RSI
+const isOverBought = (candle: any) => candle.rsi > MAX_RSI
+const getBodySize = (candle: any) => Math.abs(candle.open - candle.close)
+const getSellVolume = (candle: any) =>
+  candle.high === candle.low
+    ? 0
+    : (candle.volume * (candle.high - candle.close)) / (candle.high - candle.low)
+const getBuyVolume = (candle: any) =>
+  candle.high === candle.low
+    ? 0
+    : (candle.volume * (candle.close - candle.low)) / (candle.high - candle.low)
 
 export const refreshData = () => {
   console.log('Refreshing data')

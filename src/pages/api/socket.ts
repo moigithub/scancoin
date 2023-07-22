@@ -13,7 +13,8 @@ import {
   setRSILength,
   setVolumeLength,
   setVolumeFactor,
-  setBBCandlePercentOut
+  setBBCandlePercentOut,
+  setATRLength
 } from '@/app/binance'
 
 interface SocketServer extends HTTPServer {
@@ -70,8 +71,13 @@ export default async function SocketHandler(req: NextApiRequest, res: NextApiRes
     })
 
     socket.on('setRSILength', (value: number) => {
-      console.log('setting max rsi', value, typeof value)
+      console.log('setting rsi length', value, typeof value)
       setRSILength(value)
+    })
+
+    socket.on('setATRLength', (value: number) => {
+      console.log('setting atr period', value, typeof value)
+      setATRLength(value)
     })
 
     socket.on('setVolumeLength', (value: number) => {

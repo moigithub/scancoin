@@ -12,27 +12,7 @@ import {
 import io, { Socket } from 'socket.io-client'
 import { Chart } from './chart'
 import Image from 'next/image'
-
-interface CandleData {
-  time: number | undefined
-  open: number
-  high: number
-  low: number
-  close: number
-  volume: number
-  isFinal: boolean
-  volAverage: number
-  ema20?: number
-  sma50?: number
-  sma200?: number
-  rsi: number
-  isRedCandle: boolean
-  isGreenCandle: boolean
-  isStopCandle: boolean
-  isPowerCandle: boolean
-  isBiggerThanPrevious: boolean
-  prev10CandleVolumeCount: number
-}
+import { CandleData } from './binance'
 
 type Symbol = {
   symbol: string
@@ -44,7 +24,7 @@ type Symbol = {
   data1h: CandleData[]
   data4h: CandleData[]
   data1d: CandleData[]
-  data1w: CandleData[]
+  // data1w: CandleData[]
 }
 enum ALERT_TYPE {
   'alert' = 'alert',
@@ -56,6 +36,9 @@ enum ALERT_TYPE {
 
 let socket: Socket
 let sndPowa: any = null
+let sndCandleDown: any = null
+let sndCandleUp: any = null
+
 let sndTick: any = null
 let sndCompra: any = null
 let sndVenta: any = null
@@ -71,6 +54,9 @@ export const Symbols = () => {
   const [minRSIFilter, setMinRSIFilter] = useState(30)
   const [maxRSIFilter, setMaxRSIFilter] = useState(70)
   const [RSILenFilter, setRSILenFilter] = useState(14)
+  const [atrFilter, setAtrFilter] = useState(5) // volatilidad
+  const [atrActiveFilter, setAtrActiveFilter] = useState(false)
+
   const [volumeLenFilter, setVolumeLenFilter] = useState(30)
   const [volumeFactorFilter, setVolumeFactorFilter] = useState(2.5)
   const [bbCandlePercentOutFilter, setBbCandlePercentOutFilter] = useState(40)
@@ -96,6 +82,9 @@ export const Symbols = () => {
   const [bollingerAlerts, setBollingerAlerts] = useState<any[]>([])
 
   const [rsiSelectedSort, setRsiSelectedSort] = useState('5m:desc')
+
+  const [showDaily, setShowDaily] = useState(false)
+  const [showWeekly, setShowWeekly] = useState(false)
 
   const [btcData0, setBtcData0] = useState<any[]>([])
   const [btcData1, setBtcData1] = useState<any[]>([])
@@ -123,6 +112,8 @@ export const Symbols = () => {
     sndVolume = new Audio('./volume.m4a')
     sndBoliUp = new Audio('./boliup.m4a')
     sndBoliDown = new Audio('./bolidown.m4a')
+    sndCandleDown = new Audio('./candledown.m4a')
+    sndCandleUp = new Audio('./candleup.m4a')
 
     const init = async () => {
       await socketInitializer()
@@ -219,171 +210,252 @@ export const Symbols = () => {
       setSymbols(data)
     })
 
+    //------------------------------------------
     // powercandle with rsi and bigger than previous
+    //------------------------------------------
     socket.on('alert:powercandle:5m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.alert, coin), ...m].slice(-20))
+      setAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.alert, coin), ...m].slice(0, 20))
       if (sndPowa) sndPowa.play()
     })
     socket.on('alert:powercandle:15m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.alert, coin), ...m].slice(-20))
+      setAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.alert, coin), ...m].slice(0, 20))
       if (sndPowa) sndPowa.play()
     })
     socket.on('alert:powercandle:30m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.alert, coin), ...m].slice(-20))
+      setAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.alert, coin), ...m].slice(0, 20))
       if (sndPowa) sndPowa.play()
     })
     socket.on('alert:powercandle:1h', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.alert, coin), ...m].slice(-20))
+      setAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.alert, coin), ...m].slice(0, 20))
       if (sndPowa) sndPowa.play()
     })
     socket.on('alert:powercandle:4h', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.alert, coin), ...m].slice(-20))
+      setAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.alert, coin), ...m].slice(0, 20))
       if (sndPowa) sndPowa.play()
     })
     socket.on('alert:powercandle:1d', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.alert, coin), ...m].slice(-20))
+      setAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.alert, coin), ...m].slice(0, 20))
       if (sndPowa) sndPowa.play()
     })
     // socket.on('alert:powercandle:1w', (coin: any) => {
-    //   setAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.alert, coin), ...m].slice(-20))
+    //   setAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.alert, coin), ...m].slice(0,20))
     //   if (sndPowa) sndPowa.play()
     // })
 
-    // velotas (powercandle only without rsi)
+    //------------------------------------------
+    //  lastCandle highvol, green, sellVol>buyVol, rsi, %candleout
+    //------------------------------------------
+    socket.on('alert:bigCandleDown:5m', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      if (sndCandleDown) sndCandleDown.play()
+    })
+    socket.on('alert:bigCandleDown:15m', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      if (sndCandleDown) sndCandleDown.play()
+    })
+    socket.on('alert:bigCandleDown:30m', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      if (sndCandleDown) sndCandleDown.play()
+    })
+    socket.on('alert:bigCandleDown:1h', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      if (sndCandleDown) sndCandleDown.play()
+    })
+    socket.on('alert:bigCandleDown:4h', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      if (sndCandleDown) sndCandleDown.play()
+    })
+    socket.on('alert:bigCandleDown:1d', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      if (sndCandleDown) sndCandleDown.play()
+    })
+    // socket.on('alert:bigCandleDown:1w', (coin: any) => {
+    //   setVelotaAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
+    //   if (sndCandleDown) sndCandleDown.play()
+    // })
 
+    //------------------------------------------
+    //  lastCandle highvol, red, sellVol<buyVol, rsi, %candleout
+    //------------------------------------------
+    socket.on('alert:bigCandleUp:5m', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      if (sndCandleUp) sndCandleUp.play()
+    })
+    socket.on('alert:bigCandleUp:15m', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      if (sndCandleUp) sndCandleUp.play()
+    })
+    socket.on('alert:bigCandleUp:30m', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      if (sndCandleUp) sndCandleUp.play()
+    })
+    socket.on('alert:bigCandleUp:1h', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      if (sndCandleUp) sndCandleUp.play()
+    })
+    socket.on('alert:bigCandleUp:4h', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      if (sndCandleUp) sndCandleUp.play()
+    })
+    socket.on('alert:bigCandleUp:1d', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      if (sndCandleUp) sndCandleUp.play()
+    })
+    // socket.on('alert:bigCandleUp:1w', (coin: any) => {
+    //   setVelotaAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
+    //   if (sndCandleUp) sndCandleUp.play()
+    // })
+
+    //------------------------------------------
+    // velotas (powercandle only without rsi)
+    //------------------------------------------
     // socket.on('alert:strongcandle:5m', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   setVelotaAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
     //   if (sndVelota) sndVelota.play()
     // })
     // socket.on('alert:strongcandle:15m', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   setVelotaAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
     //   if (sndVelota) sndVelota.play()
     // })
     // socket.on('alert:strongcandle:30m', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   setVelotaAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
     //   if (sndVelota) sndVelota.play()
     // })
     // socket.on('alert:strongcandle:1h', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   setVelotaAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
     //   if (sndVelota) sndVelota.play()
     // })
     // socket.on('alert:strongcandle:4h', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   setVelotaAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
     //   if (sndVelota) sndVelota.play()
     // })
     // socket.on('alert:strongcandle:1d', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   setVelotaAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
     //   if (sndVelota) sndVelota.play()
     // })
     // socket.on('alert:strongcandle:1w', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.velotas, coin), ...m].slice(-20))
+    //   setVelotaAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
     //   if (sndVelota) sndVelota.play()
     // })
 
+    //------------------------------------------
     // volume count alert
+    //------------------------------------------
     // socket.on('alert:volumecount:5m', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   setVolumeAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.volume, coin), ...m].slice(0,20))
     //   if (sndVolume) sndVolume.play()
     // })
     // socket.on('alert:volumecount:15m', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   setVolumeAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.volume, coin), ...m].slice(0,20))
     //   if (sndVolume) sndVolume.play()
     // })
     // socket.on('alert:volumecount:30m', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   setVolumeAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.volume, coin), ...m].slice(0,20))
     //   if (sndVolume) sndVolume.play()
     // })
     // socket.on('alert:volumecount:1h', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   setVolumeAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.volume, coin), ...m].slice(0,20))
     //   if (sndVolume) sndVolume.play()
     // })
     // socket.on('alert:volumecount:4h', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   setVolumeAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.volume, coin), ...m].slice(0,20))
     //   if (sndVolume) sndVolume.play()
     // })
     // socket.on('alert:volumecount:1d', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   setVolumeAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.volume, coin), ...m].slice(0,20))
     //   if (sndVolume) sndVolume.play()
     // })
     // socket.on('alert:volumecount:1w', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.volume, coin), ...m].slice(-20))
+    //   setVolumeAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.volume, coin), ...m].slice(0,20))
     //   if (sndVolume) sndVolume.play()
     // })
 
+    //------------------------------------------
     // bolinger cross up alert
+    //------------------------------------------
     socket.on('alert:bollingerUp:5m', (coin: any) => {
-      setBollingerAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.bollingerup, coin), ...m].slice(-20))
+      setBollingerAlerts(m =>
+        [formatAlertMsg('5m', ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20)
+      )
       if (sndBoliUp) sndBoliUp.play()
     })
     socket.on('alert:bollingerUp:15m', (coin: any) => {
       setBollingerAlerts(m =>
-        [formatAlertMsg('15m', ALERT_TYPE.bollingerup, coin), ...m].slice(-20)
+        [formatAlertMsg('15m', ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20)
       )
       if (sndBoliUp) sndBoliUp.play()
     })
     socket.on('alert:bollingerUp:30m', (coin: any) => {
       setBollingerAlerts(m =>
-        [formatAlertMsg('30m', ALERT_TYPE.bollingerup, coin), ...m].slice(-20)
+        [formatAlertMsg('30m', ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20)
       )
       if (sndBoliUp) sndBoliUp.play()
     })
     socket.on('alert:bollingerUp:1h', (coin: any) => {
-      setBollingerAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.bollingerup, coin), ...m].slice(-20))
+      setBollingerAlerts(m =>
+        [formatAlertMsg('1h', ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20)
+      )
       if (sndBoliUp) sndBoliUp.play()
     })
     socket.on('alert:bollingerUp:4h', (coin: any) => {
-      setBollingerAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.bollingerup, coin), ...m].slice(-20))
+      setBollingerAlerts(m =>
+        [formatAlertMsg('4h', ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20)
+      )
       if (sndBoliUp) sndBoliUp.play()
     })
     socket.on('alert:bollingerUp:1d', (coin: any) => {
-      setBollingerAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.bollingerup, coin), ...m].slice(-20))
+      setBollingerAlerts(m =>
+        [formatAlertMsg('1d', ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20)
+      )
       if (sndBoliUp) sndBoliUp.play()
     })
     // socket.on('alert:bollingerUp:1w', (coin: any) => {
-    //   setBollingerAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.bollingerup, coin), ...m].slice(-20))
+    //   setBollingerAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.bollingerup, coin), ...m].slice(0,20))
     //   if (sndBoliUp) sndBoliUp.play()
     // })
 
+    //------------------------------------------
     // bolinger cross down alert
+    //------------------------------------------
     socket.on('alert:bollingerDown:5m', (coin: any) => {
       setBollingerAlerts(m =>
-        [formatAlertMsg('5m', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+        [formatAlertMsg('5m', ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20)
       )
       if (sndBoliDown) sndBoliDown.play()
     })
     socket.on('alert:bollingerDown:15m', (coin: any) => {
       setBollingerAlerts(m =>
-        [formatAlertMsg('15m', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+        [formatAlertMsg('15m', ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20)
       )
       if (sndBoliDown) sndBoliDown.play()
     })
     socket.on('alert:bollingerDown:30m', (coin: any) => {
       setBollingerAlerts(m =>
-        [formatAlertMsg('30m', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+        [formatAlertMsg('30m', ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20)
       )
       if (sndBoliDown) sndBoliDown.play()
     })
     socket.on('alert:bollingerDown:1h', (coin: any) => {
       setBollingerAlerts(m =>
-        [formatAlertMsg('1h', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+        [formatAlertMsg('1h', ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20)
       )
       if (sndBoliDown) sndBoliDown.play()
     })
     socket.on('alert:bollingerDown:4h', (coin: any) => {
       setBollingerAlerts(m =>
-        [formatAlertMsg('4h', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+        [formatAlertMsg('4h', ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20)
       )
       if (sndBoliDown) sndBoliDown.play()
     })
     socket.on('alert:bollingerDown:1d', (coin: any) => {
       setBollingerAlerts(m =>
-        [formatAlertMsg('1d', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+        [formatAlertMsg('1d', ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20)
       )
       if (sndBoliDown) sndBoliDown.play()
     })
     // socket.on('alert:bollingerDown:1w', (coin: any) => {
     //   setBollingerAlerts(m =>
-    //     [formatAlertMsg('1w', ALERT_TYPE.bollingerdown, coin), ...m].slice(-20)
+    //     [formatAlertMsg('1w', ALERT_TYPE.bollingerdown, coin), ...m].slice(0,20)
     //   )
     //   if (sndBoliDown) sndBoliDown.play()
     // })
@@ -479,6 +551,14 @@ export const Symbols = () => {
 
   const handlePushFilter = (e: ChangeEvent<HTMLInputElement>) => {
     setPushFilter(e.target.checked)
+  }
+
+  const handleAtrActiveFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    setAtrActiveFilter(e.target.checked)
+  }
+  const handleAtrFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value)
+    setAtrFilter(value)
   }
 
   const handleMinRSIFilter = (e: ChangeEvent<HTMLInputElement>) => {
@@ -586,7 +666,7 @@ export const Symbols = () => {
     const lastCandle = coin[`data${interval}`][totalCandles - 1]
     const prevCandle = coin[`data${interval}`][totalCandles - 2]
 
-    if (lastCandle.isStopCandle || prevCandle.isStopCandle) {
+    if (lastCandle.hasPrevCandleHighVolAndRevert || prevCandle.hasPrevCandleHighVolAndRevert) {
       status.push(
         <Image
           alt='stop'
@@ -599,7 +679,7 @@ export const Symbols = () => {
     } //'Stop'
 
     //' SuperPush' // vol inc, bigger candle
-    if (lastCandle.isPowerCandle && lastCandle.isBiggerThanPrevious) {
+    if (lastCandle.hasLastCandleHighVolumeAndRevert && lastCandle.isBiggerThanPrevious) {
       // entrando volumen
 
       status.push(
@@ -615,7 +695,7 @@ export const Symbols = () => {
         </span>
       )
     }
-    if (prevCandle.isPowerCandle && prevCandle.isBiggerThanPrevious) {
+    if (prevCandle.hasLastCandleHighVolumeAndRevert && prevCandle.isBiggerThanPrevious) {
       // entrando volumen
 
       status.push(
@@ -633,7 +713,7 @@ export const Symbols = () => {
     }
 
     //'Push' // vol inc
-    if (lastCandle.isPowerCandle && !lastCandle.isBiggerThanPrevious) {
+    if (lastCandle.hasLastCandleHighVolumeAndRevert && !lastCandle.isBiggerThanPrevious) {
       status.push(
         <span
           key={`${coin.symbol}${interval}:last:push`}
@@ -648,7 +728,7 @@ export const Symbols = () => {
       )
     }
 
-    if (prevCandle.isPowerCandle && !prevCandle.isBiggerThanPrevious) {
+    if (prevCandle.hasLastCandleHighVolumeAndRevert && !prevCandle.isBiggerThanPrevious) {
       status.push(
         <span
           key={`${coin.symbol}${interval}:prev:push`}
@@ -686,10 +766,6 @@ export const Symbols = () => {
     filterSymbols = filterSymbols.filter(s => s.symbol.includes(searchFilter.toUpperCase()))
   }
 
-  if (searchFilter) {
-    filterSymbols = filterSymbols.filter(s => s.symbol.includes(searchFilter.toUpperCase()))
-  }
-
   if (!searchOnlyFilter) {
     if (pushFilter) {
       filterSymbols = filterSymbols.filter(s => {
@@ -699,21 +775,43 @@ export const Symbols = () => {
         const lastCandle1h = s[`data1h`][s[`data1h`].length - 1]
         const lastCandle4h = s[`data4h`][s[`data4h`].length - 1]
         const lastCandle1d = s[`data1d`][s[`data1d`].length - 1]
-        const lastCandle1w = s[`data1w`][s[`data1w`].length - 1]
+        // const lastCandle1w = s[`data1w`][s[`data1w`].length - 1]
 
         return (
-          lastCandle5m?.isPowerCandle ||
-          lastCandle15m?.isPowerCandle ||
-          lastCandle30m?.isPowerCandle ||
-          lastCandle1h?.isPowerCandle ||
-          lastCandle4h?.isPowerCandle ||
-          lastCandle1d?.isPowerCandle ||
-          lastCandle1w?.isPowerCandle
+          lastCandle5m?.hasLastCandleHighVolumeAndRevert ||
+          lastCandle15m?.hasLastCandleHighVolumeAndRevert ||
+          lastCandle30m?.hasLastCandleHighVolumeAndRevert ||
+          lastCandle1h?.hasLastCandleHighVolumeAndRevert ||
+          lastCandle4h?.hasLastCandleHighVolumeAndRevert ||
+          lastCandle1d?.hasLastCandleHighVolumeAndRevert
+
+          // ||          lastCandle1w?.hasLastCandleHighVolumeAndRevert
         )
       })
     }
 
-    filterSymbols = filterSymbols.filter(s => s.symbol.includes(searchFilter.toUpperCase()))
+    if (atrActiveFilter) {
+      filterSymbols = filterSymbols.filter(s => {
+        const lastCandle5m = s[`data5m`][s[`data5m`].length - 1]
+        const lastCandle15m = s[`data15m`][s[`data15m`].length - 1]
+        const lastCandle30m = s[`data30m`][s[`data30m`].length - 1]
+        const lastCandle1h = s[`data1h`][s[`data1h`].length - 1]
+        const lastCandle4h = s[`data4h`][s[`data4h`].length - 1]
+        const lastCandle1d = s[`data1d`][s[`data1d`].length - 1]
+        // const lastCandle1w = s[`data1w`][s[`data1w`].length - 1]
+
+        return (
+          lastCandle5m?.atr > atrFilter ||
+          lastCandle15m?.atr > atrFilter ||
+          lastCandle30m?.atr > atrFilter ||
+          lastCandle1h?.atr > atrFilter ||
+          lastCandle4h?.atr > atrFilter ||
+          lastCandle1d?.atr > atrFilter
+
+          // ||          lastCandle1w?.atr>atrFilter
+        )
+      })
+    }
 
     if (overBoughtFilter && overSoldFilter) {
       filterSymbols = filterSymbols.filter(s => {
@@ -794,6 +892,39 @@ export const Symbols = () => {
       rsi4h: d.data4h[d.data4h.length - 1]?.rsi ?? 0,
       rsi1d: d.data1d[d.data1d.length - 1]?.rsi ?? 0,
       // rsi1w: d.data1w[d.data1w.length - 1]?.rsi ?? 0,
+
+      atr5m: d.data5m[d.data5m.length - 1]?.atr.toFixed(1) ?? 0,
+      atr15m: d.data15m[d.data15m.length - 1]?.atr.toFixed(1) ?? 0,
+      atr30m: d.data30m[d.data30m.length - 1]?.atr.toFixed(1) ?? 0,
+      atr1h: d.data1h[d.data1h.length - 1]?.atr.toFixed(1) ?? 0,
+      atr4h: d.data4h[d.data4h.length - 1]?.atr.toFixed(1) ?? 0,
+      atr1d: d.data1d[d.data1d.length - 1]?.atr.toFixed(1) ?? 0,
+      // atr1w: d.data1w[d.data1w.length - 1]?.atr.toFixed(1) ?? 0,
+
+      ao5m: d.data5m[d.data5m.length - 1]?.ao ?? 0,
+      ao15m: d.data15m[d.data15m.length - 1]?.ao ?? 0,
+      ao30m: d.data30m[d.data30m.length - 1]?.ao ?? 0,
+      ao1h: d.data1h[d.data1h.length - 1]?.ao ?? 0,
+      ao4h: d.data4h[d.data4h.length - 1]?.ao ?? 0,
+      ao1d: d.data1d[d.data1d.length - 1]?.ao ?? 0,
+      // ao1w: d.data1w[d.data1w.length - 1]?.ao ?? 0,
+
+      adx5m: d.data5m[d.data5m.length - 1]?.adx ?? { adx: 0, pdi: 0, mdi: 0 },
+      adx15m: d.data15m[d.data15m.length - 1]?.adx ?? { adx: 0, pdi: 0, mdi: 0 },
+      adx30m: d.data30m[d.data30m.length - 1]?.adx ?? { adx: 0, pdi: 0, mdi: 0 },
+      adx1h: d.data1h[d.data1h.length - 1]?.adx ?? { adx: 0, pdi: 0, mdi: 0 },
+      adx4h: d.data4h[d.data4h.length - 1]?.adx ?? { adx: 0, pdi: 0, mdi: 0 },
+      adx1d: d.data1d[d.data1d.length - 1]?.adx ?? { adx: 0, pdi: 0, mdi: 0 },
+      // adx1w: d.data1w[d.data1w.length - 1]?.adx ?? {adx:0,pdi:0,mdi:0},
+
+      macd5m: d.data5m[d.data5m.length - 1]?.macd ?? { MACD: 0, signal: 0, histogram: 0 },
+      macd15m: d.data15m[d.data15m.length - 1]?.macd ?? { MACD: 0, signal: 0, histogram: 0 },
+      macd30m: d.data30m[d.data30m.length - 1]?.macd ?? { MACD: 0, signal: 0, histogram: 0 },
+      macd1h: d.data1h[d.data1h.length - 1]?.macd ?? { MACD: 0, signal: 0, histogram: 0 },
+      macd4h: d.data4h[d.data4h.length - 1]?.macd ?? { MACD: 0, signal: 0, histogram: 0 },
+      macd1d: d.data1d[d.data1d.length - 1]?.macd ?? { MACD: 0, signal: 0, histogram: 0 },
+      // macd1w: d.data1w[d.data1w.length - 1]?.macd ?? {MACD:0,signal:0,histogram:0},
+
       prev10CandleVolumeCount5m: d.data5m[d.data5m.length - 1]?.prev10CandleVolumeCount ?? 0,
       prev10CandleVolumeCount15m: d.data15m[d.data15m.length - 1]?.prev10CandleVolumeCount ?? 0,
       prev10CandleVolumeCount30m: d.data30m[d.data30m.length - 1]?.prev10CandleVolumeCount ?? 0,
@@ -809,21 +940,33 @@ export const Symbols = () => {
       isRedCandle1d: d.data1d[d.data1d.length - 1]?.isRedCandle ?? 0,
       // isRedCandle1w: d.data1w[d.data1w.length - 1]?.isRedCandle ?? 0,
 
-      isStopCandle5m: d.data5m[d.data5m.length - 1]?.isStopCandle ?? 0,
-      isStopCandle15m: d.data15m[d.data15m.length - 1]?.isStopCandle ?? 0,
-      isStopCandle30m: d.data30m[d.data30m.length - 1]?.isStopCandle ?? 0,
-      isStopCandle1h: d.data1h[d.data1h.length - 1]?.isStopCandle ?? 0,
-      isStopCandle4h: d.data4h[d.data4h.length - 1]?.isStopCandle ?? 0,
-      isStopCandle1d: d.data1d[d.data1d.length - 1]?.isStopCandle ?? 0,
-      // isStopCandle1w: d.data1w[d.data1w.length - 1]?.isStopCandle ?? 0,
+      hasPrevCandleHighVolAndRevert5m:
+        d.data5m[d.data5m.length - 1]?.hasPrevCandleHighVolAndRevert ?? 0,
+      hasPrevCandleHighVolAndRevert15m:
+        d.data15m[d.data15m.length - 1]?.hasPrevCandleHighVolAndRevert ?? 0,
+      hasPrevCandleHighVolAndRevert30m:
+        d.data30m[d.data30m.length - 1]?.hasPrevCandleHighVolAndRevert ?? 0,
+      hasPrevCandleHighVolAndRevert1h:
+        d.data1h[d.data1h.length - 1]?.hasPrevCandleHighVolAndRevert ?? 0,
+      hasPrevCandleHighVolAndRevert4h:
+        d.data4h[d.data4h.length - 1]?.hasPrevCandleHighVolAndRevert ?? 0,
+      hasPrevCandleHighVolAndRevert1d:
+        d.data1d[d.data1d.length - 1]?.hasPrevCandleHighVolAndRevert ?? 0,
+      // hasPrevCandleHighVolAndRevert1w: d.data1w[d.data1w.length - 1]?.hasPrevCandleHighVolAndRevert ?? 0,
 
-      isPowerCandle5m: d.data5m[d.data5m.length - 1]?.isPowerCandle ?? 0,
-      isPowerCandle15m: d.data15m[d.data15m.length - 1]?.isPowerCandle ?? 0,
-      isPowerCandle30m: d.data30m[d.data30m.length - 1]?.isPowerCandle ?? 0,
-      isPowerCandle1h: d.data1h[d.data1h.length - 1]?.isPowerCandle ?? 0,
-      isPowerCandle4h: d.data4h[d.data4h.length - 1]?.isPowerCandle ?? 0,
-      isPowerCandle1d: d.data1d[d.data1d.length - 1]?.isPowerCandle ?? 0,
-      // isPowerCandle1w: d.data1w[d.data1w.length - 1]?.isPowerCandle ?? 0,
+      hasLastCandleHighVolumeAndRevert5m:
+        d.data5m[d.data5m.length - 1]?.hasLastCandleHighVolumeAndRevert ?? 0,
+      hasLastCandleHighVolumeAndRevert15m:
+        d.data15m[d.data15m.length - 1]?.hasLastCandleHighVolumeAndRevert ?? 0,
+      hasLastCandleHighVolumeAndRevert30m:
+        d.data30m[d.data30m.length - 1]?.hasLastCandleHighVolumeAndRevert ?? 0,
+      hasLastCandleHighVolumeAndRevert1h:
+        d.data1h[d.data1h.length - 1]?.hasLastCandleHighVolumeAndRevert ?? 0,
+      hasLastCandleHighVolumeAndRevert4h:
+        d.data4h[d.data4h.length - 1]?.hasLastCandleHighVolumeAndRevert ?? 0,
+      hasLastCandleHighVolumeAndRevert1d:
+        d.data1d[d.data1d.length - 1]?.hasLastCandleHighVolumeAndRevert ?? 0,
+      // hasLastCandleHighVolumeAndRevert1w: d.data1w[d.data1w.length - 1]?.hasLastCandleHighVolumeAndRevert ?? 0,
 
       isBiggerThanPrevious5m: d.data5m[d.data5m.length - 1]?.isBiggerThanPrevious ?? 0,
       isBiggerThanPrevious15m: d.data15m[d.data15m.length - 1]?.isBiggerThanPrevious ?? 0,
@@ -835,6 +978,7 @@ export const Symbols = () => {
     }
   }
 
+  // ordering
   const dataSymbols = filterSymbols.map(getData).sort((a: any, b: any) => {
     const currentSort = rsiSelectedSort.split(':')
     if (currentSort[0] === '5m') {
@@ -1226,27 +1370,35 @@ export const Symbols = () => {
           </div>
         </div>
         <div className='alerts flex'>
-          <div className='flex flex-col'>
+          <div className='flex flex-1 flex-col'>
             <button
               className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
-              onClick={() => setBollingerAlerts([])}
-            >
-              Clear Boli alerts
-            </button>
-            <ul className='flex-1 overflow-y-auto text-xs h-[500px]'>
-              changeColor, lastCandleHigherVol, biggerThanPrev, rsi
-              {alerts.map(renderMessage)}
-            </ul>
-          </div>
-          {/* <ul className='overflow-y-auto'>{velotaAlerts.map(renderMessage)}</ul> */}
-          <div className='flex flex-col'>
-            <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
               onClick={() => setAlerts([])}
             >
               Clear alerts
             </button>
-            <ul className='flex-1 overflow-y-auto text-xs h-[500px]'>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              changeColor, lastCandleHigherVol, biggerThanPrev, rsi
+              {alerts.map(renderMessage)}
+            </ul>
+          </div>
+          <div className='flex flex-1 flex-col'>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setVelotaAlerts([])}
+            >
+              Clear velotas alerts
+            </button>
+            <ul className='overflow-y-auto text-xs h-[500px]'>{velotaAlerts.map(renderMessage)}</ul>
+          </div>
+          <div className='flex flex-1 flex-col'>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setBollingerAlerts([])}
+            >
+              Clear Boli alerts
+            </button>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
               crossBBBand, candlePercentOutBB, rsi
               {bollingerAlerts.map(renderMessage)}
             </ul>
@@ -1406,6 +1558,32 @@ export const Symbols = () => {
             onChange={handleVolumeCount}
           />
         </div>
+
+        <div className='atr my-2'>
+          <label
+            className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+            htmlFor='atr-filter'
+          >
+            ATR (volatility)
+          </label>
+          <input
+            type='checkbox'
+            id='filter-atr'
+            checked={atrActiveFilter}
+            onChange={handleAtrActiveFilter}
+          />
+
+          <input
+            type='number'
+            step={1}
+            min={0}
+            max={10}
+            id='atr-filter'
+            className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+            value={atrFilter}
+            onChange={handleAtrFilter}
+          />
+        </div>
       </div>
       <div className='flex'>
         <button
@@ -1427,13 +1605,6 @@ export const Symbols = () => {
             onClick={() => setVolumeAlerts([])}
           >
             Clear Vol alerts
-          </button> */}
-
-        {/* <button
-            className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
-            onClick={() => setVelotaAlerts([])}
-          >
-            Clear Velota alerts
           </button> */}
         <div className='group mx-5'>
           <label htmlFor='filter-push'>Show push/superpush only</label>
@@ -1465,6 +1636,19 @@ export const Symbols = () => {
       </div>
       <div className='flex'></div>
       <table className='table-auto min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-blue-500'>
+        <tbody>
+          <tr>
+            <td>ADX (direccion): 0-25 nada, 25-50 Fuerte, 50-75 Muy Fuerte, 75-100 Extreme</td>
+          </tr>
+          <tr>
+            <td>Awesome Osc: mayor a 0 = compras, menor a 0 = ventas</td>
+          </tr>
+          <tr>
+            <td>ATR (volatil): a mayor valor, mas volatil</td>
+          </tr>
+        </tbody>
+      </table>
+      <table className='table-auto min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-blue-500'>
         <thead>
           <tr>
             <th colSpan={2}>Symbol</th>
@@ -1473,7 +1657,31 @@ export const Symbols = () => {
               colSpan={6}
               className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
             >
-              RSI ({rsiSelectedSort})
+              RSI ({rsiSelectedSort}) [
+              <span className='mx-0.5' style={{ color: 'white' }}>
+                rsi
+              </span>
+              ,
+              <span className='mx-0.5' style={{ color: 'yellow' }}>
+                candleCount
+              </span>
+              ,
+              <span className='mx-0.5' style={{ color: 'orange' }}>
+                atr
+              </span>
+              ,
+              <span className='mx-0.5' style={{ color: 'cyan' }}>
+                adx
+              </span>
+              ,
+              <span className='mx-0.5' style={{ color: 'brown' }}>
+                macd
+              </span>
+              ,
+              <span className='mx-0.5' style={{ color: 'purple' }}>
+                aweOsc
+              </span>
+              ]
             </th>
             <th
               colSpan={6}
@@ -1872,7 +2080,26 @@ export const Symbols = () => {
                     backgroundColor: getBgColor(coin.rsi5m)
                   }}
                 >
-                  {coin.rsi5m} ({coin.prev10CandleVolumeCount5m})
+                  <span className='mx-0.5' style={{ color: 'white' }}>
+                    {coin.rsi5m}
+                  </span>
+                  <span className='mx-0.5' style={{ color: 'yellow' }}>
+                    ({coin.prev10CandleVolumeCount5m})
+                  </span>
+                  <p>
+                    <span className='mx-0.5' style={{ color: 'orange' }}>
+                      {coin.atr5m}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'cyan' }}>
+                      {coin.adx5m.adx.toFixed(2)}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'brown' }}>
+                      {coin.macd5m.histogram?.toFixed(1)}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'purple' }}>
+                      {coin.ao5m}
+                    </span>
+                  </p>
                 </td>
                 <td
                   className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
@@ -1880,7 +2107,26 @@ export const Symbols = () => {
                     backgroundColor: getBgColor(coin.rsi15m)
                   }}
                 >
-                  {coin.rsi15m} ({coin.prev10CandleVolumeCount15m})
+                  <span className='mx-0.5' style={{ color: 'white' }}>
+                    {coin.rsi15m}
+                  </span>
+                  <span className='mx-0.5' style={{ color: 'yellow' }}>
+                    ({coin.prev10CandleVolumeCount15m})
+                  </span>
+                  <p>
+                    <span className='mx-0.5' style={{ color: 'orange' }}>
+                      {coin.atr15m}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'cyan' }}>
+                      {coin.adx15m.adx.toFixed(2)}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'brown' }}>
+                      {coin.macd15m.histogram?.toFixed(1)}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'purple' }}>
+                      {coin.ao15m}
+                    </span>
+                  </p>
                 </td>
                 <td
                   className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
@@ -1888,7 +2134,26 @@ export const Symbols = () => {
                     backgroundColor: getBgColor(coin.rsi30m)
                   }}
                 >
-                  {coin.rsi30m} ({coin.prev10CandleVolumeCount30m})
+                  <span className='mx-0.5' style={{ color: 'white' }}>
+                    {coin.rsi30m}
+                  </span>
+                  <span className='mx-0.5' style={{ color: 'yellow' }}>
+                    ({coin.prev10CandleVolumeCount30m})
+                  </span>
+                  <p>
+                    <span className='mx-0.5' style={{ color: 'orange' }}>
+                      {coin.atr30m}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'cyan' }}>
+                      {coin.adx30m.adx.toFixed(2)}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'brown' }}>
+                      {coin.macd30m.histogram?.toFixed(1)}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'purple' }}>
+                      {coin.ao30m}
+                    </span>
+                  </p>
                 </td>
                 <td
                   className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
@@ -1896,7 +2161,26 @@ export const Symbols = () => {
                     backgroundColor: getBgColor(coin.rsi1h)
                   }}
                 >
-                  {coin.rsi1h} ({coin.prev10CandleVolumeCount1h})
+                  <span className='mx-0.5' style={{ color: 'white' }}>
+                    {coin.rsi1h}
+                  </span>
+                  <span className='mx-0.5' style={{ color: 'yellow' }}>
+                    ({coin.prev10CandleVolumeCount1h})
+                  </span>
+                  <p>
+                    <span className='mx-0.5' style={{ color: 'orange' }}>
+                      {coin.atr1h}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'cyan' }}>
+                      {coin.adx1h.adx.toFixed(2)}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'brown' }}>
+                      {coin.macd1h.histogram?.toFixed(1)}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'purple' }}>
+                      {coin.ao1h}
+                    </span>
+                  </p>
                 </td>
                 <td
                   className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
@@ -1904,7 +2188,26 @@ export const Symbols = () => {
                     backgroundColor: getBgColor(coin.rsi4h)
                   }}
                 >
-                  {coin.rsi4h} ({coin.prev10CandleVolumeCount4h})
+                  <span className='mx-0.5' style={{ color: 'white' }}>
+                    {coin.rsi4h}
+                  </span>
+                  <span className='mx-0.5' style={{ color: 'yellow' }}>
+                    ({coin.prev10CandleVolumeCount4h})
+                  </span>
+                  <p>
+                    <span className='mx-0.5' style={{ color: 'orange' }}>
+                      {coin.atr4h}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'cyan' }}>
+                      {coin.adx4h.adx.toFixed(2)}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'brown' }}>
+                      {coin.macd4h.histogram?.toFixed(1)}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'purple' }}>
+                      {coin.ao4h}
+                    </span>
+                  </p>
                 </td>
                 <td
                   className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
@@ -1912,7 +2215,26 @@ export const Symbols = () => {
                     backgroundColor: getBgColor(coin.rsi1d)
                   }}
                 >
-                  {coin.rsi1d} ({coin.prev10CandleVolumeCount1d})
+                  <span className='mx-0.5' style={{ color: 'white' }}>
+                    {coin.rsi1d}
+                  </span>
+                  <span className='mx-0.5' style={{ color: 'yellow' }}>
+                    ({coin.prev10CandleVolumeCount1d})
+                  </span>
+                  <p>
+                    <span className='mx-0.5' style={{ color: 'orange' }}>
+                      {coin.atr1d}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'cyan' }}>
+                      {coin.adx1d.adx.toFixed(2)}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'brown' }}>
+                      {coin.macd1d.histogram?.toFixed(1)}
+                    </span>
+                    <span className='mx-0.5' style={{ color: 'purple' }}>
+                      {coin.ao1d}
+                    </span>
+                  </p>
                 </td>
                 {/* <td
                     className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
@@ -1920,8 +2242,13 @@ export const Symbols = () => {
                       backgroundColor: getBgColor(coin.rsi1w)
                     }}
                   >
-                    {coin.rsi1w} ({coin.prev10CandleVolumeCount1w})
-                  </td> */}
+                    <span className='mx-0.5' style={{color:"white"}}>{coin.rsi1w}</span>
+                  <span className='mx-0.5' style={{color:"green"}}>({coin.prev10CandleVolumeCount1w})</span>
+                 <p> <span className='mx-0.5' style={{color:"orange"}}>{coin.atr1w}</span>
+                  <span className='mx-0.5' style={{color:"blue"}}>{coin.adx1w.adx.toFixed(2)}</span>
+                  <span className='mx-0.5' style={{color:"red"}}>{coin.macd1w.histogram?.toFixed(1)}</span>
+                  <span className='mx-0.5' style={{color:"purple"}}>{coin.ao1w}</span>
+                  </p></td> */}
 
                 <td
                   className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
@@ -2128,7 +2455,8 @@ export const Symbols = () => {
             <td colSpan={17}>
               <Image className='inline' alt='push' src='/assets/push.png' width={24} height={24} />
               <span>
-                PUSH (isPowerCandle) : Cuando entra nueva vela de otro color con mucho volumen
+                PUSH (hasLastCandleHighVolumeAndRevert) : Cuando entra nueva vela de otro color con
+                mucho volumen
               </span>
             </td>
           </tr>
@@ -2142,7 +2470,8 @@ export const Symbols = () => {
                 height={24}
               />
               <span>
-                SuperPUSH (isPowerCandle+big) : igual q PUSH pero la vela es mas grande(elefante)
+                SuperPUSH (hasLastCandleHighVolumeAndRevert+big) : igual q PUSH pero la vela es mas
+                grande(elefante)
               </span>
             </td>
           </tr>
@@ -2197,4 +2526,12 @@ const getTradingViewInterval = (interval: string) => {
   return (
     { '5m': 5, '15m': 15, '30m': 30, '1h': 60, '4h': 60 * 4, '1d': 'd', '1w': 'w' }[interval] ?? ''
   )
+}
+
+const getAwesomeOscilatorRating = (value: number) => {
+  //-100-0-100
+  if (value === 0) {
+    return 0
+  }
+  if (value > 0 && value < 10) return 'n'
 }
