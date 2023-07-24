@@ -233,11 +233,10 @@ const getCandles = async (coin: any, interval: MyCandleChartInterval = '15m') =>
   // no data for that interval, probably coin is new
   if (data.length <= 1) {
     console.log('new coin, not enough data', coin.symbol, interval, data)
-    return
+  } else {
+    // remove last candle, this is incomplete and gonna populate with sockets in real time
+    data = data.slice(0, data.length - 1)
   }
-
-  // remove last candle, this is incomplete and gonna populate with sockets in real time
-  data = data.slice(0, data.length - 1)
 
   coin[`data${interval}`] = data.map((d: any) => getCandleData(d))
 

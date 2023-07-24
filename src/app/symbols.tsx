@@ -680,7 +680,7 @@ export const Symbols = () => {
     const lastCandle = coin[`data${interval}`][totalCandles - 1]
     const prevCandle = coin[`data${interval}`][totalCandles - 2]
 
-    if (lastCandle.hasPrevCandleHighVolAndRevert || prevCandle.hasPrevCandleHighVolAndRevert) {
+    if (lastCandle.hasPrevCandleHighVolAndRevert || prevCandle?.hasPrevCandleHighVolAndRevert) {
       status.push(
         <Image
           alt='stop'
@@ -709,7 +709,7 @@ export const Symbols = () => {
         </span>
       )
     }
-    if (prevCandle.hasLastCandleHighVolumeAndRevert && prevCandle.isBiggerThanPrevious) {
+    if (prevCandle?.hasLastCandleHighVolumeAndRevert && prevCandle?.isBiggerThanPrevious) {
       // entrando volumen
 
       status.push(
@@ -742,7 +742,7 @@ export const Symbols = () => {
       )
     }
 
-    if (prevCandle.hasLastCandleHighVolumeAndRevert && !prevCandle.isBiggerThanPrevious) {
+    if (prevCandle?.hasLastCandleHighVolumeAndRevert && !prevCandle?.isBiggerThanPrevious) {
       status.push(
         <span
           key={`${coin.symbol}${interval}:prev:push`}
