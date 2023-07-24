@@ -201,6 +201,20 @@ export const Symbols = () => {
       console.log('connected')
     })
 
+    socket.on('disconnect', reason => {
+      if (reason === 'io server disconnect') {
+        // the disconnection was initiated by the server, you need to reconnect manually
+        socket.connect()
+      }
+      console.log('disconnected')
+    })
+
+    socket.on('connect_error', () => {
+      setTimeout(() => {
+        socket.connect()
+      }, 1000)
+    })
+
     socket.on('pong', (response: any) => {
       console.log('pong', response, new Date(response).toISOString())
     })
@@ -1389,7 +1403,10 @@ export const Symbols = () => {
             >
               Clear velotas alerts
             </button>
-            <ul className='overflow-y-auto text-xs h-[500px]'>{velotaAlerts.map(renderMessage)}</ul>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              changeColor, lastCandleHigherVol, rsi, candle%outBB, candleVolDiff
+              {velotaAlerts.map(renderMessage)}
+            </ul>
           </div>
           <div className='flex flex-1 flex-col'>
             <button
@@ -1399,7 +1416,7 @@ export const Symbols = () => {
               Clear Boli alerts
             </button>
             <ul className='overflow-y-auto text-xs h-[500px]'>
-              crossBBBand, candlePercentOutBB, rsi
+              crossBBBand, candle%OutBB, rsi
               {bollingerAlerts.map(renderMessage)}
             </ul>
           </div>
@@ -2091,7 +2108,7 @@ export const Symbols = () => {
                       {coin.atr5m}
                     </span>
                     <span className='mx-0.5' style={{ color: 'cyan' }}>
-                      {coin.adx5m.adx.toFixed(2)}
+                      {coin.adx5m.adx?.toFixed(2)}
                     </span>
                     <span className='mx-0.5' style={{ color: 'brown' }}>
                       {coin.macd5m.histogram?.toFixed(1)}
@@ -2118,7 +2135,7 @@ export const Symbols = () => {
                       {coin.atr15m}
                     </span>
                     <span className='mx-0.5' style={{ color: 'cyan' }}>
-                      {coin.adx15m.adx.toFixed(2)}
+                      {coin.adx15m.adx?.toFixed(2)}
                     </span>
                     <span className='mx-0.5' style={{ color: 'brown' }}>
                       {coin.macd15m.histogram?.toFixed(1)}
@@ -2145,7 +2162,7 @@ export const Symbols = () => {
                       {coin.atr30m}
                     </span>
                     <span className='mx-0.5' style={{ color: 'cyan' }}>
-                      {coin.adx30m.adx.toFixed(2)}
+                      {coin.adx30m.adx?.toFixed(2)}
                     </span>
                     <span className='mx-0.5' style={{ color: 'brown' }}>
                       {coin.macd30m.histogram?.toFixed(1)}
@@ -2172,7 +2189,7 @@ export const Symbols = () => {
                       {coin.atr1h}
                     </span>
                     <span className='mx-0.5' style={{ color: 'cyan' }}>
-                      {coin.adx1h.adx.toFixed(2)}
+                      {coin.adx1h.adx?.toFixed(2)}
                     </span>
                     <span className='mx-0.5' style={{ color: 'brown' }}>
                       {coin.macd1h.histogram?.toFixed(1)}
@@ -2199,7 +2216,7 @@ export const Symbols = () => {
                       {coin.atr4h}
                     </span>
                     <span className='mx-0.5' style={{ color: 'cyan' }}>
-                      {coin.adx4h.adx.toFixed(2)}
+                      {coin.adx4h.adx?.toFixed(2)}
                     </span>
                     <span className='mx-0.5' style={{ color: 'brown' }}>
                       {coin.macd4h.histogram?.toFixed(1)}
@@ -2226,7 +2243,7 @@ export const Symbols = () => {
                       {coin.atr1d}
                     </span>
                     <span className='mx-0.5' style={{ color: 'cyan' }}>
-                      {coin.adx1d.adx.toFixed(2)}
+                      {coin.adx1d.adx?.toFixed(2)}
                     </span>
                     <span className='mx-0.5' style={{ color: 'brown' }}>
                       {coin.macd1d.histogram?.toFixed(1)}
@@ -2245,7 +2262,7 @@ export const Symbols = () => {
                     <span className='mx-0.5' style={{color:"white"}}>{coin.rsi1w}</span>
                   <span className='mx-0.5' style={{color:"green"}}>({coin.prev10CandleVolumeCount1w})</span>
                  <p> <span className='mx-0.5' style={{color:"orange"}}>{coin.atr1w}</span>
-                  <span className='mx-0.5' style={{color:"blue"}}>{coin.adx1w.adx.toFixed(2)}</span>
+                  <span className='mx-0.5' style={{color:"blue"}}>{coin.adx1w.adx?.toFixed(2)}</span>
                   <span className='mx-0.5' style={{color:"red"}}>{coin.macd1w.histogram?.toFixed(1)}</span>
                   <span className='mx-0.5' style={{color:"purple"}}>{coin.ao1w}</span>
                   </p></td> */}
@@ -2524,7 +2541,7 @@ const getTradingViewSymbol = (symbol: string) => {
 
 const getTradingViewInterval = (interval: string) => {
   return (
-    { '5m': 5, '15m': 15, '30m': 30, '1h': 60, '4h': 60 * 4, '1d': 'd', '1w': 'w' }[interval] ?? ''
+    { '5m': 5, '15m': 15, '30m': 30, '1h': 60, '4h': 60 * 4, '1d': 'D', '1w': 'W' }[interval] ?? ''
   )
 }
 

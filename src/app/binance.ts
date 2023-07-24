@@ -99,6 +99,7 @@ const TOTAL_CANDLES = Math.max(
 )
 const includeLastCandleData = true // add incomplete last candle to the data
 let timerHandler: any = null
+let timerTTLHandler: any = null
 
 // // Authenticated client, can make signed calls
 // const client2 = Binance({
@@ -119,6 +120,7 @@ const getSymbols = async () => {
     '1000LUNCUSDT',
     'XVSUSDT',
     'ASTRUSDT',
+    'ARUSDT',
     'API3USDT',
     'BANDUSDT',
     'BLURUSDT',
@@ -138,11 +140,13 @@ const getSymbols = async () => {
     'KNCUSDT',
     'LEVERUSDT',
     'MTLUSDT',
+    'MINAUSDT',
     'OMGUSDT',
     'TRUUSDT',
     'TUSDT',
     'TLMUSDT',
     'USDCUSDT',
+    'UMAUSDT',
     'XVGUSDT',
     'ZENUSDT'
   ]
@@ -224,6 +228,12 @@ const getCandles = async (coin: any, interval: MyCandleChartInterval = '15m') =>
     data = await client.futuresCandles({ symbol: coin.symbol, interval, limit: totalCandles })
   } else {
     data = await client.candles({ symbol: coin.symbol, interval, limit: totalCandles })
+  }
+
+  // no data for that interval, probably coin is new
+  if (data.length <= 1) {
+    console.log('new coin, not enough data', coin.symbol, interval, data)
+    return
   }
 
   // remove last candle, this is incomplete and gonna populate with sockets in real time
@@ -539,7 +549,7 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
     if (
       lastCandle.hasLastCandleHighVolumeAndRevert &&
       lastCandle.isGreenCandle &&
-      sellVolume > buyVolume &&
+      sellVolume + 10 > buyVolume &&
       isOverBought(lastCandle) &&
       lastCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT
     ) {
@@ -549,7 +559,7 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
     if (
       lastCandle.hasLastCandleHighVolumeAndRevert &&
       lastCandle.isRedCandle &&
-      sellVolume < buyVolume &&
+      buyVolume + 10 > sellVolume &&
       isOverSold(lastCandle) &&
       lastCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT
     ) {
@@ -618,7 +628,58 @@ export const initializeCandles = async () => {
   if (timerHandler) clearInterval(timerHandler)
   timerHandler = setInterval(() => sendData(getDataToSend()), 1000) // 1 second
 
+  // install timer to check if socket is disconnected and reconnect
+  if (timerTTLHandler) clearInterval(timerTTLHandler)
+  timerTTLHandler = setInterval(() => checkConnectionOrReconnect(), 5 * 60 * 1000) // 5 minutes
+
   // console.log('send data', getDataToSend())
+}
+
+let lastBTCCandle: Partial<CandleData> = {
+  time: 0,
+  open: 0,
+  high: 0,
+  low: 0,
+  close: 0,
+  volume: 0
+}
+let countDiffTTL = 0
+const checkConnectionOrReconnect = () => {
+  const coin = symbols.find(s => s.symbol === 'BTCUSDT')
+  if (!coin) return // symbol doesnt exist
+
+  const lastCandle = coin.data5m[coin.data5m.length - 1]
+  // if at least one value is different, means that data is updating
+  // sockets connection is alive
+  if (
+    lastCandle.time !== lastBTCCandle.time ||
+    lastCandle.open !== lastBTCCandle.open ||
+    lastCandle.high !== lastBTCCandle.high ||
+    lastCandle.low !== lastBTCCandle.low ||
+    lastCandle.close !== lastBTCCandle.close ||
+    lastCandle.volume !== lastBTCCandle.volume
+  ) {
+    lastBTCCandle = lastCandle
+  } else {
+    console.log('hmmm... data didnt update', countDiffTTL)
+    countDiffTTL += 1
+  }
+
+  if (countDiffTTL > 3) {
+    // same data 3 times.. assume connection is broken
+    console.log('....reconnecting sockets')
+    // reset data n reconnect
+    lastBTCCandle = {
+      time: 0,
+      open: 0,
+      high: 0,
+      low: 0,
+      close: 0,
+      volume: 0
+    }
+    installSockets()
+    countDiffTTL = 0
+  }
 }
 
 export const installSockets = () => {
