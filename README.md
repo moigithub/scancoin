@@ -1,3 +1,24 @@
+## prisma setup
+
+- pnpm install prisma --save-dev
+- cd src
+- pnpx prisma init --datasource-provider sqlite  /// crea el file: schema.prisma
+- editar el prisma/schema.prisma y agregar el modelo de la tabla
+ejm:
+```
+model User {
+  id    Int     @id @default(autoincrement())
+  email String  @unique
+  name  String?
+}
+```
+
+- pnpx prisma migrate dev --name init // crea el archivo de la db : dev.db y las migraciones
+
+
+
+//------------
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started

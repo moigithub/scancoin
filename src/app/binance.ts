@@ -13,6 +13,7 @@ import {
 import { ADXOutput } from 'technicalindicators/declarations/directionalmovement/ADX'
 import { MACDOutput } from 'technicalindicators/declarations/moving_averages/MACD'
 import { BollingerBandsOutput } from 'technicalindicators/declarations/volatility/BollingerBands'
+import { prisma } from './db'
 
 type MyCandleChartInterval = '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w'
 
@@ -47,8 +48,12 @@ export interface CandleData {
   isGreenCandle: boolean
   hasPrevCandleHighVolAndRevert: boolean //previous candle have high volume, next candle reverse.. showing loosing power
   hasLastCandleHighVolumeAndRevert: boolean //next candle entering with high volume and reversing
+  hasPrevCandleHighVol: boolean
+  hasLastCandleHighVolume: boolean
   isBiggerThanPrevious: boolean
   prev10CandleVolumeCount: number
+  isAlert?: boolean
+  alertType?: string
 }
 
 interface Symbol {
@@ -268,6 +273,8 @@ const getCandleData = (candle: Partial<CandleType>): CandleData => {
     isGreenCandle: false,
     hasPrevCandleHighVolAndRevert: false,
     hasLastCandleHighVolumeAndRevert: false,
+    hasPrevCandleHighVol: false,
+    hasLastCandleHighVolume: false,
     isBiggerThanPrevious: false,
     prev10CandleVolumeCount: 0,
     bollinger: { middle: 0, upper: 0, lower: 0, pb: 0 },
@@ -282,7 +289,9 @@ const getCandleData = (candle: Partial<CandleType>): CandleData => {
     crossUp: false,
     crossDown: false,
     candlePercentAbove: 0,
-    candlePercentBelow: 0
+    candlePercentBelow: 0,
+    isAlert: false,
+    alertType: ''
   }
 }
 
@@ -430,6 +439,8 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
     hasPrevCandleHighVolAndRevert: prevCandleHighVolume && isPrevCandleGreen === isLastCandleRed,
     // last candle high volume, change candle color--- showing interest, things gonna move!
     hasLastCandleHighVolumeAndRevert: lastCandleHighVolume && isPrevCandleGreen === isLastCandleRed,
+    hasPrevCandleHighVol: prevCandleHighVolume,
+    hasLastCandleHighVolume: lastCandleHighVolume,
     isBiggerThanPrevious: lastCandleIsBigger,
     prev10CandleVolumeCount: prev10CandleVolumeCount,
     bollinger: bblast,
@@ -444,7 +455,7 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
   }
 }
 
-const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle: Candle) => {
+const addCandleData = (sendAlert: (type: string, data: any) => void) => async (candle: Candle) => {
   /* candles keys
         [
         'eventType',   'eventTime',
@@ -505,7 +516,7 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
   // --------------------------
   if (candle.isFinal) {
     if (
-      lastCandle.hasLastCandleHighVolumeAndRevert &&
+      lastCandle.hasLastCandleHighVolume &&
       lastCandle.isBiggerThanPrevious &&
       (isOverBought(lastCandle) ||
         isOverSold(lastCandle) ||
@@ -513,6 +524,8 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
         isOverSold(prevCandle))
     ) {
       sendAlert(`alert:powercandle:${interval}`, coin)
+      // lastCandle.isAlert = true
+      // lastCandle.alertType =`alert:powercandle:${interval}`
     }
 
     // if (lastCandle.prev10CandleVolumeCount > 3) {
@@ -531,6 +544,8 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
       //sobreventa rsi <30
       if (lastCandle.crossUp && lastCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT) {
         sendAlert(`alert:bollingerUp:${interval}`, coin)
+        lastCandle.isAlert = true
+        lastCandle.alertType = `alert:bollingerUp:${interval}`
       }
     }
 
@@ -538,6 +553,8 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
       //sobrecompra rsi > 70
       if (lastCandle.crossDown && lastCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT) {
         sendAlert(`alert:bollingerDown:${interval}`, coin)
+        lastCandle.isAlert = true
+        lastCandle.alertType = `alert:bollingerDown:${interval}`
       }
     }
 
@@ -548,11 +565,13 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
     if (
       lastCandle.hasLastCandleHighVolumeAndRevert &&
       lastCandle.isGreenCandle &&
-      sellVolume + 10 > buyVolume &&
+      sellVolume + 10 > buyVolume && // candle verde.. pintado de rojo xq tiene mas volumen de ventas
       isOverBought(lastCandle) &&
       lastCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT
     ) {
       sendAlert(`alert:bigCandleDown:${interval}`, coin)
+      lastCandle.isAlert = true
+      lastCandle.alertType = `alert:bigCandleDown:${interval}`
     }
 
     if (
@@ -563,6 +582,104 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => (candle:
       lastCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT
     ) {
       sendAlert(`alert:bigCandleUp:${interval}`, coin)
+      lastCandle.isAlert = true
+      lastCandle.alertType = `alert:bigCandleUp:${interval}`
+    }
+
+    //----------------------------------
+    // CHECK if alerttype was correct
+    //----------------------------------
+    if (prevCandle.isAlert) {
+      if (prevCandle.alertType === `alert:bollingerDown:${interval}`) {
+        let win = lastCandle.isRedCandle
+        //TODO: save on db
+        const alert = await prisma.alerts.create({
+          data: {
+            symbol: coin.symbol,
+            alertType: prevCandle.alertType,
+            time: prevCandle.time ?? 0,
+            open: prevCandle.open,
+            high: prevCandle.high,
+            low: prevCandle.low,
+            close: prevCandle.close,
+            volume: prevCandle.volume,
+            isFinal: prevCandle.isFinal,
+            isRedCandle: prevCandle.isRedCandle,
+            isGreenCandle: prevCandle.isGreenCandle,
+            isRedCandleNext: lastCandle.isRedCandle,
+            isGreenCandleNext: lastCandle.isGreenCandle,
+            win
+          }
+        })
+      }
+      if (prevCandle.alertType === `alert:bollingerUp:${interval}`) {
+        let win = lastCandle.isGreenCandle
+        //TODO: save on db
+        const alert = await prisma.alerts.create({
+          data: {
+            symbol: coin.symbol,
+            alertType: prevCandle.alertType,
+            time: prevCandle.time ?? 0,
+            open: prevCandle.open,
+            high: prevCandle.high,
+            low: prevCandle.low,
+            close: prevCandle.close,
+            volume: prevCandle.volume,
+            isFinal: prevCandle.isFinal,
+            isRedCandle: prevCandle.isRedCandle,
+            isGreenCandle: prevCandle.isGreenCandle,
+            isRedCandleNext: lastCandle.isRedCandle,
+            isGreenCandleNext: lastCandle.isGreenCandle,
+            win
+          }
+        })
+      }
+
+      if (prevCandle.alertType === `alert:bigCandleDown:${interval}`) {
+        let win = lastCandle.isRedCandle
+        //TODO: save on db
+        const alert = await prisma.alerts.create({
+          data: {
+            symbol: coin.symbol,
+            alertType: prevCandle.alertType,
+            time: prevCandle.time ?? 0,
+            open: prevCandle.open,
+            high: prevCandle.high,
+            low: prevCandle.low,
+            close: prevCandle.close,
+            volume: prevCandle.volume,
+            isFinal: prevCandle.isFinal,
+            isRedCandle: prevCandle.isRedCandle,
+            isGreenCandle: prevCandle.isGreenCandle,
+            isRedCandleNext: lastCandle.isRedCandle,
+            isGreenCandleNext: lastCandle.isGreenCandle,
+            win
+          }
+        })
+      }
+
+      if (prevCandle.alertType === `alert:bigCandleUp:${interval}`) {
+        let win = lastCandle.isGreenCandle
+        //TODO: save on db
+        const alert = await prisma.alerts.create({
+          data: {
+            symbol: coin.symbol,
+            alertType: prevCandle.alertType,
+            time: prevCandle.time ?? 0,
+            open: prevCandle.open,
+            high: prevCandle.high,
+            low: prevCandle.low,
+            close: prevCandle.close,
+            volume: prevCandle.volume,
+            isFinal: prevCandle.isFinal,
+            isRedCandle: prevCandle.isRedCandle,
+            isGreenCandle: prevCandle.isGreenCandle,
+            isRedCandleNext: lastCandle.isRedCandle,
+            isGreenCandleNext: lastCandle.isGreenCandle,
+            win
+          }
+        })
+      }
     }
   }
 

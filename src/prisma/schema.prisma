@@ -1,0 +1,30 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Alerts {
+  id                Int      @id @default(autoincrement())
+  createdAt         DateTime @default(now())
+  symbol            String
+  alertType         String
+  time              Int
+  open              Float
+  high              Float
+  low               Float
+  close             Float
+  volume            Float
+  isFinal           Boolean
+  isRedCandle       Boolean
+  isGreenCandle     Boolean
+  isRedCandleNext   Boolean
+  isGreenCandleNext Boolean
+  win               Boolean
+}
