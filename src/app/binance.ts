@@ -144,6 +144,7 @@ const getSymbols = async () => {
     'JOEUSDT',
     'KNCUSDT',
     'LEVERUSDT',
+    'LUNA2USDT',
     'MTLUSDT',
     'MINAUSDT',
     'OMGUSDT',
@@ -202,7 +203,7 @@ const populatePrice = async () => {
     try {
       coin.price = prices[coin.symbol]
     } catch (error) {
-      console.log('no price for ', coin.symbol, error)
+      console.error('no price for ', coin.symbol, error)
     }
   })
 }
@@ -237,7 +238,7 @@ const getCandles = async (coin: any, interval: MyCandleChartInterval = '15m') =>
 
   // no data for that interval, probably coin is new
   if (data.length <= 1) {
-    console.log('new coin, not enough data', coin.symbol, interval, data)
+    console.log('new coin, not enough data', coin.symbol, interval)
   } else {
     // remove last candle, this is incomplete and gonna populate with sockets in real time
     data = data.slice(0, data.length - 1)
@@ -523,13 +524,13 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
         isOverBought(prevCandle) ||
         isOverSold(prevCandle))
     ) {
-      sendAlert(`alert:powercandle:${interval}`, coin)
+      sendAlert(`alert:powercandle`, { ...coin, interval })
       // lastCandle.isAlert = true
       // lastCandle.alertType =`alert:powercandle:${interval}`
     }
 
     // if (lastCandle.prev10CandleVolumeCount > 3) {
-    //   sendAlert(`alert:volumecount:${interval}`, coin)
+    //   sendAlert(`alert:volumecount`, {...coin, interval})
     // }
 
     // strongs candles (VELOTAS)
@@ -537,13 +538,13 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
     // maybe only on rsi?
     // or outside bolinger band
     // if (lastCandle.hasLastCandleHighVolumeAndRevert) {
-    //   sendAlert(`alert:strongcandle:${interval}`, coin)
+    //   sendAlert(`alert:strongcandle`, {...coin, interval})
     // }
 
     if (isOverSold(lastCandle) || isOverSold(prevCandle)) {
       //sobreventa rsi <30
       if (lastCandle.crossUp && lastCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT) {
-        sendAlert(`alert:bollingerUp:${interval}`, coin)
+        sendAlert(`alert:bollingerUp`, { ...coin, interval })
         lastCandle.isAlert = true
         lastCandle.alertType = `alert:bollingerUp:${interval}`
       }
@@ -552,7 +553,7 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
     if (isOverBought(lastCandle) || isOverBought(prevCandle)) {
       //sobrecompra rsi > 70
       if (lastCandle.crossDown && lastCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT) {
-        sendAlert(`alert:bollingerDown:${interval}`, coin)
+        sendAlert(`alert:bollingerDown`, { ...coin, interval })
         lastCandle.isAlert = true
         lastCandle.alertType = `alert:bollingerDown:${interval}`
       }
@@ -569,7 +570,7 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
       isOverBought(lastCandle) &&
       lastCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT
     ) {
-      sendAlert(`alert:bigCandleDown:${interval}`, coin)
+      sendAlert(`alert:bigCandleDown`, { ...coin, interval })
       lastCandle.isAlert = true
       lastCandle.alertType = `alert:bigCandleDown:${interval}`
     }
@@ -581,7 +582,7 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
       isOverSold(lastCandle) &&
       lastCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT
     ) {
-      sendAlert(`alert:bigCandleUp:${interval}`, coin)
+      sendAlert(`alert:bigCandleUp`, { ...coin, interval })
       lastCandle.isAlert = true
       lastCandle.alertType = `alert:bigCandleUp:${interval}`
     }

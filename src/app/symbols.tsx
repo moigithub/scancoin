@@ -225,257 +225,64 @@ export const Symbols = () => {
     })
 
     //------------------------------------------
-    // powercandle with rsi and bigger than previous
+    // powercandle: rsi, bigger than previous, high volume
     //------------------------------------------
-    socket.on('alert:powercandle:5m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.alert, coin), ...m].slice(0, 20))
+    socket.on('alert:powercandle', (coin: any) => {
+      setAlerts(m => [formatAlertMsg(ALERT_TYPE.alert, coin), ...m].slice(0, 20))
       if (sndPowa) sndPowa.play()
     })
-    socket.on('alert:powercandle:15m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.alert, coin), ...m].slice(0, 20))
-      if (sndPowa) sndPowa.play()
-    })
-    socket.on('alert:powercandle:30m', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.alert, coin), ...m].slice(0, 20))
-      if (sndPowa) sndPowa.play()
-    })
-    socket.on('alert:powercandle:1h', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.alert, coin), ...m].slice(0, 20))
-      if (sndPowa) sndPowa.play()
-    })
-    socket.on('alert:powercandle:4h', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.alert, coin), ...m].slice(0, 20))
-      if (sndPowa) sndPowa.play()
-    })
-    socket.on('alert:powercandle:1d', (coin: any) => {
-      setAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.alert, coin), ...m].slice(0, 20))
-      if (sndPowa) sndPowa.play()
-    })
-    // socket.on('alert:powercandle:1w', (coin: any) => {
-    //   setAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.alert, coin), ...m].slice(0,20))
-    //   if (sndPowa) sndPowa.play()
-    // })
 
     //------------------------------------------
     //  lastCandle highvol, green, sellVol>buyVol, rsi, %candleout
     //------------------------------------------
-    socket.on('alert:bigCandleDown:5m', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+    socket.on('alert:bigCandleDown', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
       if (sndCandleDown) sndCandleDown.play()
     })
-    socket.on('alert:bigCandleDown:15m', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleDown) sndCandleDown.play()
-    })
-    socket.on('alert:bigCandleDown:30m', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleDown) sndCandleDown.play()
-    })
-    socket.on('alert:bigCandleDown:1h', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleDown) sndCandleDown.play()
-    })
-    socket.on('alert:bigCandleDown:4h', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleDown) sndCandleDown.play()
-    })
-    socket.on('alert:bigCandleDown:1d', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleDown) sndCandleDown.play()
-    })
-    // socket.on('alert:bigCandleDown:1w', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
-    //   if (sndCandleDown) sndCandleDown.play()
-    // })
 
     //------------------------------------------
     //  lastCandle highvol, red, sellVol<buyVol, rsi, %candleout
     //------------------------------------------
-    socket.on('alert:bigCandleUp:5m', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+    socket.on('alert:bigCandleUp', (coin: any) => {
+      setVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
       if (sndCandleUp) sndCandleUp.play()
     })
-    socket.on('alert:bigCandleUp:15m', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleUp) sndCandleUp.play()
-    })
-    socket.on('alert:bigCandleUp:30m', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleUp) sndCandleUp.play()
-    })
-    socket.on('alert:bigCandleUp:1h', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleUp) sndCandleUp.play()
-    })
-    socket.on('alert:bigCandleUp:4h', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleUp) sndCandleUp.play()
-    })
-    socket.on('alert:bigCandleUp:1d', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleUp) sndCandleUp.play()
-    })
-    // socket.on('alert:bigCandleUp:1w', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
-    //   if (sndCandleUp) sndCandleUp.play()
-    // })
 
     //------------------------------------------
     // velotas (powercandle only without rsi)
     //------------------------------------------
-    // socket.on('alert:strongcandle:5m', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
-    //   if (sndVelota) sndVelota.play()
-    // })
-    // socket.on('alert:strongcandle:15m', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
-    //   if (sndVelota) sndVelota.play()
-    // })
-    // socket.on('alert:strongcandle:30m', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
-    //   if (sndVelota) sndVelota.play()
-    // })
-    // socket.on('alert:strongcandle:1h', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
-    //   if (sndVelota) sndVelota.play()
-    // })
-    // socket.on('alert:strongcandle:4h', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
-    //   if (sndVelota) sndVelota.play()
-    // })
-    // socket.on('alert:strongcandle:1d', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
-    //   if (sndVelota) sndVelota.play()
-    // })
-    // socket.on('alert:strongcandle:1w', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.velotas, coin), ...m].slice(0,20))
+    // socket.on('alert:strongcandle', (coin: any) => {
+    //   setVelotaAlerts(m => [formatAlertMsg( ALERT_TYPE.velotas, coin), ...m].slice(0,20))
     //   if (sndVelota) sndVelota.play()
     // })
 
     //------------------------------------------
     // volume count alert
     //------------------------------------------
-    // socket.on('alert:volumecount:5m', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('5m', ALERT_TYPE.volume, coin), ...m].slice(0,20))
-    //   if (sndVolume) sndVolume.play()
-    // })
-    // socket.on('alert:volumecount:15m', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('15m', ALERT_TYPE.volume, coin), ...m].slice(0,20))
-    //   if (sndVolume) sndVolume.play()
-    // })
-    // socket.on('alert:volumecount:30m', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('30m', ALERT_TYPE.volume, coin), ...m].slice(0,20))
-    //   if (sndVolume) sndVolume.play()
-    // })
-    // socket.on('alert:volumecount:1h', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('1h', ALERT_TYPE.volume, coin), ...m].slice(0,20))
-    //   if (sndVolume) sndVolume.play()
-    // })
-    // socket.on('alert:volumecount:4h', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('4h', ALERT_TYPE.volume, coin), ...m].slice(0,20))
-    //   if (sndVolume) sndVolume.play()
-    // })
-    // socket.on('alert:volumecount:1d', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('1d', ALERT_TYPE.volume, coin), ...m].slice(0,20))
-    //   if (sndVolume) sndVolume.play()
-    // })
-    // socket.on('alert:volumecount:1w', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.volume, coin), ...m].slice(0,20))
+    // socket.on('alert:volumecount', (coin: any) => {
+    //   setVolumeAlerts(m => [formatAlertMsg( ALERT_TYPE.volume, coin), ...m].slice(0,20))
     //   if (sndVolume) sndVolume.play()
     // })
 
     //------------------------------------------
     // bolinger cross up alert
     //------------------------------------------
-    socket.on('alert:bollingerUp:5m', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg('5m', ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20)
-      )
+    socket.on('alert:bollingerUp', (coin: any) => {
+      setBollingerAlerts(m => [formatAlertMsg(ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20))
       if (sndBoliUp) sndBoliUp.play()
     })
-    socket.on('alert:bollingerUp:15m', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg('15m', ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20)
-      )
-      if (sndBoliUp) sndBoliUp.play()
-    })
-    socket.on('alert:bollingerUp:30m', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg('30m', ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20)
-      )
-      if (sndBoliUp) sndBoliUp.play()
-    })
-    socket.on('alert:bollingerUp:1h', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg('1h', ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20)
-      )
-      if (sndBoliUp) sndBoliUp.play()
-    })
-    socket.on('alert:bollingerUp:4h', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg('4h', ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20)
-      )
-      if (sndBoliUp) sndBoliUp.play()
-    })
-    socket.on('alert:bollingerUp:1d', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg('1d', ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20)
-      )
-      if (sndBoliUp) sndBoliUp.play()
-    })
-    // socket.on('alert:bollingerUp:1w', (coin: any) => {
-    //   setBollingerAlerts(m => [formatAlertMsg('1w', ALERT_TYPE.bollingerup, coin), ...m].slice(0,20))
-    //   if (sndBoliUp) sndBoliUp.play()
-    // })
 
     //------------------------------------------
     // bolinger cross down alert
     //------------------------------------------
-    socket.on('alert:bollingerDown:5m', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg('5m', ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20)
-      )
+    socket.on('alert:bollingerDown', (coin: any) => {
+      setBollingerAlerts(m => [formatAlertMsg(ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20))
       if (sndBoliDown) sndBoliDown.play()
     })
-    socket.on('alert:bollingerDown:15m', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg('15m', ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20)
-      )
-      if (sndBoliDown) sndBoliDown.play()
-    })
-    socket.on('alert:bollingerDown:30m', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg('30m', ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20)
-      )
-      if (sndBoliDown) sndBoliDown.play()
-    })
-    socket.on('alert:bollingerDown:1h', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg('1h', ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20)
-      )
-      if (sndBoliDown) sndBoliDown.play()
-    })
-    socket.on('alert:bollingerDown:4h', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg('4h', ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20)
-      )
-      if (sndBoliDown) sndBoliDown.play()
-    })
-    socket.on('alert:bollingerDown:1d', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg('1d', ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20)
-      )
-      if (sndBoliDown) sndBoliDown.play()
-    })
-    // socket.on('alert:bollingerDown:1w', (coin: any) => {
-    //   setBollingerAlerts(m =>
-    //     [formatAlertMsg('1w', ALERT_TYPE.bollingerdown, coin), ...m].slice(0,20)
-    //   )
-    //   if (sndBoliDown) sndBoliDown.play()
-    // })
   }
 
-  const formatAlertMsg = (interval: string, type: string, coin: any) => {
+  const formatAlertMsg = (type: string, coin: any) => {
+    const interval = coin.interval
     const time = new Date()
 
     const totalCandles = coin[`data${interval}`].length
