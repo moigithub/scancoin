@@ -8,7 +8,10 @@ import {
   EMA,
   MACD,
   RSI,
-  SMA
+  SMA,
+  doji,
+  dragonflydoji,
+  gravestonedoji
 } from 'technicalindicators'
 import { ADXOutput } from 'technicalindicators/declarations/directionalmovement/ADX'
 import { MACDOutput } from 'technicalindicators/declarations/moving_averages/MACD'
@@ -53,7 +56,8 @@ export interface CandleData {
   isBiggerThanPrevious: boolean
   prev10CandleVolumeCount: number
   isAlert?: boolean
-  alertType?: string
+  alertTypeBollinger?: string
+  alertTypeBigCandle?: string
 }
 
 interface Symbol {
@@ -292,7 +296,8 @@ const getCandleData = (candle: Partial<CandleType>): CandleData => {
     candlePercentAbove: 0,
     candlePercentBelow: 0,
     isAlert: false,
-    alertType: ''
+    alertTypeBollinger: '',
+    alertTypeBigCandle: ''
   }
 }
 
@@ -514,8 +519,18 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
 
   // --------------------------
   // ALERTS !!
+  // multiple alert type at same time...
+  // some alert might say up... other might say down
   // --------------------------
   if (candle.isFinal) {
+    lastCandle.isAlert = false
+    lastCandle.alertTypeBollinger = ''
+    lastCandle.alertTypeBigCandle = ''
+    const lastCandleSellVolume = getSellVolume(lastCandle)
+    const lastCandleBuyVolume = getBuyVolume(lastCandle)
+    const prevCandleSellVolume = getSellVolume(prevCandle)
+    const prevCandleBuyVolume = getBuyVolume(prevCandle)
+
     if (
       lastCandle.hasLastCandleHighVolume &&
       lastCandle.isBiggerThanPrevious &&
@@ -527,6 +542,48 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
       sendAlert(`alert:powercandle`, { ...coin, interval })
       // lastCandle.isAlert = true
       // lastCandle.alertType =`alert:powercandle:${interval}`
+    }
+
+    const candleInput = {
+      open: [prevCandle.open],
+      close: [prevCandle.close],
+      high: [prevCandle.high],
+      low: [prevCandle.low]
+    }
+    const isDragonflyDoji = dragonflydoji(candleInput)
+    const isGravestoneDoji = gravestonedoji(candleInput)
+    const isDoji = doji(candleInput)
+
+    const notDoji = !isDragonflyDoji && !isGravestoneDoji && !isDoji
+    // const isPrevCandleRed = prevCandle ? prevCandle.close < prevCandle.open : false
+    // const isPrevCandleGreen = prevCandle ? prevCandle.close > prevCandle.open : false
+    // vela verde como roja, esperando q sgte vela sea roja
+    if (notDoji && prevCandle.isGreenCandle && prevCandleSellVolume > prevCandleBuyVolume) {
+      // console.log(
+      //   'verdecmo roja',
+      //   prevCandle.volume,
+      //   prevCandleSellVolume,
+      //   prevCandleBuyVolume,
+      //   prevCandleSellVolume > prevCandleBuyVolume
+      // )
+      sendAlert(`alert:verdeComoRoja`, { ...coin, interval })
+    }
+
+    // vela roja como verde, esperando q sgte vela sea verde
+    if (notDoji && prevCandle.isRedCandle && prevCandleBuyVolume > prevCandleSellVolume) {
+      // console.log(
+      //   'rojaComo Verde',
+      //   symbol,
+      //   interval,
+      //   prevCandle.isRedCandle,
+      //   prevCandle.close < prevCandle.open,
+      //   prevCandle.volume,
+      //   prevCandleSellVolume,
+      //   prevCandleBuyVolume,
+      //   prevCandleBuyVolume > prevCandleSellVolume
+      // )
+
+      sendAlert(`alert:rojaComoVerde`, { ...coin, interval })
     }
 
     // if (lastCandle.prev10CandleVolumeCount > 3) {
@@ -543,61 +600,93 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
 
     if (isOverSold(lastCandle) || isOverSold(prevCandle)) {
       //sobreventa rsi <30
+      // ver fig3.png
       if (lastCandle.crossUp && lastCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT) {
         sendAlert(`alert:bollingerUp`, { ...coin, interval })
+
         lastCandle.isAlert = true
-        lastCandle.alertType = `alert:bollingerUp:${interval}`
+        lastCandle.alertTypeBollinger = 'up'
+      }
+
+      // prevCandle.oversold, prevCandle.low < bbLower, lastCandle.close > bbLower
+      // una buena % porcion de la vela anterior termina por debajo del BBlower (indicando fuerza de caida)
+      // la siguiente vela aparece dentro del BB (indicando reversion)
+      if (
+        prevCandle.low < prevCandle.bollinger.lower &&
+        prevCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT &&
+        lastCandle.close > lastCandle.bollinger.lower
+      ) {
+        sendAlert(`alert:bollingerUp`, { ...coin, interval })
+
+        lastCandle.isAlert = true
+        lastCandle.alertTypeBollinger = 'up'
       }
     }
 
     if (isOverBought(lastCandle) || isOverBought(prevCandle)) {
       //sobrecompra rsi > 70
+      //ver fig2.png
       if (lastCandle.crossDown && lastCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT) {
         sendAlert(`alert:bollingerDown`, { ...coin, interval })
+
         lastCandle.isAlert = true
-        lastCandle.alertType = `alert:bollingerDown:${interval}`
+        lastCandle.alertTypeBollinger = 'down'
+      }
+
+      // prevCandle.overbought, prevCandle.high < bbupper, lastCandle.close > bbupper
+      // una buena % porcion de la vela anterior termina por debajo del BBupper (indicando fuerza de caida)
+      // la siguiente vela aparece dentro del BB (indicando reversion)
+      if (
+        prevCandle.high > prevCandle.bollinger.upper &&
+        prevCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT &&
+        lastCandle.close < lastCandle.bollinger.upper
+      ) {
+        sendAlert(`alert:bollingerDown`, { ...coin, interval })
+
+        lastCandle.isAlert = true
+        lastCandle.alertTypeBollinger = 'down'
       }
     }
 
     // candle verde ..con mayor volumen rojo
-    const sellVolume = getSellVolume(lastCandle)
-    const buyVolume = getBuyVolume(lastCandle)
 
     if (
-      lastCandle.hasLastCandleHighVolumeAndRevert &&
+      // ver fig0.png
+      lastCandle.hasLastCandleHighVolume &&
       lastCandle.isGreenCandle &&
-      sellVolume + 10 > buyVolume && // candle verde.. pintado de rojo xq tiene mas volumen de ventas
+      lastCandleSellVolume + 10 > lastCandleBuyVolume && // candle verde.. pintado de rojo xq tiene mas volumen de ventas
       isOverBought(lastCandle) &&
       lastCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT
     ) {
       sendAlert(`alert:bigCandleDown`, { ...coin, interval })
       lastCandle.isAlert = true
-      lastCandle.alertType = `alert:bigCandleDown:${interval}`
+      lastCandle.alertTypeBigCandle = 'down'
     }
 
     if (
-      lastCandle.hasLastCandleHighVolumeAndRevert &&
+      // ver fig1.png
+      lastCandle.hasLastCandleHighVolume &&
       lastCandle.isRedCandle &&
-      buyVolume + 10 > sellVolume &&
+      lastCandleBuyVolume + 10 > lastCandleSellVolume &&
       isOverSold(lastCandle) &&
       lastCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT
     ) {
       sendAlert(`alert:bigCandleUp`, { ...coin, interval })
       lastCandle.isAlert = true
-      lastCandle.alertType = `alert:bigCandleUp:${interval}`
+      lastCandle.alertTypeBigCandle = 'up'
     }
 
     //----------------------------------
     // CHECK if alerttype was correct
     //----------------------------------
     if (prevCandle.isAlert) {
-      if (prevCandle.alertType === `alert:bollingerDown:${interval}`) {
+      if (prevCandle.alertTypeBollinger === 'down') {
         let win = lastCandle.isRedCandle
         //TODO: save on db
         const alert = await prisma.alerts.create({
           data: {
             symbol: coin.symbol,
-            alertType: prevCandle.alertType,
+            alertType: 'bollingerDown',
             time: prevCandle.time ?? 0,
             open: prevCandle.open,
             high: prevCandle.high,
@@ -613,13 +702,13 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
           }
         })
       }
-      if (prevCandle.alertType === `alert:bollingerUp:${interval}`) {
+      if (prevCandle.alertTypeBollinger === 'up') {
         let win = lastCandle.isGreenCandle
         //TODO: save on db
         const alert = await prisma.alerts.create({
           data: {
             symbol: coin.symbol,
-            alertType: prevCandle.alertType,
+            alertType: 'bollingerUp',
             time: prevCandle.time ?? 0,
             open: prevCandle.open,
             high: prevCandle.high,
@@ -636,13 +725,13 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
         })
       }
 
-      if (prevCandle.alertType === `alert:bigCandleDown:${interval}`) {
+      if (prevCandle.alertTypeBigCandle === 'down') {
         let win = lastCandle.isRedCandle
         //TODO: save on db
         const alert = await prisma.alerts.create({
           data: {
             symbol: coin.symbol,
-            alertType: prevCandle.alertType,
+            alertType: 'bigCandleDown',
             time: prevCandle.time ?? 0,
             open: prevCandle.open,
             high: prevCandle.high,
@@ -659,13 +748,13 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
         })
       }
 
-      if (prevCandle.alertType === `alert:bigCandleUp:${interval}`) {
+      if (prevCandle.alertTypeBigCandle === 'up') {
         let win = lastCandle.isGreenCandle
         //TODO: save on db
         const alert = await prisma.alerts.create({
           data: {
             symbol: coin.symbol,
-            alertType: prevCandle.alertType,
+            alertType: 'bigCandleUp',
             time: prevCandle.time ?? 0,
             open: prevCandle.open,
             high: prevCandle.high,

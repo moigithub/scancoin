@@ -31,7 +31,8 @@ enum ALERT_TYPE {
   'volume' = 'volume',
   'velotas' = 'velotas',
   'bollingerup' = 'bolli-up',
-  'bollingerdown' = 'bolli-down'
+  'bollingerdown' = 'bolli-down',
+  'volDiff' = 'volDiff'
 }
 
 let socket: Socket
@@ -79,6 +80,8 @@ export const Symbols = () => {
   ])
   const [volumeAlerts, setVolumeAlerts] = useState<any[]>([])
   const [velotaAlerts, setVelotaAlerts] = useState<any[]>([])
+  const [volumeDiffAlerts, setVolumeDiffAlerts] = useState<any[]>([])
+
   const [bollingerAlerts, setBollingerAlerts] = useState<any[]>([])
 
   const [rsiSelectedSort, setRsiSelectedSort] = useState('5m:desc')
@@ -246,6 +249,21 @@ export const Symbols = () => {
     socket.on('alert:bigCandleUp', (coin: any) => {
       setVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
       if (sndCandleUp) sndCandleUp.play()
+    })
+
+    //------------------------------------------
+    // verdeComoRoja: sellVol > buyVol
+    //------------------------------------------
+    socket.on('alert:verdeComoRoja', (coin: any) => {
+      setVolumeDiffAlerts(m => [formatAlertMsg(ALERT_TYPE.volDiff, coin), ...m].slice(0, 20))
+      if (sndTick) sndTick.play()
+    })
+    //------------------------------------------
+    // rojaComoVerde: buyVol > sellVol
+    //------------------------------------------
+    socket.on('alert:rojaComoVerde', (coin: any) => {
+      setVolumeDiffAlerts(m => [formatAlertMsg(ALERT_TYPE.volDiff, coin), ...m].slice(0, 20))
+      if (sndTick) sndTick.play()
     })
 
     //------------------------------------------
@@ -1213,6 +1231,18 @@ export const Symbols = () => {
             <ul className='overflow-y-auto text-xs h-[500px]'>
               changeColor, lastCandleHigherVol, rsi, candle%outBB, candleVolDiff
               {velotaAlerts.map(renderMessage)}
+            </ul>
+          </div>
+          <div className='flex flex-1 flex-col'>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setVolumeDiffAlerts([])}
+            >
+              Clear VolDiff alerts
+            </button>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              candleVolDiff: verdeComoRoja o rojaComoVerde
+              {volumeDiffAlerts.map(renderMessage)}
             </ul>
           </div>
           <div className='flex flex-1 flex-col'>

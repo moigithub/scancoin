@@ -104,11 +104,11 @@ export const sendData = (dataToSend: any) => {
   io.emit('data', dataToSend)
 }
 export const sendAlert = (type: string, data: any) => {
-  console.log('sending alert', type, data)
+  // console.log('sending alert', type, data)
   io.emit(type, data)
 }
 const ping = async () => {
   const response = await pingTime()
-  console.log('ping', response)
+  // console.log('ping', response)
   io.emit('pong', response)
 }
