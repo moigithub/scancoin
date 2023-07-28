@@ -71,20 +71,20 @@ export const Symbols = () => {
 
   const [overBoughtFilter, setOverBoughtFilter] = useState(true)
   const [overSoldFilter, setOverSoldFilter] = useState(true)
-  const [alerts, setAlerts] = useState<any[]>([
-    // {
-    //   type: ALERT_TYPE.alert,
-    //   symbol: 'test',
-    //   interval: '5m',
-    //   rsi: 2,
-    //   prev10CandleVolumeCount: 1,
-    //   time: '123'
-    // },
-  ])
+
+  const [alertsActive, setAlertsActive] = useState(true)
+  const [alerts, setAlerts] = useState<any[]>([])
+
+  const [volumeAlertsActive, setVolumeAlertsActive] = useState(true)
   const [volumeAlerts, setVolumeAlerts] = useState<any[]>([])
+
+  const [velotaAlertsActive, setVelotaAlertsActive] = useState(true)
   const [velotaAlerts, setVelotaAlerts] = useState<any[]>([])
+
+  const [volumeDiffAlertsActive, setVolumeDiffAlertsActive] = useState(true)
   const [volumeDiffAlerts, setVolumeDiffAlerts] = useState<any[]>([])
 
+  const [bollingerAlertsActive, setBollingerAlertsActive] = useState(true)
   const [bollingerAlerts, setBollingerAlerts] = useState<any[]>([])
 
   const [rsiSelectedSort, setRsiSelectedSort] = useState('5m:desc')
@@ -235,7 +235,7 @@ export const Symbols = () => {
     //------------------------------------------
     socket.on('alert:powercandle', (coin: any) => {
       setAlerts(m => [formatAlertMsg(ALERT_TYPE.alert, coin), ...m].slice(0, 20))
-      if (sndPowa) sndPowa.play()
+      if (sndPowa && alertsActive) sndPowa.play()
     })
 
     //------------------------------------------
@@ -243,7 +243,7 @@ export const Symbols = () => {
     //------------------------------------------
     socket.on('alert:bigCandleDown', (coin: any) => {
       setVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleDown) sndCandleDown.play()
+      if (sndCandleDown && velotaAlertsActive) sndCandleDown.play()
     })
 
     //------------------------------------------
@@ -251,7 +251,7 @@ export const Symbols = () => {
     //------------------------------------------
     socket.on('alert:bigCandleUp', (coin: any) => {
       setVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleUp) sndCandleUp.play()
+      if (sndCandleUp && velotaAlertsActive) sndCandleUp.play()
     })
 
     //------------------------------------------
@@ -259,14 +259,14 @@ export const Symbols = () => {
     //------------------------------------------
     socket.on('alert:verdeComoRoja', (coin: any) => {
       setVolumeDiffAlerts(m => [formatAlertMsg(ALERT_TYPE.volDiff, coin), ...m].slice(0, 20))
-      if (sndTick) sndTick.play()
+      if (sndTick && volumeDiffAlertsActive) sndTick.play()
     })
     //------------------------------------------
     // rojaComoVerde: buyVol > sellVol
     //------------------------------------------
     socket.on('alert:rojaComoVerde', (coin: any) => {
       setVolumeDiffAlerts(m => [formatAlertMsg(ALERT_TYPE.volDiff, coin), ...m].slice(0, 20))
-      if (sndTick) sndTick.play()
+      if (sndTick && volumeDiffAlertsActive) sndTick.play()
     })
 
     //------------------------------------------
@@ -282,7 +282,7 @@ export const Symbols = () => {
     //------------------------------------------
     // socket.on('alert:volumecount', (coin: any) => {
     //   setVolumeAlerts(m => [formatAlertMsg( ALERT_TYPE.volume, coin), ...m].slice(0,20))
-    //   if (sndVolume) sndVolume.play()
+    //   if (sndVolume && volumeAlertsActive) sndVolume.play()
     // })
 
     //------------------------------------------
@@ -290,7 +290,7 @@ export const Symbols = () => {
     //------------------------------------------
     socket.on('alert:bollingerUp', (coin: any) => {
       setBollingerAlerts(m => [formatAlertMsg(ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20))
-      if (sndBoliUp) sndBoliUp.play()
+      if (sndBoliUp && bollingerAlertsActive) sndBoliUp.play()
     })
 
     //------------------------------------------
@@ -298,7 +298,7 @@ export const Symbols = () => {
     //------------------------------------------
     socket.on('alert:bollingerDown', (coin: any) => {
       setBollingerAlerts(m => [formatAlertMsg(ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20))
-      if (sndBoliDown) sndBoliDown.play()
+      if (sndBoliDown && bollingerAlertsActive) sndBoliDown.play()
     })
   }
 
@@ -1213,6 +1213,11 @@ export const Symbols = () => {
         </div>
         <div className='alerts flex'>
           <div className='flex flex-1 flex-col'>
+            <input
+              type='checkbox'
+              checked={alertsActive}
+              onChange={e => setAlertsActive(e.target.checked)}
+            />
             <button
               className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
               onClick={() => setAlerts([])}
@@ -1225,6 +1230,11 @@ export const Symbols = () => {
             </ul>
           </div>
           <div className='flex flex-1 flex-col'>
+            <input
+              type='checkbox'
+              checked={velotaAlertsActive}
+              onChange={e => setVelotaAlertsActive(e.target.checked)}
+            />
             <button
               className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
               onClick={() => setVelotaAlerts([])}
@@ -1237,6 +1247,11 @@ export const Symbols = () => {
             </ul>
           </div>
           <div className='flex flex-1 flex-col'>
+            <input
+              type='checkbox'
+              checked={volumeDiffAlertsActive}
+              onChange={e => setVolumeDiffAlertsActive(e.target.checked)}
+            />
             <button
               className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
               onClick={() => setVolumeDiffAlerts([])}
@@ -1249,6 +1264,11 @@ export const Symbols = () => {
             </ul>
           </div>
           <div className='flex flex-1 flex-col'>
+            <input
+              type='checkbox'
+              checked={bollingerAlertsActive}
+              onChange={e => setBollingerAlertsActive(e.target.checked)}
+            />
             <button
               className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
               onClick={() => setBollingerAlerts([])}
