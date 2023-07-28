@@ -59,7 +59,10 @@ export const Symbols = () => {
   const [atrActiveFilter, setAtrActiveFilter] = useState(false)
 
   const [volumeLenFilter, setVolumeLenFilter] = useState(30)
-  const [volumeFactorFilter, setVolumeFactorFilter] = useState(2.5)
+
+  // tengo vol factor color (bajo(claro), medio(normal), alto(oscuro))
+  // y vol factor para indicator push/superpush
+  const [volumeFactorFilter, setVolumeFactorFilter] = useState(1.5)
   const [bbCandlePercentOutFilter, setBbCandlePercentOutFilter] = useState(40)
 
   const [pushFilter, setPushFilter] = useState(false)
@@ -1627,7 +1630,7 @@ export const Symbols = () => {
                     {dataBTC[0].symbol}
                   </a> */}
                 <a
-                  href={`https://www.tradingview.com/chart?symbol=BINANCE:${dataBTC[0].symbol}`}
+                  href={`https://www.tradingview.com/chart?symbol=BINANCE:${dataBTC[0].symbol}&interval=D`}
                   target='_blank'
                 >
                   {dataBTC[0].symbol}
@@ -1919,7 +1922,7 @@ export const Symbols = () => {
                   <a
                     href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
                       coin.symbol
-                    )}`}
+                    )}&interval=D`}
                     target='_blank'
                   >
                     {coin.symbol}

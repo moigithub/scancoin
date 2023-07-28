@@ -94,7 +94,7 @@ let MIN_RSI = 30
 let MAX_RSI = 70
 let BB_CANDLE_PERCENT_OUT = 40
 let VOLUME_LENGTH = 30 //  por ahora usar rsi length
-let VOL_FACTOR = 2.5 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
+let VOL_FACTOR = 1.5 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
 // segun el ejemplo del technical indicator.. la data para calcular (el sma, rsi) es casi el doble
 const TOTAL_CANDLES = Math.max(
   VOLUME_LENGTH * 2,
@@ -368,6 +368,13 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
     const candleSliceBelow = bblast.lower - lastCandle.low
     candlePercentBelow = (candleSliceBelow * 100) / candleSize
   }
+
+  // volume color range...
+  // 0 .. volAverage * 0.5
+  // volAverage * 0.5 .. volAverage * 1.5
+  // volAverage * 1.5 .. max
+  const lowVolume = volAverage * 0.5
+  const medVolume = volAverage * 1.5
 
   const prevCandleHighVolume = prevVolume > volAverage * VOL_FACTOR
   const lastCandleHighVolume = lastVolume > volAverage * VOL_FACTOR
