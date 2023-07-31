@@ -350,9 +350,9 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
   const ema20 = EMA.calculate({ period: 20, values: close })
   const sma50 = SMA.calculate({ period: 50, values: close })
   const sma200 = SMA.calculate({ period: 200, values: close })
-  const ema20last = ema20[ema20.length - 1] ?? 0
-  const sma50last = sma50[sma50.length - 1] ?? 0
-  const sma200last = sma200[sma200.length - 1] ?? 0
+  const ema20last = ema20[ema20.length - 1]
+  const sma50last = sma50[sma50.length - 1]
+  const sma200last = sma200[sma200.length - 1]
 
   // calculo del vwap basado en la temporalidad diaria
   const vwapInput = {

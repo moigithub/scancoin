@@ -1063,7 +1063,15 @@ export const Symbols = () => {
                     </span> */}
                 </div>
               </div>
-              <Chart data={chartData1} ema20 sma50 sma200 height={300} backgroundColor='#221133' />
+              <Chart
+                data={chartData1}
+                symbol={selectedCoin1.current.split(':')[0]}
+                ema20
+                sma50
+                sma200
+                height={300}
+                backgroundColor='#221133'
+              />
             </div>
           </div>
           <div className='chart-group flex-col flex-1'>
@@ -1126,6 +1134,7 @@ export const Symbols = () => {
               </div>
               <Chart
                 data={chartData2}
+                symbol={selectedCoin2.current.split(':')[0]}
                 useAutoFit
                 ema20
                 sma50

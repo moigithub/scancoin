@@ -4,7 +4,7 @@ import {
   IChartApi,
   ISeriesApi,
   MouseEventParams,
-  Range,
+  TimeRange,
   createChart
 } from 'lightweight-charts'
 import { useEffect, useRef, useState } from 'react'
@@ -18,7 +18,8 @@ export const Chart = ({
   width = 200,
   height = 150,
   backgroundColor = '#222222',
-  useAutoFit = false
+  useAutoFit = false,
+  symbol = 'BTCUSDT'
 }: {
   data: any[]
   width?: number
@@ -29,9 +30,11 @@ export const Chart = ({
   vwap?: boolean
   backgroundColor?: string
   useAutoFit?: boolean
+  symbol?: string
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const [fitContent, setFitContent] = useState(true)
+  const [currentSymbol, setCurrentSymbol] = useState(symbol)
   const [hover, setHover] = useState<MouseEventParams>()
   const ema20Series = useRef<ISeriesApi<'Line'>>()
   const sma50Series = useRef<ISeriesApi<'Line'>>()
@@ -44,6 +47,8 @@ export const Chart = ({
     const handleResize = () => {
       chartRef.current?.applyOptions({ width: chartContainerRef?.current?.clientWidth })
     }
+
+    setCurrentSymbol(symbol) // creo q no es necesario
 
     chartRef.current = createChart(chartContainerRef?.current!, {
       rightPriceScale: {
@@ -154,7 +159,13 @@ export const Chart = ({
     //   setHover(param); // seems to work without this line
     // });
 
-    // chart.timeScale().setVisibleLogicalRange({ from: 0, to: Date.now() / 1000 })
+    const range = chartRef.current.timeScale().getVisibleLogicalRange()
+    if (range) {
+      console.log('range', range)
+      chartRef.current
+        .timeScale()
+        .setVisibleLogicalRange({ from: range.from, to: Date.now() / 1000 })
+    }
 
     chartRef.current.timeScale().applyOptions({ shiftVisibleRangeOnNewBar: true })
 
@@ -191,7 +202,7 @@ export const Chart = ({
 
       chartRef.current?.remove()
     }
-  }, [])
+  }, [symbol])
 
   useEffect(() => {
     if (chartRef.current) {
@@ -227,7 +238,7 @@ export const Chart = ({
         const formattedVwap = data
           .filter(d => d.vwap !== undefined)
           .map(d => ({ time: d.time, value: d.vwap }))
-        console.log('formatted vwap', formattedVwap)
+        // console.log('formatted vwap', formattedVwap)
 
         vwapSeries.current?.setData(formattedVwap)
       }
@@ -265,12 +276,21 @@ export const Chart = ({
 
         return datapoint
       })
+
       if (candleStickData.length > 0) {
         candlestickSeries.current?.setData(candleStickData)
       }
 
       if (useAutoFit && fitContent) {
         chartRef.current.timeScale().fitContent()
+      } else {
+        const candles = data.slice(-30)
+
+        if (chartRef.current.timeScale().getVisibleLogicalRange()) {
+          chartRef.current
+            .timeScale()
+            .setVisibleRange({ from: candles[0].time, to: Date.now() } as TimeRange)
+        }
       }
     }
   }, [data])
@@ -289,7 +309,12 @@ export const Chart = ({
         </>
       )}
       {!useAutoFit && (
-        <button onClick={() => chartRef.current?.timeScale().fitContent()}>Adjust content</button>
+        <button
+          className='bg-blue-200 hover:bg-blue-400 text-black text-xs cursor-pointer mx-0.5 px-1'
+          onClick={() => chartRef.current?.timeScale().fitContent()}
+        >
+          Adjust content
+        </button>
       )}
     </div>
   )
