@@ -28,6 +28,7 @@ type Symbol = {
 }
 enum ALERT_TYPE {
   'alert' = 'alert',
+  'supervelotas' = 'supervelotas',
   'volume' = 'volume',
   'velotas' = 'velotas',
   'bollingerup' = 'bolli-up',
@@ -47,11 +48,13 @@ let sndVelota: any = null
 let sndVolume: any = null
 let sndBoliUp: any = null
 let sndBoliDown: any = null
+let sndSuperVelotas: any = null
 
 export const Symbols = () => {
   const [symbols, setSymbols] = useState<Symbol[]>([])
   const [searchFilter, setSearchFilter] = useState('')
   const [volumeCount, setVolumeCount] = useState(3)
+  const [superVelotaSizeMult, setSuperVelotaSizeMult] = useState(20) //20 times prev candle size
   const [minRSIFilter, setMinRSIFilter] = useState(30)
   const [maxRSIFilter, setMaxRSIFilter] = useState(70)
   const [RSILenFilter, setRSILenFilter] = useState(14)
@@ -72,19 +75,24 @@ export const Symbols = () => {
   const [overBoughtFilter, setOverBoughtFilter] = useState(true)
   const [overSoldFilter, setOverSoldFilter] = useState(true)
 
-  const [alertsActive, setAlertsActive] = useState(true)
+  const alertsActive = useRef(false)
   const [alerts, setAlerts] = useState<any[]>([])
 
-  const [volumeAlertsActive, setVolumeAlertsActive] = useState(true)
+  const volumeAlertsActive = useRef(true)
   const [volumeAlerts, setVolumeAlerts] = useState<any[]>([])
 
-  const [velotaAlertsActive, setVelotaAlertsActive] = useState(true)
+  // velas gigantes 20 veces mayor que el anterior
+  // pump and dump
+  const superVelotaAlertsActive = useRef(true)
+  const [superVelotaAlerts, setSuperVelotaAlerts] = useState<any[]>([])
+
+  const velotaAlertsActive = useRef(true)
   const [velotaAlerts, setVelotaAlerts] = useState<any[]>([])
 
-  const [volumeDiffAlertsActive, setVolumeDiffAlertsActive] = useState(true)
+  const volumeDiffAlertsActive = useRef(false)
   const [volumeDiffAlerts, setVolumeDiffAlerts] = useState<any[]>([])
 
-  const [bollingerAlertsActive, setBollingerAlertsActive] = useState(true)
+  const bollingerAlertsActive = useRef(true)
   const [bollingerAlerts, setBollingerAlerts] = useState<any[]>([])
 
   const [rsiSelectedSort, setRsiSelectedSort] = useState('5m:desc')
@@ -108,7 +116,7 @@ export const Symbols = () => {
   const pingInterval = useRef<NodeJS.Timer>()
 
   useEffect(() => {
-    sndPowa = new Audio(
+    sndTick = new Audio(
       'data:audio/wav;base64,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qJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU='
     )
     sndVenta = new Audio('./ve.mp3')
@@ -120,6 +128,7 @@ export const Symbols = () => {
     sndBoliDown = new Audio('./bolidown.m4a')
     sndCandleDown = new Audio('./candledown.m4a')
     sndCandleUp = new Audio('./candleup.m4a')
+    sndSuperVelotas = new Audio('./supervelota.m4a')
 
     const init = async () => {
       await socketInitializer()
@@ -128,6 +137,7 @@ export const Symbols = () => {
       }, 20 * 1000) //20 seconds
 
       // initialize rsi
+      socket.emit('setSuperVelotaSizeMult', superVelotaSizeMult)
       socket.emit('setMinRSI', minRSIFilter)
       socket.emit('setMaxRSI', maxRSIFilter)
       socket.emit('setRSILength', RSILenFilter)
@@ -235,7 +245,15 @@ export const Symbols = () => {
     //------------------------------------------
     socket.on('alert:powercandle', (coin: any) => {
       setAlerts(m => [formatAlertMsg(ALERT_TYPE.alert, coin), ...m].slice(0, 20))
-      if (sndPowa && alertsActive) sndPowa.play()
+      if (sndPowa && alertsActive.current) sndPowa.play()
+    })
+
+    //------------------------------------------
+    //  supervelotas: bodysize>prevcandle*20, lastCandle highvol, rsi
+    //------------------------------------------
+    socket.on('alert:supervelotas', (coin: any) => {
+      setSuperVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.supervelotas, coin), ...m].slice(0, 20))
+      if (sndSuperVelotas && superVelotaAlertsActive.current) sndCandleDown.play()
     })
 
     //------------------------------------------
@@ -243,7 +261,7 @@ export const Symbols = () => {
     //------------------------------------------
     socket.on('alert:bigCandleDown', (coin: any) => {
       setVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleDown && velotaAlertsActive) sndCandleDown.play()
+      if (sndCandleDown && velotaAlertsActive.current) sndCandleDown.play()
     })
 
     //------------------------------------------
@@ -251,7 +269,7 @@ export const Symbols = () => {
     //------------------------------------------
     socket.on('alert:bigCandleUp', (coin: any) => {
       setVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
-      if (sndCandleUp && velotaAlertsActive) sndCandleUp.play()
+      if (sndCandleUp && velotaAlertsActive.current) sndCandleUp.play()
     })
 
     //------------------------------------------
@@ -259,14 +277,14 @@ export const Symbols = () => {
     //------------------------------------------
     socket.on('alert:verdeComoRoja', (coin: any) => {
       setVolumeDiffAlerts(m => [formatAlertMsg(ALERT_TYPE.volDiff, coin), ...m].slice(0, 20))
-      if (sndTick && volumeDiffAlertsActive) sndTick.play()
+      if (sndTick && volumeDiffAlertsActive.current) sndTick.play()
     })
     //------------------------------------------
     // rojaComoVerde: buyVol > sellVol
     //------------------------------------------
     socket.on('alert:rojaComoVerde', (coin: any) => {
       setVolumeDiffAlerts(m => [formatAlertMsg(ALERT_TYPE.volDiff, coin), ...m].slice(0, 20))
-      if (sndTick && volumeDiffAlertsActive) sndTick.play()
+      if (sndTick && volumeDiffAlertsActive.current) sndTick.play()
     })
 
     //------------------------------------------
@@ -282,7 +300,7 @@ export const Symbols = () => {
     //------------------------------------------
     // socket.on('alert:volumecount', (coin: any) => {
     //   setVolumeAlerts(m => [formatAlertMsg( ALERT_TYPE.volume, coin), ...m].slice(0,20))
-    //   if (sndVolume && volumeAlertsActive) sndVolume.play()
+    //   if (sndVolume && volumeAlertsActive.current) sndVolume.play()
     // })
 
     //------------------------------------------
@@ -290,7 +308,7 @@ export const Symbols = () => {
     //------------------------------------------
     socket.on('alert:bollingerUp', (coin: any) => {
       setBollingerAlerts(m => [formatAlertMsg(ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20))
-      if (sndBoliUp && bollingerAlertsActive) sndBoliUp.play()
+      if (sndBoliUp && bollingerAlertsActive.current) sndBoliUp.play()
     })
 
     //------------------------------------------
@@ -298,7 +316,7 @@ export const Symbols = () => {
     //------------------------------------------
     socket.on('alert:bollingerDown', (coin: any) => {
       setBollingerAlerts(m => [formatAlertMsg(ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20))
-      if (sndBoliDown && bollingerAlertsActive) sndBoliDown.play()
+      if (sndBoliDown && bollingerAlertsActive.current) sndBoliDown.play()
     })
   }
 
@@ -401,6 +419,12 @@ export const Symbols = () => {
   const handleAtrFilter = (e: ChangeEvent<HTMLInputElement>) => {
     const value = Number(e.target.value)
     setAtrFilter(value)
+  }
+
+  const handleSuperVelotaSizeMultFilter = (e: ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value)
+    setSuperVelotaSizeMult(value)
+    socket.emit('setSuperVelotaSizeMult', value)
   }
 
   const handleMinRSIFilter = (e: ChangeEvent<HTMLInputElement>) => {
@@ -1213,11 +1237,35 @@ export const Symbols = () => {
         </div>
         <div className='alerts flex'>
           <div className='flex flex-1 flex-col'>
-            <input
-              type='checkbox'
-              checked={alertsActive}
-              onChange={e => setAlertsActive(e.target.checked)}
-            />
+            <label>
+              supervelotas de gran tamaño
+              <input
+                type='checkbox'
+                checked={superVelotaAlertsActive.current}
+                onChange={e => (superVelotaAlertsActive.current = e.target.checked)}
+              />
+            </label>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setSuperVelotaAlerts([])}
+            >
+              Clear super velotas alerts
+            </button>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              velas con gran tamaño: lastCandleHigherVol, rsi, size*20
+              {superVelotaAlerts.map(renderMessage)}
+            </ul>
+          </div>
+
+          <div className='flex flex-1 flex-col'>
+            <label>
+              powa
+              <input
+                type='checkbox'
+                checked={alertsActive.current}
+                onChange={e => (alertsActive.current = e.target.checked)}
+              />
+            </label>
             <button
               className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
               onClick={() => setAlerts([])}
@@ -1225,33 +1273,19 @@ export const Symbols = () => {
               Clear alerts
             </button>
             <ul className='overflow-y-auto text-xs h-[500px]'>
-              changeColor, lastCandleHigherVol, biggerThanPrev, rsi
+              VOL entering: lastCandleHigherVol, biggerThanPrev
               {alerts.map(renderMessage)}
             </ul>
           </div>
           <div className='flex flex-1 flex-col'>
-            <input
-              type='checkbox'
-              checked={velotaAlertsActive}
-              onChange={e => setVelotaAlertsActive(e.target.checked)}
-            />
-            <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
-              onClick={() => setVelotaAlerts([])}
-            >
-              Clear velotas alerts
-            </button>
-            <ul className='overflow-y-auto text-xs h-[500px]'>
-              changeColor, lastCandleHigherVol, rsi, candle%outBB, candleVolDiff
-              {velotaAlerts.map(renderMessage)}
-            </ul>
-          </div>
-          <div className='flex flex-1 flex-col'>
-            <input
-              type='checkbox'
-              checked={volumeDiffAlertsActive}
-              onChange={e => setVolumeDiffAlertsActive(e.target.checked)}
-            />
+            <label>
+              tick
+              <input
+                type='checkbox'
+                checked={volumeDiffAlertsActive.current}
+                onChange={e => (volumeDiffAlertsActive.current = e.target.checked)}
+              />{' '}
+            </label>
             <button
               className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
               onClick={() => setVolumeDiffAlerts([])}
@@ -1263,12 +1297,38 @@ export const Symbols = () => {
               {volumeDiffAlerts.map(renderMessage)}
             </ul>
           </div>
+
           <div className='flex flex-1 flex-col'>
-            <input
-              type='checkbox'
-              checked={bollingerAlertsActive}
-              onChange={e => setBollingerAlertsActive(e.target.checked)}
-            />
+            <label>
+              secai/upa (candle up/down)
+              <input
+                type='checkbox'
+                checked={velotaAlertsActive.current}
+                onChange={e => (velotaAlertsActive.current = e.target.checked)}
+              />
+            </label>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setVelotaAlerts([])}
+            >
+              Clear velotas alerts
+            </button>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              sube/cae con juerza, con signos de reversion: lastCandleHigherVol, rsi, candle%outBB,
+              candleVolDiff
+              {velotaAlerts.map(renderMessage)}
+            </ul>
+          </div>
+
+          <div className='flex flex-1 flex-col'>
+            <label>
+              boli up/down
+              <input
+                type='checkbox'
+                checked={bollingerAlertsActive.current}
+                onChange={e => (bollingerAlertsActive.current = e.target.checked)}
+              />
+            </label>
             <button
               className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
               onClick={() => setBollingerAlerts([])}
@@ -1306,6 +1366,7 @@ export const Symbols = () => {
             onChange={handleSearchFilter}
           />
         </div>
+
         <div className='rsi-min my-2'>
           <label
             className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
@@ -1357,6 +1418,25 @@ export const Symbols = () => {
             onChange={handleRSILenFilter}
           />
         </div>
+
+        <div className='supervelota-mult my-2'>
+          <label
+            className='mr-2 text-sm font-medium text-gray-900 dark:text-white'
+            htmlFor='supervelota-mult'
+          >
+            Supervelota mult factor
+          </label>
+          <input
+            type='number'
+            id='supervelota-mult'
+            className='bg-gray-50 w-[70px] border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'
+            min={0}
+            max={100}
+            value={superVelotaSizeMult}
+            onChange={handleSuperVelotaSizeMultFilter}
+          />
+        </div>
+
         <div className='vol-len my-2'>
           <label
             className='mr-2 text-sm font-medium text-gray-900 dark:text-white'

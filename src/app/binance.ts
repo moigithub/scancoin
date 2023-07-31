@@ -18,7 +18,7 @@ import { MACDOutput } from 'technicalindicators/declarations/moving_averages/MAC
 import { BollingerBandsOutput } from 'technicalindicators/declarations/volatility/BollingerBands'
 import { prisma } from './db'
 
-type MyCandleChartInterval = '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w'
+type MyCandleChartInterval = '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w'
 
 export interface CandleData {
   time: number | undefined
@@ -66,6 +66,7 @@ interface Symbol {
   baseAsset: string
   minNotional: any //(minNotional as SymbolMinNotionalFilter).minNotional
   price: number
+  data1m: CandleData[]
   data5m: CandleData[]
   data15m: CandleData[] // open,high,low,close,volume data de rsiLength velas
   data30m: CandleData[]
@@ -93,6 +94,7 @@ let MACD_SIGNAL_PERIOD = 9
 let MIN_RSI = 30
 let MAX_RSI = 70
 let BB_CANDLE_PERCENT_OUT = 40
+let SUPERVELOTA_SIZE_MULT_FACTOR = 20
 let VOLUME_LENGTH = 30 //  por ahora usar rsi length
 let VOL_FACTOR = 1.5 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
 // segun el ejemplo del technical indicator.. la data para calcular (el sma, rsi) es casi el doble
@@ -176,7 +178,7 @@ const getSymbols = async () => {
         price: 0,
         //quiero saber el promedio d volumen de las penultimas velas en x temporalidad
         // pa saber si es un push Vela supera con juerza
-        // data1: [],
+        data1m: [],
         data5m: [],
         data15m: [], // open,high,low,close,volume data de rsiLength velas
         data30m: [],
@@ -537,35 +539,53 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
     const lastCandleBuyVolume = getBuyVolume(lastCandle)
     const prevCandleSellVolume = getSellVolume(prevCandle)
     const prevCandleBuyVolume = getBuyVolume(prevCandle)
+    const prevCandleInput = {
+      open: [prevCandle.open],
+      close: [prevCandle.close],
+      high: [prevCandle.high],
+      low: [prevCandle.low]
+    }
+    const isPrevCandleDragonflyDoji = dragonflydoji(prevCandleInput)
+    const isPrevCandleGravestoneDoji = gravestonedoji(prevCandleInput)
+    const isPrevCandleDoji = doji(prevCandleInput)
+
+    const prevCandleIsNotDoji =
+      !isPrevCandleDragonflyDoji && !isPrevCandleGravestoneDoji && !isPrevCandleDoji
+
+    // velotas de 1 minuto
+    if (
+      prevCandleIsNotDoji &&
+      lastCandle.hasLastCandleHighVolume &&
+      lastCandle.isBiggerThanPrevious &&
+      (isOverBought(lastCandle) || isOverSold(lastCandle)) &&
+      getBodySize(lastCandle) > getBodySize(prevCandle) * SUPERVELOTA_SIZE_MULT_FACTOR
+    ) {
+      sendAlert(`alert:supervelotas`, { ...coin, interval })
+    }
+
+    //-------------------
 
     if (
       lastCandle.hasLastCandleHighVolume &&
-      lastCandle.isBiggerThanPrevious &&
+      lastCandle.isBiggerThanPrevious /*&&
       (isOverBought(lastCandle) ||
         isOverSold(lastCandle) ||
         isOverBought(prevCandle) ||
-        isOverSold(prevCandle))
+        isOverSold(prevCandle))*/
     ) {
       sendAlert(`alert:powercandle`, { ...coin, interval })
       // lastCandle.isAlert = true
       // lastCandle.alertType =`alert:powercandle:${interval}`
     }
 
-    const candleInput = {
-      open: [prevCandle.open],
-      close: [prevCandle.close],
-      high: [prevCandle.high],
-      low: [prevCandle.low]
-    }
-    const isDragonflyDoji = dragonflydoji(candleInput)
-    const isGravestoneDoji = gravestonedoji(candleInput)
-    const isDoji = doji(candleInput)
-
-    const notDoji = !isDragonflyDoji && !isGravestoneDoji && !isDoji
     // const isPrevCandleRed = prevCandle ? prevCandle.close < prevCandle.open : false
     // const isPrevCandleGreen = prevCandle ? prevCandle.close > prevCandle.open : false
     // vela verde como roja, esperando q sgte vela sea roja
-    if (notDoji && prevCandle.isGreenCandle && prevCandleSellVolume > prevCandleBuyVolume) {
+    if (
+      prevCandleIsNotDoji &&
+      prevCandle.isGreenCandle &&
+      prevCandleSellVolume > prevCandleBuyVolume
+    ) {
       // console.log(
       //   'verdecmo roja',
       //   prevCandle.volume,
@@ -577,7 +597,11 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
     }
 
     // vela roja como verde, esperando q sgte vela sea verde
-    if (notDoji && prevCandle.isRedCandle && prevCandleBuyVolume > prevCandleSellVolume) {
+    if (
+      prevCandleIsNotDoji &&
+      prevCandle.isRedCandle &&
+      prevCandleBuyVolume > prevCandleSellVolume
+    ) {
       // console.log(
       //   'rojaComo Verde',
       //   symbol,
@@ -824,6 +848,7 @@ export const initializeCandles = async () => {
 
   // data inicial
   for (let coin of symbols) {
+    await getCandles(coin, '1m')
     await getCandles(coin, '5m')
     await getCandles(coin, '15m')
     await getCandles(coin, '30m')
@@ -861,7 +886,7 @@ const checkConnectionOrReconnect = () => {
   const coin = symbols.find(s => s.symbol === 'BTCUSDT')
   if (!coin) return // symbol doesnt exist
 
-  const lastCandle = coin.data5m[coin.data5m.length - 1]
+  const lastCandle = coin.data1m[coin.data1m.length - 1]
   // if at least one value is different, means that data is updating
   // sockets connection is alive
   if (
@@ -908,6 +933,7 @@ export const installSockets = () => {
 
   if (USE_FUTURES_DATA) {
     sockets.push(
+      client.ws.futuresCandles(allCoins, '1m', addCandleData(sendAlert)),
       client.ws.futuresCandles(allCoins, '5m', addCandleData(sendAlert)),
       client.ws.futuresCandles(allCoins, '15m', addCandleData(sendAlert)),
       client.ws.futuresCandles(allCoins, '30m', addCandleData(sendAlert)),
@@ -918,6 +944,7 @@ export const installSockets = () => {
     )
   } else {
     sockets.push(
+      client.ws.candles(allCoins, '1m', addCandleData(sendAlert)),
       client.ws.candles(allCoins, '5m', addCandleData(sendAlert)),
       client.ws.candles(allCoins, '15m', addCandleData(sendAlert)),
       client.ws.candles(allCoins, '30m', addCandleData(sendAlert)),
@@ -932,6 +959,9 @@ export const installSockets = () => {
 
 export const setBBCandlePercentOut = (value: number) => {
   BB_CANDLE_PERCENT_OUT = value
+}
+export const setSuperVelotaSizeMult = (value: number) => {
+  SUPERVELOTA_SIZE_MULT_FACTOR = value
 }
 export const setMinRSI = (value: number) => {
   MIN_RSI = value
@@ -963,6 +993,7 @@ const getDataToSend = () => {
     symbol: coin.symbol,
     minNotional: coin.minNotional,
     price: coin.price,
+    data1m: coin.data1m.slice(-TOTAL_CLIENT_CANDLES),
     data5m: coin.data5m.slice(-TOTAL_CLIENT_CANDLES),
     data15m: coin.data15m.slice(-TOTAL_CLIENT_CANDLES),
     data30m: coin.data30m.slice(-TOTAL_CLIENT_CANDLES),
