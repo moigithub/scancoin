@@ -1,4 +1,12 @@
-import { ColorType, createChart } from 'lightweight-charts'
+import {
+  ColorType,
+  CrosshairMode,
+  IChartApi,
+  ISeriesApi,
+  MouseEventParams,
+  Range,
+  createChart
+} from 'lightweight-charts'
 import { useEffect, useRef, useState } from 'react'
 
 export const Chart = ({
@@ -6,8 +14,11 @@ export const Chart = ({
   ema20 = false,
   sma50 = false,
   sma200 = false,
+  vwap = false,
   width = 200,
-  height = 150
+  height = 150,
+  backgroundColor = '#222222',
+  useAutoFit = false
 }: {
   data: any[]
   width?: number
@@ -15,28 +26,47 @@ export const Chart = ({
   ema20?: boolean
   sma50?: boolean
   sma200?: boolean
+  vwap?: boolean
+  backgroundColor?: string
+  useAutoFit?: boolean
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const [fitContent, setFitContent] = useState(true)
+  const [hover, setHover] = useState<MouseEventParams>()
+  const ema20Series = useRef<ISeriesApi<'Line'>>()
+  const sma50Series = useRef<ISeriesApi<'Line'>>()
+  const sma200Series = useRef<ISeriesApi<'Line'>>()
+  const vwapSeries = useRef<ISeriesApi<'Line'>>()
+  const candlestickSeries = useRef<ISeriesApi<'Candlestick'>>()
+  const chartRef = useRef<IChartApi>()
 
   useEffect(() => {
     const handleResize = () => {
-      chart.applyOptions({ width: chartContainerRef?.current?.clientWidth })
+      chartRef.current?.applyOptions({ width: chartContainerRef?.current?.clientWidth })
     }
 
-    const chart = createChart(chartContainerRef?.current!, {
+    chartRef.current = createChart(chartContainerRef?.current!, {
       rightPriceScale: {
-        visible: true
+        visible: true,
+        borderColor: '#485c7b',
+        scaleMargins: {
+          top: 0.4,
+          bottom: 0.4
+        }
       },
       leftPriceScale: {
         visible: true
       },
+      timeScale: {
+        borderColor: '#485c7b',
+        timeVisible: true
+      },
       layout: {
         textColor: 'white',
-        background: { type: ColorType.Solid, color: '#222222' }
+        background: { type: ColorType.Solid, color: backgroundColor }
       },
       crosshair: {
-        mode: 0 // CrosshairMode.Normal
+        mode: CrosshairMode.Normal
       },
       grid: {
         vertLines: { visible: false },
@@ -46,74 +76,36 @@ export const Chart = ({
       height
     })
 
-    /*
-    // Convert the candlestick data for use with a line series
-const lineData = candleStickData.map(datapoint => ({
-  time: datapoint.time,
-  value: (datapoint.close + datapoint.open) / 2,
-}));
+    ema20Series.current = chartRef.current.addLineSeries({
+      color: '#FFFFFF',
+      lineWidth: 2,
+      // disabling built-in price lines
+      lastValueVisible: false,
+      priceLineVisible: false
+    })
 
-// Add an area series to the chart,
-// Adding this before we add the candlestick chart
-// so that it will appear beneath the candlesticks
-const areaSeries = chart.addAreaSeries({
-  lastValueVisible: false, // hide the last value marker for this series
-  crosshairMarkerVisible: false, // hide the crosshair marker for this series
-  lineColor: 'transparent', // hide the line
-  topColor: 'rgba(56, 33, 110,0.6)',
-  bottomColor: 'rgba(56, 33, 110, 0.1)',
-});
-// Set the data for the Area Series
-areaSeries.setData(lineData);
-*/
-
-    if (ema20) {
-      // { time: { year: 2018, month: 1, day: 1 }, value: 27.58405298746434 },
-      const formattedEma20 = data
-        .filter(d => d.ema20 !== undefined)
-        .map(d => ({ time: d.time, value: d.ema20 }))
-      // console.log('formatted ema', formattedEma20)
-      const ema20Series = chart.addLineSeries({
-        color: '#FFFFFF',
-        lineWidth: 2,
-        // disabling built-in price lines
-        lastValueVisible: false,
-        priceLineVisible: false
-      })
-      ema20Series.setData(formattedEma20)
-    }
-
-    if (sma50) {
-      const formattedSma50 = data
-        .filter(d => d.sma50 !== undefined)
-        .map(d => ({ time: d.time, value: d.sma50 }))
-      // console.log('formatted sma50', formattedSma50)
-      const sma50Series = chart.addLineSeries({
-        color: '#FFEA00',
-        lineWidth: 2,
-        // disabling built-in price lines
-        lastValueVisible: false,
-        priceLineVisible: false
-      })
-      sma50Series.setData(formattedSma50)
-    }
-
-    if (sma200) {
-      const formattedSma200 = data
-        .filter(d => d.sma200 !== undefined)
-        .map(d => ({ time: d.time, value: d.sma200 }))
-      // console.log('formatted sma200', formattedSma200)
-      const sma200Series = chart.addLineSeries({
-        color: '#FF0000',
-        lineWidth: 2,
-        // disabling built-in price lines
-        lastValueVisible: false,
-        priceLineVisible: false
-      })
-      sma200Series.setData(formattedSma200)
-    }
-
-    const candlestickSeries = chart.addCandlestickSeries({
+    sma50Series.current = chartRef.current.addLineSeries({
+      color: '#FFEA00',
+      lineWidth: 2,
+      // disabling built-in price lines
+      lastValueVisible: false,
+      priceLineVisible: false
+    })
+    sma200Series.current = chartRef.current.addLineSeries({
+      color: '#FF0000',
+      lineWidth: 2,
+      // disabling built-in price lines
+      lastValueVisible: false,
+      priceLineVisible: false
+    })
+    vwapSeries.current = chartRef.current.addLineSeries({
+      color: '#00FF00',
+      lineWidth: 2,
+      // disabling built-in price lines
+      lastValueVisible: false,
+      priceLineVisible: false
+    })
+    candlestickSeries.current = chartRef.current.addCandlestickSeries({
       priceScaleId: 'right',
       upColor: '#00AA00',
       downColor: 'red',
@@ -122,66 +114,13 @@ areaSeries.setData(lineData);
       wickDownColor: 'red'
     })
 
-    // Generate sample data to use within a candlestick series
-    const candleStickData = data.map(datapoint => {
-      // map function is changing the color for the individual
-      // candlestick points that close above 205
-      const isRed = datapoint.open > datapoint.close
-      const isGreen = datapoint.open < datapoint.close
-      if (isRed) {
-        if (datapoint.volume < datapoint.volAverage * 0.5) {
-          return { ...datapoint, color: '#ef5350', wickColor: '#ef5350' }
-        } else if (
-          datapoint.volume >= datapoint.volAverage * 0.5 &&
-          datapoint.volume < datapoint.volAverage * 1.5
-        ) {
-          return { ...datapoint, color: 'red', wickColor: 'red' }
-        } else {
-          return { ...datapoint, color: 'maroon', wickColor: 'maroon' }
-        }
-      }
-      if (isGreen) {
-        if (datapoint.volume < datapoint.volAverage * 0.5) {
-          return { ...datapoint, color: '#44ff44', wickColor: '#44ff44' }
-        } else if (
-          datapoint.volume >= datapoint.volAverage * 0.5 &&
-          datapoint.volume < datapoint.volAverage * 1.5
-        ) {
-          return { ...datapoint, color: '#00AA00', wickColor: '#00AA00' }
-        } else {
-          return { ...datapoint, color: '#004411', wickColor: '#004411' }
-        }
-      }
-
-      return datapoint
-    })
-    if (candleStickData.length > 0) {
-      candlestickSeries
-        // .addLineSeries({
-        //   color: '#2962FF',
-        //   lineWidth: 2,
-        // })
-        .setData(
-          candleStickData
-          //   [
-          //   {
-          //     close: 108.9974612905403,
-          //     high: 121.20998259466148,
-          //     low: 96.65376292551082,
-          //     open: 104.5614412226746,
-          //     time: { year: 2018, month: 9, day: 22 }
-          //   }
-          // ]
-        )
-    }
-
-    candlestickSeries.priceScale().applyOptions({
-      autoScale: false, // disables auto scaling based on visible content
-      scaleMargins: {
-        top: 0.1,
-        bottom: 0.2
-      }
-    })
+    // candlestickSeries.priceScale().applyOptions({
+    //   autoScale: false, // disables auto scaling based on visible content
+    //   scaleMargins: {
+    //     top: 0.1,
+    //     bottom: 0.2
+    //   }
+    // })
 
     // const changeTime=(range: TimeRange | null) => {
     //   if (!range) return
@@ -203,9 +142,45 @@ areaSeries.setData(lineData);
     // }
     // chart.timeScale().subscribeVisibleLogicalRangeChange(changeRange)
 
-    if (fitContent) {
-      chart.timeScale().fitContent()
-    }
+    //     const visibleLogicalRange = chart.timeScale().getVisibleLogicalRange();
+    // const currentBarSpacing = chart.timeScale().width() / (visibleLogicalRange.to - visibleLogicalRange.from);
+
+    // // change the current barSpacing
+    // chart.timeScale().applyOptions({
+    //   barSpacing: 12, // default is 6
+    // })
+
+    // chart.subscribeCrosshairMove((param) => {
+    //   setHover(param); // seems to work without this line
+    // });
+
+    // chart.timeScale().setVisibleLogicalRange({ from: 0, to: Date.now() / 1000 })
+
+    chartRef.current.timeScale().applyOptions({ shiftVisibleRangeOnNewBar: true })
+
+    // chart.timeScale().subscribeVisibleLogicalRangeChange(logicalRange => {
+    //   const range: Range<number> = {
+    //     from: logicalRange?.from ?? 0,
+    //     to: logicalRange?.to ?? Date.now() / 1000
+    //   }
+    //   const bars = candlestickSeries.barsInLogicalRange(range)
+
+    //   if (bars === null) {
+    //     return
+    //   }
+    //   console.log('logicalrange bars', bars)
+    //   chart.timeScale().setVisibleLogicalRange({ from: range.from, to: range.to })
+
+    //   // const from = Math.min(bars.from, Math.round(bars.from - timeBucketWidth * 60 * Math.abs(bars.barsBefore)));
+    //   // const to = Math.max(bars.to, Math.round(bars.to + timeBucketWidth * 60 * Math.abs(bars.barsAfter)));
+
+    //   // console.log({
+    //   //   from,
+    //   //   to,
+    //   // });
+    // })
+
+    // chart.timeScale().getVisiblePriceRange()
 
     window.addEventListener('resize', handleResize)
 
@@ -214,15 +189,105 @@ areaSeries.setData(lineData);
       // chart.timeScale().unsubscribeVisibleLogicalRangeChange(changeRange)
       // chart.timeScale().unsubscribeVisibleTimeRangeChange(changeTime)
 
-      chart.remove()
+      chartRef.current?.remove()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (chartRef.current) {
+      if (ema20) {
+        // { time: { year: 2018, month: 1, day: 1 }, value: 27.58405298746434 },
+        const formattedEma20 = data
+          .filter(d => d.ema20 !== undefined)
+          .map(d => ({ time: d.time, value: d.ema20 }))
+        // console.log('formatted ema', formattedEma20)
+
+        ema20Series.current?.setData(formattedEma20)
+      }
+
+      if (sma50) {
+        const formattedSma50 = data
+          .filter(d => d.sma50 !== undefined)
+          .map(d => ({ time: d.time, value: d.sma50 }))
+        // console.log('formatted sma50', formattedSma50)
+
+        sma50Series.current?.setData(formattedSma50)
+      }
+
+      if (sma200) {
+        const formattedSma200 = data
+          .filter(d => d.sma200 !== undefined)
+          .map(d => ({ time: d.time, value: d.sma200 }))
+        // console.log('formatted sma200', formattedSma200)
+
+        sma200Series.current?.setData(formattedSma200)
+      }
+
+      if (vwap) {
+        const formattedVwap = data
+          .filter(d => d.vwap !== undefined)
+          .map(d => ({ time: d.time, value: d.vwap }))
+        console.log('formatted vwap', formattedVwap)
+
+        vwapSeries.current?.setData(formattedVwap)
+      }
+
+      // Generate sample data to use within a candlestick series
+      const candleStickData = data.map(datapoint => {
+        // map function is changing the color for the individual
+        // candlestick points that close above 205
+        const isRed = datapoint.open > datapoint.close
+        const isGreen = datapoint.open < datapoint.close
+        if (isRed) {
+          if (datapoint.volume < datapoint.volAverage * 0.5) {
+            return { ...datapoint, color: '#ef5350', wickColor: '#ef5350' }
+          } else if (
+            datapoint.volume >= datapoint.volAverage * 0.5 &&
+            datapoint.volume < datapoint.volAverage * 1.5
+          ) {
+            return { ...datapoint, color: 'red', wickColor: 'red' }
+          } else {
+            return { ...datapoint, color: 'maroon', wickColor: 'maroon' }
+          }
+        }
+        if (isGreen) {
+          if (datapoint.volume < datapoint.volAverage * 0.5) {
+            return { ...datapoint, color: '#44ff44', wickColor: '#44ff44' }
+          } else if (
+            datapoint.volume >= datapoint.volAverage * 0.5 &&
+            datapoint.volume < datapoint.volAverage * 1.5
+          ) {
+            return { ...datapoint, color: '#00AA00', wickColor: '#00AA00' }
+          } else {
+            return { ...datapoint, color: '#004411', wickColor: '#004411' }
+          }
+        }
+
+        return datapoint
+      })
+      if (candleStickData.length > 0) {
+        candlestickSeries.current?.setData(candleStickData)
+      }
+
+      if (useAutoFit && fitContent) {
+        chartRef.current.timeScale().fitContent()
+      }
     }
   }, [data])
 
   return (
     <div className='chart-container w-full'>
       <div ref={chartContainerRef} className='w-full' />
-      <label>Adjust content</label>
-      <input type='checkbox' checked={fitContent} onChange={e => setFitContent(e.target.checked)} />
+      {useAutoFit && (
+        <>
+          <label>Adjust content</label>
+          <input
+            type='checkbox'
+            checked={fitContent}
+            onChange={e => setFitContent(e.target.checked)}
+          />
+        </>
+      )}
     </div>
   )
 }

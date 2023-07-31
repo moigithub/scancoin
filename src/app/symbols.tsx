@@ -50,6 +50,8 @@ let sndBoliUp: any = null
 let sndBoliDown: any = null
 let sndSuperVelotas: any = null
 
+const MAX_ALERTS = 40
+
 export const Symbols = () => {
   const [symbols, setSymbols] = useState<Symbol[]>([])
   const [searchFilter, setSearchFilter] = useState('')
@@ -102,17 +104,17 @@ export const Symbols = () => {
 
   const [btcData0, setBtcData0] = useState<any[]>([])
   const [btcData1, setBtcData1] = useState<any[]>([])
-  const [btcData2, setBtcData2] = useState<any[]>([])
+  // const [btcData2, setBtcData2] = useState<any[]>([])
   const [chartData1, setChartData1] = useState<any[]>([])
   const [chartData2, setChartData2] = useState<any[]>([])
-  const [chartData3, setChartData3] = useState<any[]>([])
+  // const [chartData3, setChartData3] = useState<any[]>([])
 
-  const btcCoin0 = useRef('BTCUSDT:5m')
-  const btcCoin1 = useRef('BTCUSDT:15m')
-  const btcCoin2 = useRef('BTCUSDT:30m')
-  const selectedCoin1 = useRef('BTCUSDT:1h')
-  const selectedCoin2 = useRef('BTCUSDT:4h')
-  const selectedCoin3 = useRef('BTCUSDT:1d')
+  const btcCoin0 = useRef('BTCUSDT:1d')
+  const btcCoin1 = useRef('BTCUSDT:5m')
+  // const btcCoin2 = useRef('BTCUSDT:30m')
+  const selectedCoin1 = useRef('BTCUSDT:5m')
+  const selectedCoin2 = useRef('BTCUSDT:1d')
+  // const selectedCoin3 = useRef('BTCUSDT:1d')
   const pingInterval = useRef<NodeJS.Timer>()
 
   useEffect(() => {
@@ -202,10 +204,10 @@ export const Symbols = () => {
     // update chart data
     chartUpdater(btcCoin0, setBtcData0) //btcusdt
     chartUpdater(btcCoin1, setBtcData1) //btcusdt
-    chartUpdater(btcCoin2, setBtcData2) //btcusdt
+    // chartUpdater(btcCoin2, setBtcData2) //btcusdt
     chartUpdater(selectedCoin1, setChartData1)
     chartUpdater(selectedCoin2, setChartData2)
-    chartUpdater(selectedCoin3, setChartData3)
+    // chartUpdater(selectedCoin3, setChartData3)
   }, [symbols])
 
   async function socketInitializer() {
@@ -244,7 +246,7 @@ export const Symbols = () => {
     // powercandle: rsi, bigger than previous, high volume
     //------------------------------------------
     socket.on('alert:powercandle', (coin: any) => {
-      setAlerts(m => [formatAlertMsg(ALERT_TYPE.alert, coin), ...m].slice(0, 20))
+      setAlerts(m => [formatAlertMsg(ALERT_TYPE.alert, coin), ...m].slice(0, MAX_ALERTS))
       if (sndPowa && alertsActive.current) sndPowa.play()
     })
 
@@ -252,7 +254,9 @@ export const Symbols = () => {
     //  supervelotas: bodysize>prevcandle*20, lastCandle highvol, rsi
     //------------------------------------------
     socket.on('alert:supervelotas', (coin: any) => {
-      setSuperVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.supervelotas, coin), ...m].slice(0, 20))
+      setSuperVelotaAlerts(m =>
+        [formatAlertMsg(ALERT_TYPE.supervelotas, coin), ...m].slice(0, MAX_ALERTS)
+      )
       if (sndSuperVelotas && superVelotaAlertsActive.current) sndCandleDown.play()
     })
 
@@ -260,7 +264,7 @@ export const Symbols = () => {
     //  lastCandle highvol, green, sellVol>buyVol, rsi, %candleout
     //------------------------------------------
     socket.on('alert:bigCandleDown', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      setVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.velotas, coin), ...m].slice(0, MAX_ALERTS))
       if (sndCandleDown && velotaAlertsActive.current) sndCandleDown.play()
     })
 
@@ -268,7 +272,7 @@ export const Symbols = () => {
     //  lastCandle highvol, red, sellVol<buyVol, rsi, %candleout
     //------------------------------------------
     socket.on('alert:bigCandleUp', (coin: any) => {
-      setVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.velotas, coin), ...m].slice(0, 20))
+      setVelotaAlerts(m => [formatAlertMsg(ALERT_TYPE.velotas, coin), ...m].slice(0, MAX_ALERTS))
       if (sndCandleUp && velotaAlertsActive.current) sndCandleUp.play()
     })
 
@@ -276,14 +280,18 @@ export const Symbols = () => {
     // verdeComoRoja: sellVol > buyVol
     //------------------------------------------
     socket.on('alert:verdeComoRoja', (coin: any) => {
-      setVolumeDiffAlerts(m => [formatAlertMsg(ALERT_TYPE.volDiff, coin), ...m].slice(0, 20))
+      setVolumeDiffAlerts(m =>
+        [formatAlertMsg(ALERT_TYPE.volDiff, coin), ...m].slice(0, MAX_ALERTS)
+      )
       if (sndTick && volumeDiffAlertsActive.current) sndTick.play()
     })
     //------------------------------------------
     // rojaComoVerde: buyVol > sellVol
     //------------------------------------------
     socket.on('alert:rojaComoVerde', (coin: any) => {
-      setVolumeDiffAlerts(m => [formatAlertMsg(ALERT_TYPE.volDiff, coin), ...m].slice(0, 20))
+      setVolumeDiffAlerts(m =>
+        [formatAlertMsg(ALERT_TYPE.volDiff, coin), ...m].slice(0, MAX_ALERTS)
+      )
       if (sndTick && volumeDiffAlertsActive.current) sndTick.play()
     })
 
@@ -291,7 +299,7 @@ export const Symbols = () => {
     // velotas (powercandle only without rsi)
     //------------------------------------------
     // socket.on('alert:strongcandle', (coin: any) => {
-    //   setVelotaAlerts(m => [formatAlertMsg( ALERT_TYPE.velotas, coin), ...m].slice(0,20))
+    //   setVelotaAlerts(m => [formatAlertMsg( ALERT_TYPE.velotas, coin), ...m].slice(0, MAX_ALERTS))
     //   if (sndVelota) sndVelota.play()
     // })
 
@@ -299,7 +307,7 @@ export const Symbols = () => {
     // volume count alert
     //------------------------------------------
     // socket.on('alert:volumecount', (coin: any) => {
-    //   setVolumeAlerts(m => [formatAlertMsg( ALERT_TYPE.volume, coin), ...m].slice(0,20))
+    //   setVolumeAlerts(m => [formatAlertMsg( ALERT_TYPE.volume, coin), ...m].slice(0, MAX_ALERTS))
     //   if (sndVolume && volumeAlertsActive.current) sndVolume.play()
     // })
 
@@ -307,7 +315,9 @@ export const Symbols = () => {
     // bolinger cross up alert
     //------------------------------------------
     socket.on('alert:bollingerUp', (coin: any) => {
-      setBollingerAlerts(m => [formatAlertMsg(ALERT_TYPE.bollingerup, coin), ...m].slice(0, 20))
+      setBollingerAlerts(m =>
+        [formatAlertMsg(ALERT_TYPE.bollingerup, coin), ...m].slice(0, MAX_ALERTS)
+      )
       if (sndBoliUp && bollingerAlertsActive.current) sndBoliUp.play()
     })
 
@@ -315,7 +325,9 @@ export const Symbols = () => {
     // bolinger cross down alert
     //------------------------------------------
     socket.on('alert:bollingerDown', (coin: any) => {
-      setBollingerAlerts(m => [formatAlertMsg(ALERT_TYPE.bollingerdown, coin), ...m].slice(0, 20))
+      setBollingerAlerts(m =>
+        [formatAlertMsg(ALERT_TYPE.bollingerdown, coin), ...m].slice(0, MAX_ALERTS)
+      )
       if (sndBoliDown && bollingerAlertsActive.current) sndBoliDown.play()
     })
   }
@@ -365,21 +377,12 @@ export const Symbols = () => {
         <div className='buttons flex'>
           <span
             className='bg-blue-200 hover:bg-blue-400 text-black text-xs cursor-pointer mx-0.5 px-1'
-            onClick={() => handleChangeInterval1(msg.symbol, msg.interval)}
+            onClick={() => {
+              handleChangeInterval1(msg.symbol, '5m')
+              handleChangeInterval2(msg.symbol, '1d')
+            }}
           >
-            1
-          </span>
-          <span
-            className='bg-blue-200 hover:bg-blue-400 text-black text-xs cursor-pointer mx-1 px-1'
-            onClick={() => handleChangeInterval2(msg.symbol, msg.interval)}
-          >
-            2
-          </span>
-          <span
-            className='bg-blue-200 hover:bg-blue-400 text-black text-xs cursor-pointer mx-1 px-1'
-            onClick={() => handleChangeInterval3(msg.symbol, msg.interval)}
-          >
-            3
+            View
           </span>
           <span>{msg.type}</span>
         </div>
@@ -474,10 +477,10 @@ export const Symbols = () => {
     console.log('select ', coin)
     btcCoin1.current = coin
   }
-  const handleViewChart2 = (coin: string) => {
-    console.log('select ', coin)
-    btcCoin2.current = coin
-  }
+  // const handleViewChart2 = (coin: string) => {
+  //   console.log('select ', coin)
+  //   btcCoin2.current = coin
+  // }
 
   const handleChangeInterval1 = (coin: string, interval: string) => {
     console.log('select ', interval)
@@ -501,16 +504,16 @@ export const Symbols = () => {
     selectedCoin2.current = symbol + ':' + interval
   }
 
-  const handleChangeInterval3 = (coin: string, interval: string) => {
-    console.log('select3 ', interval)
-    if (!selectedCoin3.current) {
-      selectedCoin3.current = 'BTCUSDT:5m'
-    }
-    const parts = selectedCoin3.current.split(':')
-    const symbol = coin || parts[0]
+  // const handleChangeInterval3 = (coin: string, interval: string) => {
+  //   console.log('select3 ', interval)
+  //   if (!selectedCoin3.current) {
+  //     selectedCoin3.current = 'BTCUSDT:5m'
+  //   }
+  //   const parts = selectedCoin3.current.split(':')
+  //   const symbol = coin || parts[0]
 
-    selectedCoin3.current = symbol + ':' + interval
-  }
+  //   selectedCoin3.current = symbol + ':' + interval
+  // }
 
   const handleSearchFilter = (e: ChangeEvent<HTMLInputElement>) => {
     console.log('search', e.target.value)
@@ -898,8 +901,8 @@ export const Symbols = () => {
   return (
     <div className='p-3 flex flex-col'>
       <div className='head flex '>
-        <div className='charts flex flex-col'>
-          <div className='chart-group flex'>
+        <div className='charts flex w-full'>
+          <div className='chart-group flex-col flex-1'>
             <div className='chart m-2 flex-1' id='chart-btc0'>
               <div className='chart-header flex'>
                 <h3>{btcCoin0.current}</h3>
@@ -948,9 +951,10 @@ export const Symbols = () => {
                     </span> */}
                 </div>
               </div>
-              <Chart data={btcData0} ema20 sma50 sma200 height={200} />
+              <Chart data={btcData0} useAutoFit ema20 sma50 sma200 vwap height={600} />
             </div>
-
+          </div>
+          <div className='chart-group flex-col flex-1'>
             <div className='chart m-2 flex-1' id='chart-btc1'>
               <div className='chart-header flex'>
                 <h3>{btcCoin1.current}</h3>
@@ -999,61 +1003,9 @@ export const Symbols = () => {
                     </span> */}
                 </div>
               </div>
-              <Chart data={btcData1} ema20 sma50 sma200 height={200} />
+              <Chart data={btcData1} ema20 sma50 sma200 height={300} />
             </div>
 
-            <div className='chart m-2 flex-1' id='chart-btc2'>
-              <div className='chart-header flex'>
-                <h3>{btcCoin2.current}</h3>
-                <div className='btc-btns mx-5 '>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:5m`)}
-                  >
-                    5m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:15m`)}
-                  >
-                    15m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:30m`)}
-                  >
-                    30m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:1h`)}
-                  >
-                    1h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:4h`)}
-                  >
-                    4h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleViewChart2(`BTCUSDT:1d`)}
-                  >
-                    1d
-                  </span>
-                  {/* <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleViewChart2(`BTCUSDT:1w`)}
-                    >
-                      1w
-                    </span> */}
-                </div>
-              </div>
-              <Chart data={btcData2} ema20 sma50 sma200 height={200} />
-            </div>
-          </div>
-          <div className='chart-group flex items-start'>
             <div className='chart m-2 flex-1' id='chart-1'>
               <div className='chart-header flex'>
                 {selectedCoin1.current && (
@@ -1111,9 +1063,10 @@ export const Symbols = () => {
                     </span> */}
                 </div>
               </div>
-              <Chart data={chartData1} />
+              <Chart data={chartData1} ema20 sma50 sma200 height={300} backgroundColor='#221133' />
             </div>
-
+          </div>
+          <div className='chart-group flex-col flex-1'>
             <div className='chart m-2 flex-1' id='chart-2'>
               <div className='chart-header flex'>
                 {selectedCoin2.current && (
@@ -1171,176 +1124,18 @@ export const Symbols = () => {
                     </span> */}
                 </div>
               </div>
-              <Chart data={chartData2} />
-            </div>
-
-            <div className='chart m-2 flex-1' id='chart-3'>
-              <div className='chart-header flex'>
-                {selectedCoin3.current && (
-                  <a
-                    href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
-                      selectedCoin3.current.split(':')[0]
-                    )}&interval=${getTradingViewInterval(selectedCoin3.current.split(':')[1])}`}
-                    target='_blank'
-                  >
-                    {selectedCoin3.current}
-                  </a>
-                )}
-                <div className='btc-btns mx-5 '>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `5m`)}
-                  >
-                    5m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `15m`)}
-                  >
-                    15m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `30m`)}
-                  >
-                    30m
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `1h`)}
-                  >
-                    1h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `4h`)}
-                  >
-                    4h
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3('', `1d`)}
-                  >
-                    1d
-                  </span>
-                  {/* <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3('', `1w`)}
-                    >
-                      1w
-                    </span> */}
-                </div>
-              </div>
-              <Chart data={chartData3} />
+              <Chart
+                data={chartData2}
+                useAutoFit
+                ema20
+                sma50
+                sma200
+                vwap
+                height={600}
+                backgroundColor='#221133'
+              />
             </div>
           </div>
-        </div>
-        <div className='alerts flex'>
-          <div className='flex flex-1 flex-col'>
-            <label>
-              supervelotas de gran tamaño
-              <input
-                type='checkbox'
-                checked={superVelotaAlertsActive.current}
-                onChange={e => (superVelotaAlertsActive.current = e.target.checked)}
-              />
-            </label>
-            <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
-              onClick={() => setSuperVelotaAlerts([])}
-            >
-              Clear super velotas alerts
-            </button>
-            <ul className='overflow-y-auto text-xs h-[500px]'>
-              velas con gran tamaño: lastCandleHigherVol, rsi, size*20
-              {superVelotaAlerts.map(renderMessage)}
-            </ul>
-          </div>
-
-          <div className='flex flex-1 flex-col'>
-            <label>
-              powa
-              <input
-                type='checkbox'
-                checked={alertsActive.current}
-                onChange={e => (alertsActive.current = e.target.checked)}
-              />
-            </label>
-            <button
-              className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
-              onClick={() => setAlerts([])}
-            >
-              Clear alerts
-            </button>
-            <ul className='overflow-y-auto text-xs h-[500px]'>
-              VOL entering: lastCandleHigherVol, biggerThanPrev
-              {alerts.map(renderMessage)}
-            </ul>
-          </div>
-          <div className='flex flex-1 flex-col'>
-            <label>
-              tick
-              <input
-                type='checkbox'
-                checked={volumeDiffAlertsActive.current}
-                onChange={e => (volumeDiffAlertsActive.current = e.target.checked)}
-              />{' '}
-            </label>
-            <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
-              onClick={() => setVolumeDiffAlerts([])}
-            >
-              Clear VolDiff alerts
-            </button>
-            <ul className='overflow-y-auto text-xs h-[500px]'>
-              candleVolDiff: verdeComoRoja o rojaComoVerde
-              {volumeDiffAlerts.map(renderMessage)}
-            </ul>
-          </div>
-
-          <div className='flex flex-1 flex-col'>
-            <label>
-              secai/upa (candle up/down)
-              <input
-                type='checkbox'
-                checked={velotaAlertsActive.current}
-                onChange={e => (velotaAlertsActive.current = e.target.checked)}
-              />
-            </label>
-            <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
-              onClick={() => setVelotaAlerts([])}
-            >
-              Clear velotas alerts
-            </button>
-            <ul className='overflow-y-auto text-xs h-[500px]'>
-              sube/cae con juerza, con signos de reversion: lastCandleHigherVol, rsi, candle%outBB,
-              candleVolDiff
-              {velotaAlerts.map(renderMessage)}
-            </ul>
-          </div>
-
-          <div className='flex flex-1 flex-col'>
-            <label>
-              boli up/down
-              <input
-                type='checkbox'
-                checked={bollingerAlertsActive.current}
-                onChange={e => (bollingerAlertsActive.current = e.target.checked)}
-              />
-            </label>
-            <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
-              onClick={() => setBollingerAlerts([])}
-            >
-              Clear Boli alerts
-            </button>
-            <ul className='overflow-y-auto text-xs h-[500px]'>
-              crossBBBand, candle%OutBB, rsi
-              {bollingerAlerts.map(renderMessage)}
-            </ul>
-          </div>
-          {/* <ul className='overflow-y-auto'>{volumeAlerts.map(renderMessage)}</ul> */}
         </div>
       </div>
 
@@ -1591,393 +1386,309 @@ export const Symbols = () => {
           />
         </div>
       </div>
-      <div className='flex'></div>
-      <table className='table-auto min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-blue-500'>
-        <tbody>
-          <tr>
-            <td>ADX (direccion): 0-25 nada, 25-50 Fuerte, 50-75 Muy Fuerte, 75-100 Extreme</td>
-          </tr>
-          <tr>
-            <td>Awesome Osc: mayor a 0 = compras, menor a 0 = ventas</td>
-          </tr>
-          <tr>
-            <td>ATR (volatil): a mayor valor, mas volatil</td>
-          </tr>
-        </tbody>
-      </table>
-      <table className='table-auto min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-blue-500'>
-        <thead>
-          <tr>
-            <th colSpan={2}>Symbol</th>
 
-            <th
-              colSpan={6}
-              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-            >
-              RSI ({rsiSelectedSort}) [
-              <span className='mx-0.5' style={{ color: 'white' }}>
-                rsi
-              </span>
-              ,
-              <span className='mx-0.5' style={{ color: 'yellow' }}>
-                candleCount
-              </span>
-              ,
-              <span className='mx-0.5' style={{ color: 'orange' }}>
-                atr
-              </span>
-              ,
-              <span className='mx-0.5' style={{ color: 'cyan' }}>
-                adx
-              </span>
-              ,
-              <span className='mx-0.5' style={{ color: 'brown' }}>
-                macd
-              </span>
-              ,
-              <span className='mx-0.5' style={{ color: 'purple' }}>
-                aweOsc
-              </span>
-              ]
-            </th>
-            <th
-              colSpan={6}
-              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-            >
-              candle status
-            </th>
-          </tr>
-          <tr>
-            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              Name
-            </th>
-            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              Curr.Price
-            </th>
-            <th
-              onClick={() => handleSelectSort('5m')}
-              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-            >
-              5min
-            </th>
-            <th
-              onClick={() => handleSelectSort('15m')}
-              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-            >
-              15min
-            </th>
-            <th
-              onClick={() => handleSelectSort('30m')}
-              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-            >
-              30min
-            </th>
-            <th
-              onClick={() => handleSelectSort('1h')}
-              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-            >
-              1Hra
-            </th>
-            <th
-              onClick={() => handleSelectSort('4h')}
-              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-            >
-              4Hra
-            </th>
-            <th
-              onClick={() => handleSelectSort('1d')}
-              className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-            >
-              Dia
-            </th>
-            {/* <th
+      <div className='body flex'>
+        <div className='data flex flex-1 flex-col'>
+          <table className=' divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-blue-500'>
+            <tbody>
+              <tr>
+                <td>ADX (direccion): 0-25 nada, 25-50 Fuerte, 50-75 Muy Fuerte, 75-100 Extreme</td>
+              </tr>
+              <tr>
+                <td>Awesome Osc: mayor a 0 = compras, menor a 0 = ventas</td>
+              </tr>
+              <tr>
+                <td>ATR (volatil): a mayor valor, mas volatil</td>
+              </tr>
+            </tbody>
+          </table>
+          <table className='table table-fixed divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-blue-500'>
+            <thead>
+              <tr>
+                <th colSpan={2}>Symbol</th>
+
+                <th
+                  colSpan={6}
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                >
+                  RSI ({rsiSelectedSort}) [
+                  <span className='mx-0.5' style={{ color: 'white' }}>
+                    rsi
+                  </span>
+                  ,
+                  <span className='mx-0.5' style={{ color: 'yellow' }}>
+                    candleCount
+                  </span>
+                  ,
+                  <span className='mx-0.5' style={{ color: 'orange' }}>
+                    atr
+                  </span>
+                  ,
+                  <span className='mx-0.5' style={{ color: 'cyan' }}>
+                    adx
+                  </span>
+                  ,
+                  <span className='mx-0.5' style={{ color: 'brown' }}>
+                    macd
+                  </span>
+                  ,
+                  <span className='mx-0.5' style={{ color: 'purple' }}>
+                    aweOsc
+                  </span>
+                  ]
+                </th>
+              </tr>
+              <tr>
+                <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[100px]'>
+                  Name
+                </th>
+                <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'>
+                  Curr.Price
+                </th>
+                <th
+                  onClick={() => handleSelectSort('5m')}
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                >
+                  5min
+                </th>
+                <th
+                  onClick={() => handleSelectSort('15m')}
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                >
+                  15min
+                </th>
+                <th
+                  onClick={() => handleSelectSort('30m')}
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                >
+                  30min
+                </th>
+                <th
+                  onClick={() => handleSelectSort('1h')}
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                >
+                  1Hra
+                </th>
+                <th
+                  onClick={() => handleSelectSort('4h')}
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                >
+                  4Hra
+                </th>
+                <th
+                  onClick={() => handleSelectSort('1d')}
+                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                >
+                  Dia
+                </th>
+                {/* <th
                 onClick={() => handleSelectSort('1w')}
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
               >
                 1w
               </th> */}
-            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              5m
-            </th>
-            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              15m
-            </th>
-            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              30m
-            </th>
-            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              1h
-            </th>
-            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              4h
-            </th>
-            <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-              1d
-            </th>
-            {/* <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                1w
-              </th> */}
-          </tr>
-        </thead>
-        <tbody>
-          {dataBTC.length > 0 && (
-            <tr key={dataBTC[0].symbol} className='border-2 border-red-500'>
-              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                {/* <a
+              </tr>
+            </thead>
+            <tbody>
+              {dataBTC.length > 0 && (
+                <tr key={dataBTC[0].symbol} className='border-2 border-red-500'>
+                  <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium '>
+                    {/* <a
                     href={`https://www.tradingview.com/symbols/${dataBTC[0].symbol}/?exchange=BINANCE`}
                     target='_blank'
                   >
                     {dataBTC[0].symbol}
                   </a> */}
-                <a
-                  href={`https://www.tradingview.com/chart?symbol=BINANCE:${dataBTC[0].symbol}&interval=D`}
-                  target='_blank'
-                >
-                  {dataBTC[0].symbol}
-                </a>
-              </td>
-              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                {dataBTC[0].price}
-              </td>
-              <td
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                style={{
-                  backgroundColor: getBgColor(dataBTC[0].rsi5m)
-                }}
-              >
-                {dataBTC[0].rsi5m}
-              </td>
-              <td
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                style={{
-                  backgroundColor: getBgColor(dataBTC[0].rsi15m)
-                }}
-              >
-                {dataBTC[0].rsi15m}
-              </td>
-              <td
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                style={{
-                  backgroundColor: getBgColor(dataBTC[0].rsi30m)
-                }}
-              >
-                {dataBTC[0].rsi30m}
-              </td>
-              <td
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                style={{
-                  backgroundColor: getBgColor(dataBTC[0].rsi1h)
-                }}
-              >
-                {dataBTC[0].rsi1h}
-              </td>
-              <td
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                style={{
-                  backgroundColor: getBgColor(dataBTC[0].rsi4h)
-                }}
-              >
-                {dataBTC[0].rsi4h}
-              </td>
-              <td
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                style={{
-                  backgroundColor: getBgColor(dataBTC[0].rsi1d)
-                }}
-              >
-                {dataBTC[0].rsi1d}
-              </td>
-              {/* <td
+                    <a
+                      href={`https://www.tradingview.com/chart?symbol=BINANCE:${dataBTC[0].symbol}&interval=D`}
+                      target='_blank'
+                    >
+                      {dataBTC[0].symbol}
+                    </a>
+                  </td>
+                  <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                    {dataBTC[0].price}
+                  </td>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: getBgColor(dataBTC[0].rsi5m)
+                    }}
+                  >
+                    <div className='flex'>
+                      <span
+                        style={{
+                          width: 8,
+                          height: 16,
+                          backgroundColor: dataBTC[0].isRedCandle5m ? 'red' : 'green'
+                        }}
+                      ></span>
+                      <span
+                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                        onClick={() => {
+                          handleChangeInterval1(dataBTC[0].symbol, `5m`)
+                          handleChangeInterval2(dataBTC[0].symbol, `1d`)
+                        }}
+                      >
+                        View
+                      </span>
+                      {renderIcons(dataBTC[0], '5m')}
+                    </div>
+                    <div className='block'>{dataBTC[0].rsi5m}</div>
+                  </td>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: getBgColor(dataBTC[0].rsi15m)
+                    }}
+                  >
+                    <div className='flex'>
+                      <span
+                        style={{
+                          width: 8,
+                          height: 16,
+                          backgroundColor: dataBTC[0].isRedCandle15m ? 'red' : 'green'
+                        }}
+                      ></span>
+
+                      <span
+                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                        onClick={() => {
+                          handleChangeInterval1(dataBTC[0].symbol, `5m`)
+                          handleChangeInterval2(dataBTC[0].symbol, `1d`)
+                        }}
+                      >
+                        View
+                      </span>
+                      {renderIcons(dataBTC[0], '15m')}
+                    </div>
+
+                    <div className='block'>{dataBTC[0].rsi15m} </div>
+                  </td>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: getBgColor(dataBTC[0].rsi30m)
+                    }}
+                  >
+                    <div className='flex'>
+                      <span
+                        style={{
+                          width: 8,
+                          height: 16,
+                          backgroundColor: dataBTC[0].isRedCandle30m ? 'red' : 'green'
+                        }}
+                      ></span>
+
+                      <span
+                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                        onClick={() => {
+                          handleChangeInterval1(dataBTC[0].symbol, `5m`)
+                          handleChangeInterval2(dataBTC[0].symbol, `1d`)
+                        }}
+                      >
+                        View
+                      </span>
+
+                      {renderIcons(dataBTC[0], '30m')}
+                    </div>
+
+                    <div className='block'>{dataBTC[0].rsi30m} </div>
+                  </td>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: getBgColor(dataBTC[0].rsi1h)
+                    }}
+                  >
+                    <div className='flex'>
+                      <span
+                        style={{
+                          width: 8,
+                          height: 16,
+                          backgroundColor: dataBTC[0].isRedCandle1h ? 'red' : 'green'
+                        }}
+                      ></span>
+
+                      <span
+                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                        onClick={() => {
+                          handleChangeInterval1(dataBTC[0].symbol, `5m`)
+                          handleChangeInterval2(dataBTC[0].symbol, `1d`)
+                        }}
+                      >
+                        View
+                      </span>
+                      {renderIcons(dataBTC[0], '1h')}
+                    </div>
+                    <div className='block'>{dataBTC[0].rsi1h} </div>
+                  </td>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: getBgColor(dataBTC[0].rsi4h)
+                    }}
+                  >
+                    <div className='flex'>
+                      <span
+                        style={{
+                          width: 8,
+                          height: 16,
+                          backgroundColor: dataBTC[0].isRedCandle4h ? 'red' : 'green'
+                        }}
+                      ></span>
+
+                      <span
+                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                        onClick={() => {
+                          handleChangeInterval1(dataBTC[0].symbol, `5m`)
+                          handleChangeInterval2(dataBTC[0].symbol, `1d`)
+                        }}
+                      >
+                        View
+                      </span>
+
+                      {renderIcons(dataBTC[0], '4h')}
+                    </div>
+
+                    <div className='block'>{dataBTC[0].rsi4h}</div>
+                  </td>
+                  <td
+                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    style={{
+                      backgroundColor: getBgColor(dataBTC[0].rsi1d)
+                    }}
+                  >
+                    <div className='flex'>
+                      <span
+                        style={{
+                          width: 8,
+                          height: 16,
+                          backgroundColor: dataBTC[0].isRedCandle1d ? 'red' : 'green'
+                        }}
+                      ></span>
+                      <span
+                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                        onClick={() => {
+                          handleChangeInterval1(dataBTC[0].symbol, `5m`)
+                          handleChangeInterval2(dataBTC[0].symbol, `1d`)
+                        }}
+                      >
+                        View
+                      </span>
+
+                      {renderIcons(dataBTC[0], '1d')}
+                    </div>
+
+                    <div className='block'>{dataBTC[0].rsi1d}</div>
+                  </td>
+                  {/* <td
                   className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                   style={{
                     backgroundColor: getBgColor(dataBTC[0].rsi1w)
                   }}
                 >
-                  {dataBTC[0].rsi1w}
-                </td> */}
-
-              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                <div className='flex'>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 16,
-                      backgroundColor: dataBTC[0].isRedCandle5m ? 'red' : 'green'
-                    }}
-                  ></span>
-                  {renderIcons(dataBTC[0], '5m')}
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1(dataBTC[0].symbol, `5m`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2(dataBTC[0].symbol, `5m`)}
-                  >
-                    2
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3(dataBTC[0].symbol, `5m`)}
-                  >
-                    3
-                  </span>
-                </div>
-              </td>
-              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                <div className='flex'>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 16,
-                      backgroundColor: dataBTC[0].isRedCandle15m ? 'red' : 'green'
-                    }}
-                  ></span>
-                  {renderIcons(dataBTC[0], '15m')}
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1(dataBTC[0].symbol, `15m`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2(dataBTC[0].symbol, `15m`)}
-                  >
-                    2
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3(dataBTC[0].symbol, `15m`)}
-                  >
-                    3
-                  </span>
-                </div>
-              </td>
-              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                <div className='flex'>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 16,
-                      backgroundColor: dataBTC[0].isRedCandle30m ? 'red' : 'green'
-                    }}
-                  ></span>
-                  {renderIcons(dataBTC[0], '30m')}
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1(dataBTC[0].symbol, `30m`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2(dataBTC[0].symbol, `30m`)}
-                  >
-                    2
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3(dataBTC[0].symbol, `30m`)}
-                  >
-                    3
-                  </span>
-                </div>
-              </td>
-              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                <div className='flex'>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 16,
-                      backgroundColor: dataBTC[0].isRedCandle1h ? 'red' : 'green'
-                    }}
-                  ></span>
-                  {renderIcons(dataBTC[0], '1h')}
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1(dataBTC[0].symbol, `1h`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2(dataBTC[0].symbol, `1h`)}
-                  >
-                    2
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3(dataBTC[0].symbol, `1h`)}
-                  >
-                    3
-                  </span>
-                </div>
-              </td>
-              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                <div className='flex'>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 16,
-                      backgroundColor: dataBTC[0].isRedCandle4h ? 'red' : 'green'
-                    }}
-                  ></span>
-                  {renderIcons(dataBTC[0], '4h')}
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1(dataBTC[0].symbol, `4h`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2(dataBTC[0].symbol, `4h`)}
-                  >
-                    2
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3(dataBTC[0].symbol, `4h`)}
-                  >
-                    3
-                  </span>
-                </div>
-              </td>
-              <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                <div className='flex'>
-                  <span
-                    style={{
-                      width: 8,
-                      height: 16,
-                      backgroundColor: dataBTC[0].isRedCandle1d ? 'red' : 'green'
-                    }}
-                  ></span>
-                  {renderIcons(dataBTC[0], '1d')}
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval1(dataBTC[0].symbol, `1d`)}
-                  >
-                    1
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval2(dataBTC[0].symbol, `1d`)}
-                  >
-                    2
-                  </span>
-                  <span
-                    className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                    onClick={() => handleChangeInterval3(dataBTC[0].symbol, `1d`)}
-                  >
-                    3
-                  </span>
-                </div>
-              </td>
-              {/* <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  <div className='flex'>
+                 <div className='flex'>
                     <span
                       style={{
                         width: 8,
@@ -1988,469 +1699,557 @@ export const Symbols = () => {
                     {renderIcons(dataBTC[0], '1w')}
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(dataBTC[0].symbol, `1w`)}
+                      onClick={() =>{ handleChangeInterval1(dataBTC[0].symbol, `5m`)
+                     handleChangeInterval2(dataBTC[0].symbol, `1d`)}}
                     >
-                      1
+                      View
                     </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(dataBTC[0].symbol, `1w`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(dataBTC[0].symbol, `1w`)}
-                    >
-                      3
-                    </span>
-                  </div>
-                </td> */}
-            </tr>
-          )}
 
-          {dataSymbols.map(coin => {
-            return (
-              <tr key={coin.symbol}>
-                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  {/* <a
+                  </div>
+                 <div className='block'> {dataBTC[0].rsi1w}</div>
+                </td> */}
+                </tr>
+              )}
+
+              {dataSymbols.map(coin => {
+                return (
+                  <tr key={coin.symbol}>
+                    <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                      {/* <a
                     href={`https://www.tradingview.com/symbols/${coin.symbol}/?exchange=BINANCE`}
                     target='_blank'
                   >
                     {coin.symbol}
                   </a> */}
-                  <a
-                    href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
-                      coin.symbol
-                    )}&interval=D`}
-                    target='_blank'
-                  >
-                    {coin.symbol}
-                  </a>
-                </td>
-                <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                  {coin.price}
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: getBgColor(coin.rsi5m)
-                  }}
-                >
-                  <span className='mx-0.5' style={{ color: 'white' }}>
-                    {coin.rsi5m}
-                  </span>
-                  <span className='mx-0.5' style={{ color: 'yellow' }}>
-                    ({coin.prev10CandleVolumeCount5m})
-                  </span>
-                  <p>
-                    <span className='mx-0.5' style={{ color: 'orange' }}>
-                      {coin.atr5m}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'cyan' }}>
-                      {coin.adx5m.adx?.toFixed(2)}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'brown' }}>
-                      {coin.macd5m.histogram?.toFixed(1)}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'purple' }}>
-                      {coin.ao5m}
-                    </span>
-                  </p>
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: getBgColor(coin.rsi15m)
-                  }}
-                >
-                  <span className='mx-0.5' style={{ color: 'white' }}>
-                    {coin.rsi15m}
-                  </span>
-                  <span className='mx-0.5' style={{ color: 'yellow' }}>
-                    ({coin.prev10CandleVolumeCount15m})
-                  </span>
-                  <p>
-                    <span className='mx-0.5' style={{ color: 'orange' }}>
-                      {coin.atr15m}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'cyan' }}>
-                      {coin.adx15m.adx?.toFixed(2)}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'brown' }}>
-                      {coin.macd15m.histogram?.toFixed(1)}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'purple' }}>
-                      {coin.ao15m}
-                    </span>
-                  </p>
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: getBgColor(coin.rsi30m)
-                  }}
-                >
-                  <span className='mx-0.5' style={{ color: 'white' }}>
-                    {coin.rsi30m}
-                  </span>
-                  <span className='mx-0.5' style={{ color: 'yellow' }}>
-                    ({coin.prev10CandleVolumeCount30m})
-                  </span>
-                  <p>
-                    <span className='mx-0.5' style={{ color: 'orange' }}>
-                      {coin.atr30m}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'cyan' }}>
-                      {coin.adx30m.adx?.toFixed(2)}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'brown' }}>
-                      {coin.macd30m.histogram?.toFixed(1)}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'purple' }}>
-                      {coin.ao30m}
-                    </span>
-                  </p>
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: getBgColor(coin.rsi1h)
-                  }}
-                >
-                  <span className='mx-0.5' style={{ color: 'white' }}>
-                    {coin.rsi1h}
-                  </span>
-                  <span className='mx-0.5' style={{ color: 'yellow' }}>
-                    ({coin.prev10CandleVolumeCount1h})
-                  </span>
-                  <p>
-                    <span className='mx-0.5' style={{ color: 'orange' }}>
-                      {coin.atr1h}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'cyan' }}>
-                      {coin.adx1h.adx?.toFixed(2)}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'brown' }}>
-                      {coin.macd1h.histogram?.toFixed(1)}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'purple' }}>
-                      {coin.ao1h}
-                    </span>
-                  </p>
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: getBgColor(coin.rsi4h)
-                  }}
-                >
-                  <span className='mx-0.5' style={{ color: 'white' }}>
-                    {coin.rsi4h}
-                  </span>
-                  <span className='mx-0.5' style={{ color: 'yellow' }}>
-                    ({coin.prev10CandleVolumeCount4h})
-                  </span>
-                  <p>
-                    <span className='mx-0.5' style={{ color: 'orange' }}>
-                      {coin.atr4h}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'cyan' }}>
-                      {coin.adx4h.adx?.toFixed(2)}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'brown' }}>
-                      {coin.macd4h.histogram?.toFixed(1)}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'purple' }}>
-                      {coin.ao4h}
-                    </span>
-                  </p>
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: getBgColor(coin.rsi1d)
-                  }}
-                >
-                  <span className='mx-0.5' style={{ color: 'white' }}>
-                    {coin.rsi1d}
-                  </span>
-                  <span className='mx-0.5' style={{ color: 'yellow' }}>
-                    ({coin.prev10CandleVolumeCount1d})
-                  </span>
-                  <p>
-                    <span className='mx-0.5' style={{ color: 'orange' }}>
-                      {coin.atr1d}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'cyan' }}>
-                      {coin.adx1d.adx?.toFixed(2)}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'brown' }}>
-                      {coin.macd1d.histogram?.toFixed(1)}
-                    </span>
-                    <span className='mx-0.5' style={{ color: 'purple' }}>
-                      {coin.ao1d}
-                    </span>
-                  </p>
-                </td>
-                {/* <td
+                      <a
+                        href={`https://www.tradingview.com/chart?symbol=BINANCE:${getTradingViewSymbol(
+                          coin.symbol
+                        )}&interval=D`}
+                        target='_blank'
+                      >
+                        {coin.symbol}
+                      </a>
+                    </td>
+                    <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium '>
+                      {coin.price}
+                    </td>
+                    <td
+                      className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                      style={{
+                        backgroundColor: getBgColor(coin.rsi5m)
+                      }}
+                    >
+                      <div className='flex'>
+                        <span
+                          style={{
+                            width: 16,
+                            height: 16,
+                            border: '1px solid blue',
+                            backgroundColor: coin.isRedCandle5m ? 'red' : 'green'
+                          }}
+                        ></span>
+
+                        <span
+                          className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                          onClick={() => {
+                            handleChangeInterval1(coin.symbol, `5m`)
+                            handleChangeInterval2(coin.symbol, `1d`)
+                          }}
+                        >
+                          View
+                        </span>
+
+                        {renderIcons(coin, '5m')}
+                      </div>
+
+                      <div className='block'>
+                        <span className='mx-0.5' style={{ color: 'white' }}>
+                          {coin.rsi5m}
+                        </span>
+                        <span className='mx-0.5' style={{ color: 'yellow' }}>
+                          ({coin.prev10CandleVolumeCount5m})
+                        </span>
+                        <p>
+                          <span className='mx-0.5' style={{ color: 'orange' }}>
+                            {coin.atr5m}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'cyan' }}>
+                            {coin.adx5m.adx?.toFixed(2)}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'brown' }}>
+                            {coin.macd5m.histogram?.toFixed(1)}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'purple' }}>
+                            {coin.ao5m}
+                          </span>
+                        </p>
+                      </div>
+                    </td>
+                    <td
+                      className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                      style={{
+                        backgroundColor: getBgColor(coin.rsi15m)
+                      }}
+                    >
+                      <div className='flex'>
+                        <span
+                          style={{
+                            width: 16,
+                            height: 16,
+                            border: '1px solid blue',
+                            backgroundColor: coin.isRedCandle15m ? 'red' : 'green'
+                          }}
+                        ></span>
+
+                        <span
+                          className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                          onClick={() => {
+                            handleChangeInterval1(coin.symbol, `5m`)
+                            handleChangeInterval2(coin.symbol, `1d`)
+                          }}
+                        >
+                          View
+                        </span>
+
+                        {renderIcons(coin, '15m')}
+                      </div>
+                      <div className='block'>
+                        <span className='mx-0.5' style={{ color: 'white' }}>
+                          {coin.rsi15m}
+                        </span>
+                        <span className='mx-0.5' style={{ color: 'yellow' }}>
+                          ({coin.prev10CandleVolumeCount15m})
+                        </span>
+                        <p>
+                          <span className='mx-0.5' style={{ color: 'orange' }}>
+                            {coin.atr15m}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'cyan' }}>
+                            {coin.adx15m.adx?.toFixed(2)}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'brown' }}>
+                            {coin.macd15m.histogram?.toFixed(1)}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'purple' }}>
+                            {coin.ao15m}
+                          </span>
+                        </p>
+                      </div>
+                    </td>
+                    <td
+                      className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                      style={{
+                        backgroundColor: getBgColor(coin.rsi30m)
+                      }}
+                    >
+                      <div className='flex'>
+                        <span
+                          style={{
+                            width: 8,
+                            height: 16,
+                            border: '1px solid blue',
+                            backgroundColor: coin.isRedCandle30m ? 'red' : 'green'
+                          }}
+                        ></span>
+
+                        <span
+                          className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                          onClick={() => {
+                            handleChangeInterval1(coin.symbol, `5m`)
+                            handleChangeInterval2(coin.symbol, `1d`)
+                          }}
+                        >
+                          View
+                        </span>
+
+                        {renderIcons(coin, '30m')}
+                      </div>
+
+                      <div className='block'>
+                        <span className='mx-0.5' style={{ color: 'white' }}>
+                          {coin.rsi30m}
+                        </span>
+                        <span className='mx-0.5' style={{ color: 'yellow' }}>
+                          ({coin.prev10CandleVolumeCount30m})
+                        </span>
+                        <p>
+                          <span className='mx-0.5' style={{ color: 'orange' }}>
+                            {coin.atr30m}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'cyan' }}>
+                            {coin.adx30m.adx?.toFixed(2)}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'brown' }}>
+                            {coin.macd30m.histogram?.toFixed(1)}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'purple' }}>
+                            {coin.ao30m}
+                          </span>
+                        </p>
+                      </div>
+                    </td>
+                    <td
+                      className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                      style={{
+                        backgroundColor: getBgColor(coin.rsi1h)
+                      }}
+                    >
+                      <div className='flex'>
+                        <span
+                          style={{
+                            width: 8,
+                            height: 16,
+                            border: '1px solid blue',
+                            backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
+                          }}
+                        ></span>
+
+                        <span
+                          className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                          onClick={() => {
+                            handleChangeInterval1(coin.symbol, `5m`)
+                            handleChangeInterval2(coin.symbol, `1d`)
+                          }}
+                        >
+                          View
+                        </span>
+                        {renderIcons(coin, '1h')}
+                      </div>
+
+                      <div className='block'>
+                        <span className='mx-0.5' style={{ color: 'white' }}>
+                          {coin.rsi1h}
+                        </span>
+                        <span className='mx-0.5' style={{ color: 'yellow' }}>
+                          ({coin.prev10CandleVolumeCount1h})
+                        </span>
+                        <p>
+                          <span className='mx-0.5' style={{ color: 'orange' }}>
+                            {coin.atr1h}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'cyan' }}>
+                            {coin.adx1h.adx?.toFixed(2)}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'brown' }}>
+                            {coin.macd1h.histogram?.toFixed(1)}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'purple' }}>
+                            {coin.ao1h}
+                          </span>
+                        </p>
+                      </div>
+                    </td>
+                    <td
+                      className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                      style={{
+                        backgroundColor: getBgColor(coin.rsi4h)
+                      }}
+                    >
+                      <div className='flex'>
+                        <span
+                          style={{
+                            width: 8,
+                            height: 16,
+                            border: '1px solid blue',
+                            backgroundColor: coin.isRedCandle4h ? 'red' : 'green'
+                          }}
+                        ></span>
+
+                        <span
+                          className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                          onClick={() => {
+                            handleChangeInterval1(coin.symbol, `5m`)
+                            handleChangeInterval2(coin.symbol, `1d`)
+                          }}
+                        >
+                          View
+                        </span>
+
+                        {renderIcons(coin, '4h')}
+                      </div>
+
+                      <div className='block'>
+                        <span className='mx-0.5' style={{ color: 'white' }}>
+                          {coin.rsi4h}
+                        </span>
+                        <span className='mx-0.5' style={{ color: 'yellow' }}>
+                          ({coin.prev10CandleVolumeCount4h})
+                        </span>
+                        <p>
+                          <span className='mx-0.5' style={{ color: 'orange' }}>
+                            {coin.atr4h}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'cyan' }}>
+                            {coin.adx4h.adx?.toFixed(2)}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'brown' }}>
+                            {coin.macd4h.histogram?.toFixed(1)}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'purple' }}>
+                            {coin.ao4h}
+                          </span>
+                        </p>
+                      </div>
+                    </td>
+                    <td
+                      className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                      style={{
+                        backgroundColor: getBgColor(coin.rsi1d)
+                      }}
+                    >
+                      <div className='flex'>
+                        <span
+                          style={{
+                            width: 8,
+                            height: 16,
+                            border: '1px solid blue',
+                            backgroundColor: coin.isRedCandle1d ? 'red' : 'green'
+                          }}
+                        ></span>
+
+                        <span
+                          className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                          onClick={() => {
+                            handleChangeInterval1(coin.symbol, `5m`)
+                            handleChangeInterval2(coin.symbol, `1d`)
+                          }}
+                        >
+                          View
+                        </span>
+
+                        {renderIcons(coin, '1d')}
+                      </div>
+
+                      <div className='block'>
+                        <span className='mx-0.5' style={{ color: 'white' }}>
+                          {coin.rsi1d}
+                        </span>
+                        <span className='mx-0.5' style={{ color: 'yellow' }}>
+                          ({coin.prev10CandleVolumeCount1d})
+                        </span>
+                        <p>
+                          <span className='mx-0.5' style={{ color: 'orange' }}>
+                            {coin.atr1d}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'cyan' }}>
+                            {coin.adx1d.adx?.toFixed(2)}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'brown' }}>
+                            {coin.macd1d.histogram?.toFixed(1)}
+                          </span>
+                          <span className='mx-0.5' style={{ color: 'purple' }}>
+                            {coin.ao1d}
+                          </span>
+                        </p>
+                      </div>
+                    </td>
+                    {/* <td
                     className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(coin.rsi1w)
                     }}
                   >
+                  <div className='flex'>
+                  <span
+                     style={{width: 8,
+                        height: 16,
+                      border: '1px solid blue',
+                        backgroundColor: coin.isRedCandle1w ? 'red' : 'green'
+                    }}
+                  >
+
+                  </span>
+
+                      <span
+                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
+                        onClick={() => {handleChangeInterval1(coin.symbol, `5m`)
+                       handleChangeInterval2(coin.symbol, `1d`)}}
+                      >
+                        View
+                      </span>
+
+                      {renderIcons(coin, '1w')}
+                    </div>
+
+
+                  <div className='block'>
                     <span className='mx-0.5' style={{color:"white"}}>{coin.rsi1w}</span>
                   <span className='mx-0.5' style={{color:"green"}}>({coin.prev10CandleVolumeCount1w})</span>
                  <p> <span className='mx-0.5' style={{color:"orange"}}>{coin.atr1w}</span>
                   <span className='mx-0.5' style={{color:"blue"}}>{coin.adx1w.adx?.toFixed(2)}</span>
                   <span className='mx-0.5' style={{color:"red"}}>{coin.macd1w.histogram?.toFixed(1)}</span>
                   <span className='mx-0.5' style={{color:"purple"}}>{coin.ao1w}</span>
-                  </p></td> */}
-
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: coin.isRedCandle5m ? 'red' : 'green'
-                  }}
-                >
-                  <div className='flex'>
-                    {renderIcons(coin, '5m')}
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(coin.symbol, `5m`)}
-                    >
-                      1
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(coin.symbol, `5m`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(coin.symbol, `5m`)}
-                    >
-                      3
-                    </span>
-                  </div>
+                  </p></div></td> */}
+                  </tr>
+                )
+              })}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={17}>
+                  <Image
+                    className='inline'
+                    alt='push'
+                    src='/assets/push.png'
+                    width={24}
+                    height={24}
+                  />
+                  <span>
+                    PUSH (hasLastCandleHighVolumeAndRevert) : Cuando entra nueva vela de otro color
+                    con mucho volumen
+                  </span>
                 </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: coin.isRedCandle15m ? 'red' : 'green'
-                  }}
-                >
-                  <div className='flex'>
-                    {renderIcons(coin, '15m')}
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(coin.symbol, `15m`)}
-                    >
-                      1
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(coin.symbol, `15m`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(coin.symbol, `15m`)}
-                    >
-                      3
-                    </span>
-                  </div>
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: coin.isRedCandle30m ? 'red' : 'green'
-                  }}
-                >
-                  <div className='flex'>
-                    {renderIcons(coin, '30m')}
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(coin.symbol, `30m`)}
-                    >
-                      1
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(coin.symbol, `30m`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(coin.symbol, `30m`)}
-                    >
-                      3
-                    </span>
-                  </div>
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: coin.isRedCandle1h ? 'red' : 'green'
-                  }}
-                >
-                  <div className='flex'>
-                    {renderIcons(coin, '1h')}
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(coin.symbol, `1h`)}
-                    >
-                      1
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(coin.symbol, `1h`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(coin.symbol, `1h`)}
-                    >
-                      3
-                    </span>
-                  </div>
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: coin.isRedCandle4h ? 'red' : 'green'
-                  }}
-                >
-                  <div className='flex'>
-                    {renderIcons(coin, '4h')}
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(coin.symbol, `4h`)}
-                    >
-                      1
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(coin.symbol, `4h`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(coin.symbol, `4h`)}
-                    >
-                      3
-                    </span>
-                  </div>
-                </td>
-                <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                  style={{
-                    backgroundColor: coin.isRedCandle1d ? 'red' : 'green'
-                  }}
-                >
-                  <div className='flex'>
-                    {renderIcons(coin, '1d')}
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval1(coin.symbol, `1d`)}
-                    >
-                      1
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval2(coin.symbol, `1d`)}
-                    >
-                      2
-                    </span>
-                    <span
-                      className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                      onClick={() => handleChangeInterval3(coin.symbol, `1d`)}
-                    >
-                      3
-                    </span>
-                  </div>
-                </td>
-                {/* <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                    style={{
-                      backgroundColor: coin.isRedCandle1w ? 'red' : 'green'
-                    }}
-                  >
-                    <div className='flex'>
-                      {renderIcons(coin, '1w')}
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval1(coin.symbol, `1w`)}
-                      >
-                        1
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval2(coin.symbol, `1w`)}
-                      >
-                        2
-                      </span>
-                      <span
-                        className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
-                        onClick={() => handleChangeInterval3(coin.symbol, `1w`)}
-                      >
-                        3
-                      </span>
-                    </div>
-                  </td> */}
               </tr>
-            )
-          })}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={17}>
-              <Image className='inline' alt='push' src='/assets/push.png' width={24} height={24} />
-              <span>
-                PUSH (hasLastCandleHighVolumeAndRevert) : Cuando entra nueva vela de otro color con
-                mucho volumen
-              </span>
-            </td>
-          </tr>
-          <tr>
-            <td colSpan={17}>
-              <Image
-                className='inline'
-                alt='superpush'
-                src='/assets/superpush.png'
-                width={24}
-                height={24}
+              <tr>
+                <td colSpan={17}>
+                  <Image
+                    className='inline'
+                    alt='superpush'
+                    src='/assets/superpush.png'
+                    width={24}
+                    height={24}
+                  />
+                  <span>
+                    SuperPUSH (hasLastCandleHighVolumeAndRevert+big) : igual q PUSH pero la vela es
+                    mas grande(elefante)
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={8}>
+                  <Image
+                    className='inline'
+                    alt='stop'
+                    src='/assets/stop.png'
+                    width={24}
+                    height={24}
+                  />
+                  <span>
+                    STOP: Cuando la vela anterior tiene mucho volumen, y aparece nueva vela con otro
+                    color
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={8}>
+                  ( n )
+                  <span>
+                    n: Cuantas velas con alto volumen (buy or sell) hubieron en las ultimas 10 velas
+                  </span>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div className='alerts flex flex-1 max-w-[800px]'>
+          <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
+            <label>
+              supervelotas de gran tamaño
+              <input
+                type='checkbox'
+                checked={superVelotaAlertsActive.current}
+                onChange={e => (superVelotaAlertsActive.current = e.target.checked)}
               />
-              <span>
-                SuperPUSH (hasLastCandleHighVolumeAndRevert+big) : igual q PUSH pero la vela es mas
-                grande(elefante)
-              </span>
-            </td>
-          </tr>
-          <tr>
-            <td colSpan={17}>
-              <Image className='inline' alt='stop' src='/assets/stop.png' width={24} height={24} />
-              <span>
-                STOP: Cuando la vela anterior tiene mucho volumen, y aparece nueva vela con otro
-                color
-              </span>
-            </td>
-          </tr>
-          <tr>
-            <td colSpan={17}>
-              ( n )
-              <span>
-                n: Cuantas velas con alto volumen (buy or sell) hubieron en las ultimas 10 velas
-              </span>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+            </label>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setSuperVelotaAlerts([])}
+            >
+              Clear super velotas alerts
+            </button>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              velas con gran tamaño: lastCandleHigherVol, rsi, size*20
+              {superVelotaAlerts.map(renderMessage)}
+            </ul>
+          </div>
+
+          <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
+            <label>
+              powa
+              <input
+                type='checkbox'
+                checked={alertsActive.current}
+                onChange={e => (alertsActive.current = e.target.checked)}
+              />
+            </label>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setAlerts([])}
+            >
+              Clear alerts
+            </button>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              VOL entering: lastCandleHigherVol, biggerThanPrev
+              {alerts.map(renderMessage)}
+            </ul>
+          </div>
+          <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
+            <label>
+              tick
+              <input
+                type='checkbox'
+                checked={volumeDiffAlertsActive.current}
+                onChange={e => (volumeDiffAlertsActive.current = e.target.checked)}
+              />{' '}
+            </label>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setVolumeDiffAlerts([])}
+            >
+              Clear VolDiff alerts
+            </button>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              candleVolDiff: verdeComoRoja o rojaComoVerde
+              {volumeDiffAlerts.map(renderMessage)}
+            </ul>
+          </div>
+
+          <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
+            <label>
+              secai/upa (candle up/down)
+              <input
+                type='checkbox'
+                checked={velotaAlertsActive.current}
+                onChange={e => (velotaAlertsActive.current = e.target.checked)}
+              />
+            </label>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setVelotaAlerts([])}
+            >
+              Clear velotas alerts
+            </button>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              sube/cae con juerza, con signos de reversion: lastCandleHigherVol, rsi, candle%outBB,
+              candleVolDiff
+              {velotaAlerts.map(renderMessage)}
+            </ul>
+          </div>
+
+          <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
+            <label>
+              boli up/down
+              <input
+                type='checkbox'
+                checked={bollingerAlertsActive.current}
+                onChange={e => (bollingerAlertsActive.current = e.target.checked)}
+              />
+            </label>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              onClick={() => setBollingerAlerts([])}
+            >
+              Clear Boli alerts
+            </button>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              crossBBBand, candle%OutBB, rsi
+              {bollingerAlerts.map(renderMessage)}
+            </ul>
+          </div>
+          {/* <ul className='overflow-y-auto'>{volumeAlerts.map(renderMessage)}</ul> */}
+        </div>
+      </div>
     </div>
   )
 }
