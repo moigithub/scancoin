@@ -288,6 +288,9 @@ export const Chart = ({
           />
         </>
       )}
+      {!useAutoFit && (
+        <button onClick={() => chartRef.current?.timeScale().fitContent()}>Adjust content</button>
+      )}
     </div>
   )
 }
