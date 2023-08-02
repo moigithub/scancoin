@@ -15,7 +15,8 @@ import {
   setVolumeFactor,
   setBBCandlePercentOut,
   setATRLength,
-  setSuperVelotaSizeMult
+  setSuperVelotaSizeMult,
+  setSelectedSymbol
 } from '@/app/binance'
 
 interface SocketServer extends HTTPServer {
@@ -94,6 +95,11 @@ export default async function SocketHandler(req: NextApiRequest, res: NextApiRes
     socket.on('setVolumeFactor', (value: number) => {
       console.log('setting max rsi', value, typeof value)
       setVolumeFactor(value)
+    })
+
+    socket.on('setSelectedSymbol', (value: string) => {
+      console.log('setting selected symbol', value, typeof value)
+      setSelectedSymbol(value)
     })
 
     socket.on('bye', () => {

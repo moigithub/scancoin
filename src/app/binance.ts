@@ -61,9 +61,11 @@ export interface CandleData {
   isAlert?: boolean
   alertTypeBollinger?: string
   alertTypeBigCandle?: string
+  change: number
+  distanceToEma20: string | number
 }
 
-interface Symbol {
+export interface Symbol {
   symbol: string
   status: string
   baseAsset: string
@@ -85,7 +87,9 @@ let symbols: Symbol[] = []
 let sockets: ReconnectingWebSocketHandler[] = []
 let exchangeInfo: any = null
 const TOTAL_BTC_CANDLES = 201
-const TOTAL_CLIENT_CANDLES = 80 // lo que se manda al cliente, debe ser menor que TOTAL_CANDLES
+
+const TOTAL_CLIENT_CANDLES = 50 // lo que se manda al cliente, debe ser menor que TOTAL_CANDLES
+let SELECTED_SYMBOL = 'BTCUSDT'
 let RSI_LENGTH = 14
 let ATR_PERIOD = 14
 let ADX_PERIOD = 14
@@ -97,7 +101,7 @@ let MACD_SIGNAL_PERIOD = 9
 let MIN_RSI = 30
 let MAX_RSI = 70
 let BB_CANDLE_PERCENT_OUT = 40
-let SUPERVELOTA_SIZE_MULT_FACTOR = 20
+let SUPERVELOTA_SIZE_MULT_FACTOR = 6
 let VOLUME_LENGTH = 30 //  por ahora usar rsi length
 let VOL_FACTOR = 1.5 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
 // segun el ejemplo del technical indicator.. la data para calcular (el sma, rsi) es casi el doble
@@ -260,7 +264,9 @@ const getCandles = async (coin: any, interval: MyCandleChartInterval = '15m') =>
   //   console.log('data 1w for LTCUSDT', data)
   // }
 
-  addExtraCandleData(coin, interval)
+  const count = coin[`data${interval}`].length
+  addExtraCandleData(coin, interval, count - 1) // add extra data al penultimo
+  addExtraCandleData(coin, interval) // add extra data al ultimo
 
   // }
   // console.log('candles', symbols[0].data1m)
@@ -276,6 +282,8 @@ const getCandleData = (candle: Partial<CandleType>): CandleData => {
     low: Number(candle.low),
     close: Number(candle.close),
     volume: Number(candle.volume),
+    change: 0,
+    distanceToEma20: '',
     isFinal: candle.isFinal ?? true,
     volAverage: 0,
     rsi: 0,
@@ -316,9 +324,22 @@ const getLastRSIValue = (values: number[] = []) => {
   return rsi.length > 0 ? rsi[rsi.length - 1] : 0
 }
 
-const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m') => {
-  const data = coin[`data${interval}`]
-  const data1d = coin.data1d // para el VWAP Diario
+const addExtraCandleData = (
+  coin: Symbol,
+  interval: MyCandleChartInterval = '15m',
+  candleIndex?: number | undefined
+) => {
+  let data = coin[`data${interval}`]
+  let data1d = coin.data1d // para el VWAP Diario
+
+  // console.log('data1d', data1d.length)
+
+  // if candleIndex is specified, calculate data for that specific candle
+  if (candleIndex !== undefined) {
+    data = coin[`data${interval}`].slice(0, candleIndex)
+    data1d = coin.data1d.slice(0, candleIndex)
+  }
+
   // calc rsi
   const close = data.map((val: any) => Number(val.close))
   const high = data.map((val: any) => Number(val.high))
@@ -329,6 +350,8 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
   const high1d = data1d.map((val: any) => Number(val.high))
   const low1d = data1d.map((val: any) => Number(val.low))
   const volume1d = data1d.map((val: any) => Number(val.volume))
+  const last1dCandle = data1d[data1d.length - 1]
+  const ema20Daily = last1dCandle?.ema20
 
   // isRedCandle
   const lastCandle = data[data.length - 1]
@@ -460,10 +483,29 @@ const addExtraCandleData = (coin: Symbol, interval: MyCandleChartInterval = '15m
   const macd = MACD.calculate(MACDInput)
   const macdLast = macd[macd.length - 1] ?? { MACD: 0, histogram: 0, signal: 0 }
 
+  // %change
+  let change = 0
+  if (close1d.length > 0) {
+    // const last1dcandle = data1d.slice(-1)[0]
+    // console.log('lastcanlde dayly', last1dcandle.isFinal, last1dcandle.close)
+    const dailyClosed = close1d[close1d.length - 1]
+    change = ((prevCandle.close - dailyClosed) / prevCandle.close) * 100 // en porcentaje
+  }
+
+  //distance to daily ema20
+  let distanceToEma20: string | number = ''
+  if (ema20Daily) {
+    distanceToEma20 = (lastCandle.close - ema20Daily) / lastCandle.close
+    distanceToEma20 = distanceToEma20.toFixed(2) + ' D'
+  }
+
+  // console.log('change', change, 'distanceToEma20', distanceToEma20)
   // save extra data on last candle
   data[data.length - 1] = {
     ...data[data.length - 1],
     volAverage,
+    change,
+    distanceToEma20,
     ema20: ema20last,
     sma50: sma50last,
     sma200: sma200last,
@@ -574,13 +616,16 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
       !isPrevCandleDragonflyDoji && !isPrevCandleGravestoneDoji && !isPrevCandleDoji
 
     // velotas de 1 minuto
+    const max = getBodySize(prevCandle) * SUPERVELOTA_SIZE_MULT_FACTOR
+    const lastCandleBodySize = getBodySize(lastCandle)
     if (
       prevCandleIsNotDoji &&
       lastCandle.hasLastCandleHighVolume &&
       lastCandle.isBiggerThanPrevious &&
       (isOverBought(lastCandle) || isOverSold(lastCandle)) &&
-      getBodySize(lastCandle) > getBodySize(prevCandle) * SUPERVELOTA_SIZE_MULT_FACTOR
+      lastCandleBodySize > max
     ) {
+      console.log('super velota mas grande veces: ', max / lastCandleBodySize)
       sendAlert(`alert:supervelotas`, { ...coin, interval })
     }
 
@@ -871,13 +916,13 @@ export const initializeCandles = async () => {
 
   // data inicial
   for (let coin of symbols) {
-    await getCandles(coin, '1m')
-    await getCandles(coin, '5m')
-    await getCandles(coin, '15m')
-    await getCandles(coin, '30m')
-    await getCandles(coin, '1h')
+    await getCandles(coin, '1d') //must be first, cuz distance to daily ema20 calc
     await getCandles(coin, '4h')
-    await getCandles(coin, '1d')
+    await getCandles(coin, '1h')
+    await getCandles(coin, '30m')
+    await getCandles(coin, '15m')
+    await getCandles(coin, '5m')
+    await getCandles(coin, '1m')
     // await getCandles(coin, '1w')
     sendData(getDataToSend())
     // console.log('symbol', symbols[0])
@@ -1004,6 +1049,9 @@ export const setVolumeLength = (value: number) => {
 export const setVolumeFactor = (value: number) => {
   VOL_FACTOR = value
 }
+export const setSelectedSymbol = (value: string) => {
+  SELECTED_SYMBOL = value
+}
 
 export const pingTime = async () => {
   const time = await client.time()
@@ -1012,19 +1060,41 @@ export const pingTime = async () => {
 }
 
 const getDataToSend = () => {
-  return symbols.map(coin => ({
-    symbol: coin.symbol,
-    minNotional: coin.minNotional,
-    price: coin.price,
-    data1m: coin.data1m.slice(-TOTAL_CLIENT_CANDLES),
-    data5m: coin.data5m.slice(-TOTAL_CLIENT_CANDLES),
-    data15m: coin.data15m.slice(-TOTAL_CLIENT_CANDLES),
-    data30m: coin.data30m.slice(-TOTAL_CLIENT_CANDLES),
-    data1h: coin.data1h.slice(-TOTAL_CLIENT_CANDLES),
-    data4h: coin.data4h.slice(-TOTAL_CLIENT_CANDLES),
-    data1d: coin.data1d.slice(-TOTAL_CLIENT_CANDLES)
-    // data1w: coin.data1w.slice(-TOTAL_CLIENT_CANDLES)
-  }))
+  const selectedSymbols = ['BTCUSDT', SELECTED_SYMBOL]
+
+  const selectedData = symbols
+    .filter(s => selectedSymbols.includes(s.symbol))
+    .map(coin => ({
+      symbol: coin.symbol,
+      minNotional: coin.minNotional,
+      price: coin.price,
+      data1m: coin.data1m.slice(-TOTAL_CLIENT_CANDLES),
+      data5m: coin.data5m.slice(-TOTAL_CLIENT_CANDLES),
+      data15m: coin.data15m.slice(-TOTAL_CLIENT_CANDLES),
+      data30m: coin.data30m.slice(-TOTAL_CLIENT_CANDLES),
+      data1h: coin.data1h.slice(-TOTAL_CLIENT_CANDLES),
+      data4h: coin.data4h.slice(-TOTAL_CLIENT_CANDLES),
+      data1d: coin.data1d.slice(-TOTAL_CLIENT_CANDLES)
+      // data1w: coin.data1w.slice(-TOTAL_CLIENT_CANDLES)
+    }))
+
+  return selectedData.concat(
+    symbols
+      .filter(s => !selectedSymbols.includes(s.symbol))
+      .map(coin => ({
+        symbol: coin.symbol,
+        minNotional: coin.minNotional,
+        price: coin.price,
+        data1m: coin.data1m.slice(-1),
+        data5m: coin.data5m.slice(-1),
+        data15m: coin.data15m.slice(-1),
+        data30m: coin.data30m.slice(-1),
+        data1h: coin.data1h.slice(-1),
+        data4h: coin.data4h.slice(-1),
+        data1d: coin.data1d.slice(-1)
+        // data1w: coin.data1w.slice(-1)
+      }))
+  )
 }
 
 const isOverSold = (candle: any) => candle.rsi < MIN_RSI
@@ -1040,8 +1110,9 @@ const getBuyVolume = (candle: any) =>
     : (candle.volume * (candle.close - candle.low)) / (candle.high - candle.low)
 
 export const refreshData = () => {
-  console.log('Refreshing data')
-  sendData(getDataToSend())
+  const data = getDataToSend()
+  console.log('Refreshing data', data.length)
+  sendData(data)
   // sendData(fakeData)
 }
 

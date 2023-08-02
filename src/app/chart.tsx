@@ -53,11 +53,11 @@ export const Chart = ({
     chartRef.current = createChart(chartContainerRef?.current!, {
       rightPriceScale: {
         visible: true,
-        borderColor: '#485c7b',
-        scaleMargins: {
-          top: 0.4,
-          bottom: 0.4
-        }
+        borderColor: '#485c7b'
+        // scaleMargins: {
+        //   top: 0.4,
+        //   bottom: 0.4
+        // }
       },
       leftPriceScale: {
         visible: true
@@ -167,7 +167,7 @@ export const Chart = ({
         .setVisibleLogicalRange({ from: range.from, to: Date.now() / 1000 })
     }
 
-    chartRef.current.timeScale().applyOptions({ shiftVisibleRangeOnNewBar: true })
+    // chartRef.current.timeScale().applyOptions({ shiftVisibleRangeOnNewBar: true })
 
     // chart.timeScale().subscribeVisibleLogicalRangeChange(logicalRange => {
     //   const range: Range<number> = {
