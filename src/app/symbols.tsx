@@ -12,20 +12,8 @@ import {
 import io, { Socket } from 'socket.io-client'
 import { Chart } from './chart'
 import Image from 'next/image'
-import { CandleData } from './binance'
+import { CandleData, Symbol } from './binance'
 
-type Symbol = {
-  symbol: string
-  minNotional: string
-  price: number
-  data5m: CandleData[]
-  data15m: CandleData[]
-  data30m: CandleData[]
-  data1h: CandleData[]
-  data4h: CandleData[]
-  data1d: CandleData[]
-  // data1w: CandleData[]
-}
 enum ALERT_TYPE {
   'alert' = 'alert',
   'supervelotas' = 'supervelotas',
@@ -53,10 +41,12 @@ let sndSuperVelotas: any = null
 const MAX_ALERTS = 40
 
 export const Symbols = () => {
+  const [forceUpdating, setForceUpdating] = useState(0)
+
   const [symbols, setSymbols] = useState<Symbol[]>([])
   const [searchFilter, setSearchFilter] = useState('')
   const [volumeCount, setVolumeCount] = useState(3)
-  const [superVelotaSizeMult, setSuperVelotaSizeMult] = useState(20) //20 times prev candle size
+  const [superVelotaSizeMult, setSuperVelotaSizeMult] = useState(6) //6 times prev candle size
   const [minRSIFilter, setMinRSIFilter] = useState(30)
   const [maxRSIFilter, setMaxRSIFilter] = useState(70)
   const [RSILenFilter, setRSILenFilter] = useState(14)
@@ -208,7 +198,7 @@ export const Symbols = () => {
     chartUpdater(selectedCoin1, setChartData1)
     chartUpdater(selectedCoin2, setChartData2)
     // chartUpdater(selectedCoin3, setChartData3)
-  }, [symbols])
+  }, [symbols, forceUpdating])
 
   async function socketInitializer() {
     await fetch('/api/socket')
@@ -380,6 +370,7 @@ export const Symbols = () => {
             onClick={() => {
               handleChangeInterval1(msg.symbol, '5m')
               handleChangeInterval2(msg.symbol, '1d')
+              socket.emit('setSelectedSymbol', msg.symbol)
             }}
           >
             View
@@ -491,6 +482,8 @@ export const Symbols = () => {
     const symbol = coin || parts[0]
 
     selectedCoin1.current = symbol + ':' + interval
+
+    setForceUpdating(x => x + (1 % 100))
   }
 
   const handleChangeInterval2 = (coin: string, interval: string) => {
@@ -502,6 +495,8 @@ export const Symbols = () => {
     const symbol = coin || parts[0]
 
     selectedCoin2.current = symbol + ':' + interval
+
+    setForceUpdating(x => x + (1 % 100))
   }
 
   // const handleChangeInterval3 = (coin: string, interval: string) => {
@@ -842,8 +837,11 @@ export const Symbols = () => {
       isBiggerThanPrevious30m: d.data30m[d.data30m.length - 1]?.isBiggerThanPrevious ?? 0,
       isBiggerThanPrevious1h: d.data1h[d.data1h.length - 1]?.isBiggerThanPrevious ?? 0,
       isBiggerThanPrevious4h: d.data4h[d.data4h.length - 1]?.isBiggerThanPrevious ?? 0,
-      isBiggerThanPrevious1d: d.data1d[d.data1d.length - 1]?.isBiggerThanPrevious ?? 0
-      // isBiggerThanPrevious1w: d.data1w[d.data1w.length - 1]?.isBiggerThanPrevious ?? 0
+      isBiggerThanPrevious1d: d.data1d[d.data1d.length - 1]?.isBiggerThanPrevious ?? 0,
+      // isBiggerThanPrevious1w: d.data1w[d.data1w.length - 1]?.isBiggerThanPrevious ?? 0,
+
+      change: d.data1m[d.data1m.length - 1]?.change.toFixed(2) ?? '',
+      distanceToEma20: d.data1m[d.data1m.length - 1]?.distanceToEma20 ?? ''
     }
   }
 
@@ -897,6 +895,12 @@ export const Symbols = () => {
     return 0
   })
   const dataBTC = BTC.map(getData)
+
+  console.log('data btc', dataBTC)
+
+  // how many symbols going up vs down
+  const goingUp = symbols.filter(s => s.data1m[s.data1m.length - 1]?.change >= 0).length
+  const goingDown = symbols.length - goingUp
 
   return (
     <div className='p-3 flex flex-col'>
@@ -1348,21 +1352,21 @@ export const Symbols = () => {
       </div>
       <div className='flex'>
         <button
-          className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+          className='bg-blue-500 hover:bg-blue-700 text-white text-xs mx-0.5 px-1 rounded'
           onClick={() => socket.emit('reconnect')}
         >
           Reconnect
         </button>
 
         <button
-          className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+          className='bg-blue-500 hover:bg-blue-700 text-white text-xs mx-0.5 px-1 rounded'
           onClick={() => socket.emit('get-data')}
         >
           Refresh
         </button>
 
         {/* <button
-            className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
+            className='bg-blue-500 hover:bg-blue-700 text-white text-xs mx-0.5 px-1 rounded'
             onClick={() => setVolumeAlerts([])}
           >
             Clear Vol alerts
@@ -1398,6 +1402,9 @@ export const Symbols = () => {
 
       <div className='body flex'>
         <div className='data flex flex-1 flex-col'>
+          <h3>
+            Going UP: {goingUp} - Going Down: {goingDown}
+          </h3>
           <table className=' divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-blue-500'>
             <tbody>
               <tr>
@@ -1414,19 +1421,12 @@ export const Symbols = () => {
           <table className='table table-fixed divide-y divide-gray-200 dark:divide-gray-700 border-collapse border border-blue-500'>
             <thead>
               <tr>
-                <th colSpan={2}>Symbol</th>
+                <th colSpan={3}>Symbol</th>
 
-                <th
-                  colSpan={6}
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
-                >
+                <th colSpan={6} className='border border-blue-500 px-2 py-1 text-sm font-medium'>
                   RSI ({rsiSelectedSort}) [
                   <span className='mx-0.5' style={{ color: 'white' }}>
                     rsi
-                  </span>
-                  ,
-                  <span className='mx-0.5' style={{ color: 'yellow' }}>
-                    candleCount
                   </span>
                   ,
                   <span className='mx-0.5' style={{ color: 'orange' }}>
@@ -1435,6 +1435,10 @@ export const Symbols = () => {
                   ,
                   <span className='mx-0.5' style={{ color: 'cyan' }}>
                     adx
+                  </span>
+                  ,
+                  <span className='mx-0.5' style={{ color: 'yellow' }}>
+                    candleCount
                   </span>
                   ,
                   <span className='mx-0.5' style={{ color: 'brown' }}>
@@ -1448,51 +1452,54 @@ export const Symbols = () => {
                 </th>
               </tr>
               <tr>
-                <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[100px]'>
+                <th className='border border-blue-500 px-2 py-1 text-sm font-medium w-[100px]'>
                   Name
                 </th>
-                <th className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'>
-                  Curr.Price
+                <th className='border border-blue-500 px-2 py-1 text-sm font-medium w-[80px]'>
+                  Curr.Price (% change)
+                </th>
+                <th className='border border-blue-500 px-2 py-1 text-sm font-medium w-[40px]'>
+                  Dist.ema20 1D
                 </th>
                 <th
                   onClick={() => handleSelectSort('5m')}
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                  className='border border-blue-500 px-2 py-1 text-sm font-medium w-[80px]'
                 >
                   5min
                 </th>
                 <th
                   onClick={() => handleSelectSort('15m')}
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                  className='border border-blue-500 px-2 py-1 text-sm font-medium w-[80px]'
                 >
                   15min
                 </th>
                 <th
                   onClick={() => handleSelectSort('30m')}
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                  className='border border-blue-500 px-2 py-1 text-sm font-medium w-[80px]'
                 >
                   30min
                 </th>
                 <th
                   onClick={() => handleSelectSort('1h')}
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                  className='border border-blue-500 px-2 py-1 text-sm font-medium w-[80px]'
                 >
                   1Hra
                 </th>
                 <th
                   onClick={() => handleSelectSort('4h')}
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                  className='border border-blue-500 px-2 py-1 text-sm font-medium w-[80px]'
                 >
                   4Hra
                 </th>
                 <th
                   onClick={() => handleSelectSort('1d')}
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                  className='border border-blue-500 px-2 py-1 text-sm font-medium w-[80px]'
                 >
                   Dia
                 </th>
                 {/* <th
                 onClick={() => handleSelectSort('1w')}
-                className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium w-[80px]'
+                className='border border-blue-500 px-2 py-1 text-sm font-medium w-[80px]'
               >
                 1w
               </th> */}
@@ -1501,7 +1508,7 @@ export const Symbols = () => {
             <tbody>
               {dataBTC.length > 0 && (
                 <tr key={dataBTC[0].symbol} className='border-2 border-red-500'>
-                  <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium '>
+                  <td className='border border-blue-500 px-2 py-1 text-sm font-medium '>
                     {/* <a
                     href={`https://www.tradingview.com/symbols/${dataBTC[0].symbol}/?exchange=BINANCE`}
                     target='_blank'
@@ -1515,11 +1522,15 @@ export const Symbols = () => {
                       {dataBTC[0].symbol}
                     </a>
                   </td>
-                  <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
-                    {dataBTC[0].price}
+
+                  <td className='border border-blue-500 px-2 py-1 text-sm font-medium'>
+                    {dataBTC[0].price} ({dataBTC[0].change} %)
+                  </td>
+                  <td className='border border-blue-500 px-2 py-1 text-sm font-medium'>
+                    {dataBTC[0].distanceToEma20}
                   </td>
                   <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(dataBTC[0].rsi5m)
                     }}
@@ -1546,7 +1557,7 @@ export const Symbols = () => {
                     <div className='block'>{dataBTC[0].rsi5m}</div>
                   </td>
                   <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(dataBTC[0].rsi15m)
                     }}
@@ -1575,7 +1586,7 @@ export const Symbols = () => {
                     <div className='block'>{dataBTC[0].rsi15m} </div>
                   </td>
                   <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(dataBTC[0].rsi30m)
                     }}
@@ -1605,7 +1616,7 @@ export const Symbols = () => {
                     <div className='block'>{dataBTC[0].rsi30m} </div>
                   </td>
                   <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(dataBTC[0].rsi1h)
                     }}
@@ -1633,7 +1644,7 @@ export const Symbols = () => {
                     <div className='block'>{dataBTC[0].rsi1h} </div>
                   </td>
                   <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(dataBTC[0].rsi4h)
                     }}
@@ -1663,7 +1674,7 @@ export const Symbols = () => {
                     <div className='block'>{dataBTC[0].rsi4h}</div>
                   </td>
                   <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(dataBTC[0].rsi1d)
                     }}
@@ -1692,7 +1703,7 @@ export const Symbols = () => {
                     <div className='block'>{dataBTC[0].rsi1d}</div>
                   </td>
                   {/* <td
-                  className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                  className='border border-blue-500 px-2 py-1 text-sm font-medium'
                   style={{
                     backgroundColor: getBgColor(dataBTC[0].rsi1w)
                   }}
@@ -1709,7 +1720,9 @@ export const Symbols = () => {
                     <span
                       className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
                       onClick={() =>{ handleChangeInterval1(dataBTC[0].symbol, `5m`)
-                     handleChangeInterval2(dataBTC[0].symbol, `1d`)}}
+                     handleChangeInterval2(dataBTC[0].symbol, `1d`)
+
+                    }}
                     >
                       View
                     </span>
@@ -1723,7 +1736,7 @@ export const Symbols = () => {
               {dataSymbols.map(coin => {
                 return (
                   <tr key={coin.symbol}>
-                    <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'>
+                    <td className='border border-blue-500 px-2 py-1 text-sm font-medium'>
                       {/* <a
                     href={`https://www.tradingview.com/symbols/${coin.symbol}/?exchange=BINANCE`}
                     target='_blank'
@@ -1739,11 +1752,15 @@ export const Symbols = () => {
                         {coin.symbol}
                       </a>
                     </td>
-                    <td className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium '>
-                      {coin.price}
+                    <td className='border border-blue-500 px-2 py-1 text-sm font-medium '>
+                      {coin.price} ( {coin.change} %)
                     </td>
+                    <td className='border border-blue-500 px-2 py-1 text-sm font-medium '>
+                      {coin.distanceToEma20}
+                    </td>
+
                     <td
-                      className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                      className='border border-blue-500 px-2 py-1 text-sm font-medium'
                       style={{
                         backgroundColor: getBgColor(coin.rsi5m)
                       }}
@@ -1763,6 +1780,7 @@ export const Symbols = () => {
                           onClick={() => {
                             handleChangeInterval1(coin.symbol, `5m`)
                             handleChangeInterval2(coin.symbol, `1d`)
+                            socket.emit('setSelectedSymbol', coin.symbol)
                           }}
                         >
                           View
@@ -1775,15 +1793,16 @@ export const Symbols = () => {
                         <span className='mx-0.5' style={{ color: 'white' }}>
                           {coin.rsi5m}
                         </span>
-                        <span className='mx-0.5' style={{ color: 'yellow' }}>
-                          ({coin.prev10CandleVolumeCount5m})
+
+                        <span className='mx-0.5' style={{ color: 'orange' }}>
+                          {coin.atr5m}
+                        </span>
+                        <span className='mx-0.5' style={{ color: 'cyan' }}>
+                          {coin.adx5m.adx?.toFixed(2)}
                         </span>
                         <p>
-                          <span className='mx-0.5' style={{ color: 'orange' }}>
-                            {coin.atr5m}
-                          </span>
-                          <span className='mx-0.5' style={{ color: 'cyan' }}>
-                            {coin.adx5m.adx?.toFixed(2)}
+                          <span className='mx-0.5' style={{ color: 'yellow' }}>
+                            ({coin.prev10CandleVolumeCount5m})
                           </span>
                           <span className='mx-0.5' style={{ color: 'brown' }}>
                             {coin.macd5m.histogram?.toFixed(1)}
@@ -1795,7 +1814,7 @@ export const Symbols = () => {
                       </div>
                     </td>
                     <td
-                      className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                      className='border border-blue-500 px-2 py-1 text-sm font-medium'
                       style={{
                         backgroundColor: getBgColor(coin.rsi15m)
                       }}
@@ -1815,6 +1834,7 @@ export const Symbols = () => {
                           onClick={() => {
                             handleChangeInterval1(coin.symbol, `5m`)
                             handleChangeInterval2(coin.symbol, `1d`)
+                            socket.emit('setSelectedSymbol', coin.symbol)
                           }}
                         >
                           View
@@ -1826,15 +1846,16 @@ export const Symbols = () => {
                         <span className='mx-0.5' style={{ color: 'white' }}>
                           {coin.rsi15m}
                         </span>
-                        <span className='mx-0.5' style={{ color: 'yellow' }}>
-                          ({coin.prev10CandleVolumeCount15m})
+
+                        <span className='mx-0.5' style={{ color: 'orange' }}>
+                          {coin.atr15m}
+                        </span>
+                        <span className='mx-0.5' style={{ color: 'cyan' }}>
+                          {coin.adx15m.adx?.toFixed(2)}
                         </span>
                         <p>
-                          <span className='mx-0.5' style={{ color: 'orange' }}>
-                            {coin.atr15m}
-                          </span>
-                          <span className='mx-0.5' style={{ color: 'cyan' }}>
-                            {coin.adx15m.adx?.toFixed(2)}
+                          <span className='mx-0.5' style={{ color: 'yellow' }}>
+                            ({coin.prev10CandleVolumeCount15m})
                           </span>
                           <span className='mx-0.5' style={{ color: 'brown' }}>
                             {coin.macd15m.histogram?.toFixed(1)}
@@ -1846,7 +1867,7 @@ export const Symbols = () => {
                       </div>
                     </td>
                     <td
-                      className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                      className='border border-blue-500 px-2 py-1 text-sm font-medium'
                       style={{
                         backgroundColor: getBgColor(coin.rsi30m)
                       }}
@@ -1866,6 +1887,7 @@ export const Symbols = () => {
                           onClick={() => {
                             handleChangeInterval1(coin.symbol, `5m`)
                             handleChangeInterval2(coin.symbol, `1d`)
+                            socket.emit('setSelectedSymbol', coin.symbol)
                           }}
                         >
                           View
@@ -1878,15 +1900,16 @@ export const Symbols = () => {
                         <span className='mx-0.5' style={{ color: 'white' }}>
                           {coin.rsi30m}
                         </span>
-                        <span className='mx-0.5' style={{ color: 'yellow' }}>
-                          ({coin.prev10CandleVolumeCount30m})
+
+                        <span className='mx-0.5' style={{ color: 'orange' }}>
+                          {coin.atr30m}
+                        </span>
+                        <span className='mx-0.5' style={{ color: 'cyan' }}>
+                          {coin.adx30m.adx?.toFixed(2)}
                         </span>
                         <p>
-                          <span className='mx-0.5' style={{ color: 'orange' }}>
-                            {coin.atr30m}
-                          </span>
-                          <span className='mx-0.5' style={{ color: 'cyan' }}>
-                            {coin.adx30m.adx?.toFixed(2)}
+                          <span className='mx-0.5' style={{ color: 'yellow' }}>
+                            ({coin.prev10CandleVolumeCount30m})
                           </span>
                           <span className='mx-0.5' style={{ color: 'brown' }}>
                             {coin.macd30m.histogram?.toFixed(1)}
@@ -1898,7 +1921,7 @@ export const Symbols = () => {
                       </div>
                     </td>
                     <td
-                      className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                      className='border border-blue-500 px-2 py-1 text-sm font-medium'
                       style={{
                         backgroundColor: getBgColor(coin.rsi1h)
                       }}
@@ -1918,6 +1941,7 @@ export const Symbols = () => {
                           onClick={() => {
                             handleChangeInterval1(coin.symbol, `5m`)
                             handleChangeInterval2(coin.symbol, `1d`)
+                            socket.emit('setSelectedSymbol', coin.symbol)
                           }}
                         >
                           View
@@ -1929,15 +1953,16 @@ export const Symbols = () => {
                         <span className='mx-0.5' style={{ color: 'white' }}>
                           {coin.rsi1h}
                         </span>
-                        <span className='mx-0.5' style={{ color: 'yellow' }}>
-                          ({coin.prev10CandleVolumeCount1h})
+
+                        <span className='mx-0.5' style={{ color: 'orange' }}>
+                          {coin.atr1h}
+                        </span>
+                        <span className='mx-0.5' style={{ color: 'cyan' }}>
+                          {coin.adx1h.adx?.toFixed(2)}
                         </span>
                         <p>
-                          <span className='mx-0.5' style={{ color: 'orange' }}>
-                            {coin.atr1h}
-                          </span>
-                          <span className='mx-0.5' style={{ color: 'cyan' }}>
-                            {coin.adx1h.adx?.toFixed(2)}
+                          <span className='mx-0.5' style={{ color: 'yellow' }}>
+                            ({coin.prev10CandleVolumeCount1h})
                           </span>
                           <span className='mx-0.5' style={{ color: 'brown' }}>
                             {coin.macd1h.histogram?.toFixed(1)}
@@ -1949,7 +1974,7 @@ export const Symbols = () => {
                       </div>
                     </td>
                     <td
-                      className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                      className='border border-blue-500 px-2 py-1 text-sm font-medium'
                       style={{
                         backgroundColor: getBgColor(coin.rsi4h)
                       }}
@@ -1969,6 +1994,7 @@ export const Symbols = () => {
                           onClick={() => {
                             handleChangeInterval1(coin.symbol, `5m`)
                             handleChangeInterval2(coin.symbol, `1d`)
+                            socket.emit('setSelectedSymbol', coin.symbol)
                           }}
                         >
                           View
@@ -1981,15 +2007,16 @@ export const Symbols = () => {
                         <span className='mx-0.5' style={{ color: 'white' }}>
                           {coin.rsi4h}
                         </span>
-                        <span className='mx-0.5' style={{ color: 'yellow' }}>
-                          ({coin.prev10CandleVolumeCount4h})
+
+                        <span className='mx-0.5' style={{ color: 'orange' }}>
+                          {coin.atr4h}
+                        </span>
+                        <span className='mx-0.5' style={{ color: 'cyan' }}>
+                          {coin.adx4h.adx?.toFixed(2)}
                         </span>
                         <p>
-                          <span className='mx-0.5' style={{ color: 'orange' }}>
-                            {coin.atr4h}
-                          </span>
-                          <span className='mx-0.5' style={{ color: 'cyan' }}>
-                            {coin.adx4h.adx?.toFixed(2)}
+                          <span className='mx-0.5' style={{ color: 'yellow' }}>
+                            ({coin.prev10CandleVolumeCount4h})
                           </span>
                           <span className='mx-0.5' style={{ color: 'brown' }}>
                             {coin.macd4h.histogram?.toFixed(1)}
@@ -2001,7 +2028,7 @@ export const Symbols = () => {
                       </div>
                     </td>
                     <td
-                      className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                      className='border border-blue-500 px-2 py-1 text-sm font-medium'
                       style={{
                         backgroundColor: getBgColor(coin.rsi1d)
                       }}
@@ -2021,6 +2048,7 @@ export const Symbols = () => {
                           onClick={() => {
                             handleChangeInterval1(coin.symbol, `5m`)
                             handleChangeInterval2(coin.symbol, `1d`)
+                            socket.emit('setSelectedSymbol', coin.symbol)
                           }}
                         >
                           View
@@ -2033,15 +2061,16 @@ export const Symbols = () => {
                         <span className='mx-0.5' style={{ color: 'white' }}>
                           {coin.rsi1d}
                         </span>
-                        <span className='mx-0.5' style={{ color: 'yellow' }}>
-                          ({coin.prev10CandleVolumeCount1d})
+
+                        <span className='mx-0.5' style={{ color: 'orange' }}>
+                          {coin.atr1d}
+                        </span>
+                        <span className='mx-0.5' style={{ color: 'cyan' }}>
+                          {coin.adx1d.adx?.toFixed(2)}
                         </span>
                         <p>
-                          <span className='mx-0.5' style={{ color: 'orange' }}>
-                            {coin.atr1d}
-                          </span>
-                          <span className='mx-0.5' style={{ color: 'cyan' }}>
-                            {coin.adx1d.adx?.toFixed(2)}
+                          <span className='mx-0.5' style={{ color: 'yellow' }}>
+                            ({coin.prev10CandleVolumeCount1d})
                           </span>
                           <span className='mx-0.5' style={{ color: 'brown' }}>
                             {coin.macd1d.histogram?.toFixed(1)}
@@ -2053,7 +2082,7 @@ export const Symbols = () => {
                       </div>
                     </td>
                     {/* <td
-                    className='border border-blue-500 px-2 py-1 whitespace-nowrap text-sm font-medium'
+                    className='border border-blue-500 px-2 py-1 text-sm font-medium'
                     style={{
                       backgroundColor: getBgColor(coin.rsi1w)
                     }}
@@ -2072,7 +2101,10 @@ export const Symbols = () => {
                       <span
                         className='bg-blue-200 hover:bg-blue-400 text-black text-sm cursor-pointer mx-1 px-1'
                         onClick={() => {handleChangeInterval1(coin.symbol, `5m`)
-                       handleChangeInterval2(coin.symbol, `1d`)}}
+                       handleChangeInterval2(coin.symbol, `1d`)
+socket.emit('setSelectedSymbol', coin.symbol)
+                      }}
+
                       >
                         View
                       </span>
@@ -2162,7 +2194,7 @@ export const Symbols = () => {
               />
             </label>
             <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              className='bg-blue-500 hover:bg-blue-700 text-white text-xs mx-0.5 px-1 rounded'
               onClick={() => setSuperVelotaAlerts([])}
             >
               Clear super velotas alerts
@@ -2183,7 +2215,7 @@ export const Symbols = () => {
               />
             </label>
             <button
-              className='bg-blue-500 hover:bg-blue-700 text-sm text-white font-bold mx-2 py-1 px-2 rounded'
+              className='bg-blue-500 hover:bg-blue-700 text-white text-xs mx-0.5 px-1 rounded'
               onClick={() => setAlerts([])}
             >
               Clear alerts
@@ -2203,7 +2235,7 @@ export const Symbols = () => {
               />{' '}
             </label>
             <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              className='bg-blue-500 hover:bg-blue-700 text-white text-xs mx-0.5 px-1 rounded'
               onClick={() => setVolumeDiffAlerts([])}
             >
               Clear VolDiff alerts
@@ -2224,7 +2256,7 @@ export const Symbols = () => {
               />
             </label>
             <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              className='bg-blue-500 hover:bg-blue-700 text-white text-xs mx-0.5 px-1 rounded'
               onClick={() => setVelotaAlerts([])}
             >
               Clear velotas alerts
@@ -2246,7 +2278,7 @@ export const Symbols = () => {
               />
             </label>
             <button
-              className='bg-blue-500 hover:bg-blue-700 text-white text-sm font-bold mx-2 py-1 px-2 rounded'
+              className='bg-blue-500 hover:bg-blue-700 text-white text-xs mx-0.5 px-1 rounded'
               onClick={() => setBollingerAlerts([])}
             >
               Clear Boli alerts
