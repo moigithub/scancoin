@@ -1172,10 +1172,15 @@ const isInvertedHammerCandle = (candle: any) => {
   // wick should be at least 50.1% of candle
   // const candleSize = getCandleSize(candle)
   const candleBody = getBodySize(candle)
-  let wick = 0
-  if (isCandleGreen(candle)) wick = candle.high - candle.close
-  if (isCandleRed(candle)) wick = candle.high - candle.open
-  return wick > candleBody
+  let wickAbove = 0
+  if (isCandleGreen(candle)) wickAbove = candle.high - candle.close
+  if (isCandleRed(candle)) wickAbove = candle.high - candle.open
+
+  let wickBelow = 0
+  if (isCandleGreen(candle)) wickBelow = candle.open - candle.low
+  if (isCandleRed(candle)) wickBelow = candle.close - candle.low
+
+  return wickAbove > candleBody && candleBody > wickBelow
 }
 
 const isHammerCandle = (candle: any) => {
@@ -1183,10 +1188,15 @@ const isHammerCandle = (candle: any) => {
   // wick should be at least 50.1% of candle
   // const candleSize = getCandleSize(candle)
   const candleBody = getBodySize(candle)
-  let wick = 0
-  if (isCandleGreen(candle)) wick = candle.open - candle.low
-  if (isCandleRed(candle)) wick = candle.close - candle.low
-  return wick > candleBody
+  let wickAbove = 0
+  if (isCandleGreen(candle)) wickAbove = candle.high - candle.close
+  if (isCandleRed(candle)) wickAbove = candle.high - candle.open
+
+  let wickBelow = 0
+  if (isCandleGreen(candle)) wickBelow = candle.open - candle.low
+  if (isCandleRed(candle)) wickBelow = candle.close - candle.low
+
+  return wickBelow > candleBody && candleBody > wickAbove
 }
 
 export const refreshData = () => {
