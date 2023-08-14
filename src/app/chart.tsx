@@ -34,6 +34,7 @@ export const Chart = ({
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const [fitContent, setFitContent] = useState(true)
+  const [userScrolled, setUserScrolled] = useState(false)
   const [currentSymbol, setCurrentSymbol] = useState(symbol)
   const [hover, setHover] = useState<MouseEventParams>()
   const ema20Series = useRef<ISeriesApi<'Line'>>()
@@ -169,27 +170,30 @@ export const Chart = ({
 
     // chartRef.current.timeScale().applyOptions({ shiftVisibleRangeOnNewBar: true })
 
-    // chart.timeScale().subscribeVisibleLogicalRangeChange(logicalRange => {
-    //   const range: Range<number> = {
-    //     from: logicalRange?.from ?? 0,
-    //     to: logicalRange?.to ?? Date.now() / 1000
-    //   }
-    //   const bars = candlestickSeries.barsInLogicalRange(range)
+    chartRef.current.timeScale().subscribeVisibleLogicalRangeChange(logicalRange => {
+      if (logicalRange) {
+        setUserScrolled(true)
+      }
+      //   const range: Range<number> = {
+      //     from: logicalRange?.from ?? 0,
+      //     to: logicalRange?.to ?? Date.now() / 1000
+      //   }
+      //   const bars = candlestickSeries.barsInLogicalRange(range)
 
-    //   if (bars === null) {
-    //     return
-    //   }
-    //   console.log('logicalrange bars', bars)
-    //   chart.timeScale().setVisibleLogicalRange({ from: range.from, to: range.to })
+      //   if (bars === null) {
+      //     return
+      //   }
+      //   console.log('logicalrange bars', bars)
+      //   chart.timeScale().setVisibleLogicalRange({ from: range.from, to: range.to })
 
-    //   // const from = Math.min(bars.from, Math.round(bars.from - timeBucketWidth * 60 * Math.abs(bars.barsBefore)));
-    //   // const to = Math.max(bars.to, Math.round(bars.to + timeBucketWidth * 60 * Math.abs(bars.barsAfter)));
+      //   // const from = Math.min(bars.from, Math.round(bars.from - timeBucketWidth * 60 * Math.abs(bars.barsBefore)));
+      //   // const to = Math.max(bars.to, Math.round(bars.to + timeBucketWidth * 60 * Math.abs(bars.barsAfter)));
 
-    //   // console.log({
-    //   //   from,
-    //   //   to,
-    //   // });
-    // })
+      //   // console.log({
+      //   //   from,
+      //   //   to,
+      //   // });
+    })
 
     // chart.timeScale().getVisiblePriceRange()
 
@@ -284,12 +288,14 @@ export const Chart = ({
       if (useAutoFit && fitContent) {
         chartRef.current.timeScale().fitContent()
       } else {
-        const candles = data.slice(-30)
+        if (!userScrolled) {
+          const candles = data.slice(-30)
 
-        if (chartRef.current.timeScale().getVisibleLogicalRange()) {
-          chartRef.current
-            .timeScale()
-            .setVisibleRange({ from: candles[0].time, to: Date.now() } as TimeRange)
+          if (chartRef.current.timeScale().getVisibleLogicalRange()) {
+            chartRef.current
+              .timeScale()
+              .setVisibleRange({ from: candles[0].time, to: Date.now() } as TimeRange)
+          }
         }
       }
     }

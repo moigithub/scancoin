@@ -21,7 +21,9 @@ enum ALERT_TYPE {
   'velotas' = 'velotas',
   'bollingerup' = 'bolli-up',
   'bollingerdown' = 'bolli-down',
-  'volDiff' = 'volDiff'
+  'volDiff' = 'volDiff',
+  'pinbarDown' = 'pinbarDown',
+  'pinbarUp' = 'pinbarUp'
 }
 
 let socket: Socket
@@ -37,6 +39,8 @@ let sndVolume: any = null
 let sndBoliUp: any = null
 let sndBoliDown: any = null
 let sndSuperVelotas: any = null
+let sndPinbarUp: any = null
+let sndPinbarDown: any = null
 
 const MAX_ALERTS = 40
 
@@ -53,7 +57,7 @@ export const Symbols = () => {
   const [atrFilter, setAtrFilter] = useState(5) // volatilidad
   const [atrActiveFilter, setAtrActiveFilter] = useState(false)
 
-  const [volumeLenFilter, setVolumeLenFilter] = useState(30)
+  const [volumeLenFilter, setVolumeLenFilter] = useState(20)
 
   // tengo vol factor color (bajo(claro), medio(normal), alto(oscuro))
   // y vol factor para indicator push/superpush
@@ -70,16 +74,19 @@ export const Symbols = () => {
   const alertsActive = useRef(false)
   const [alerts, setAlerts] = useState<any[]>([])
 
-  const volumeAlertsActive = useRef(true)
+  const volumeAlertsActive = useRef(false)
   const [volumeAlerts, setVolumeAlerts] = useState<any[]>([])
 
   // velas gigantes 20 veces mayor que el anterior
   // pump and dump
-  const superVelotaAlertsActive = useRef(true)
+  const superVelotaAlertsActive = useRef(false)
   const [superVelotaAlerts, setSuperVelotaAlerts] = useState<any[]>([])
 
-  const velotaAlertsActive = useRef(true)
+  const velotaAlertsActive = useRef(false)
   const [velotaAlerts, setVelotaAlerts] = useState<any[]>([])
+
+  const pinbarAlertsActive = useRef(true)
+  const [pinbarAlerts, setPinbarAlerts] = useState<any[]>([])
 
   const volumeDiffAlertsActive = useRef(false)
   const [volumeDiffAlerts, setVolumeDiffAlerts] = useState<any[]>([])
@@ -121,6 +128,8 @@ export const Symbols = () => {
     sndCandleDown = new Audio('./candledown.m4a')
     sndCandleUp = new Audio('./candleup.m4a')
     sndSuperVelotas = new Audio('./supervelota.m4a')
+    sndPinbarUp = new Audio('./pinup.m4a')
+    sndPinbarDown = new Audio('./pindown.m4a')
 
     const init = async () => {
       await socketInitializer()
@@ -247,7 +256,7 @@ export const Symbols = () => {
       setSuperVelotaAlerts(m =>
         [formatAlertMsg(ALERT_TYPE.supervelotas, coin), ...m].slice(0, MAX_ALERTS)
       )
-      if (sndSuperVelotas && superVelotaAlertsActive.current) sndCandleDown.play()
+      if (sndSuperVelotas && superVelotaAlertsActive.current) sndSuperVelotas.play()
     })
 
     //------------------------------------------
@@ -319,6 +328,21 @@ export const Symbols = () => {
         [formatAlertMsg(ALERT_TYPE.bollingerdown, coin), ...m].slice(0, MAX_ALERTS)
       )
       if (sndBoliDown && bollingerAlertsActive.current) sndBoliDown.play()
+    })
+
+    //------------------------------------------
+    // pinbar up alert
+    //------------------------------------------
+    socket.on('alert:pinbarCandleUp', (coin: any) => {
+      setPinbarAlerts(m => [formatAlertMsg(ALERT_TYPE.pinbarUp, coin), ...m].slice(0, MAX_ALERTS))
+      if (sndPinbarUp && pinbarAlertsActive.current) sndPinbarUp.play()
+    })
+    //------------------------------------------
+    // pinbar down alert
+    //------------------------------------------
+    socket.on('alert:pinbarCandleDown', (coin: any) => {
+      setPinbarAlerts(m => [formatAlertMsg(ALERT_TYPE.pinbarDown, coin), ...m].slice(0, MAX_ALERTS))
+      if (sndPinbarDown && pinbarAlertsActive.current) sndPinbarDown.play()
     })
   }
 
@@ -2186,6 +2210,27 @@ socket.emit('setSelectedSymbol', coin.symbol)
         <div className='alerts flex flex-1 max-w-[800px]'>
           <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
             <label>
+              pinbar
+              <input
+                type='checkbox'
+                checked={pinbarAlertsActive.current}
+                onChange={e => (pinbarAlertsActive.current = e.target.checked)}
+              />
+            </label>
+            <button
+              className='bg-blue-500 hover:bg-blue-700 text-white text-xs mx-0.5 px-1 rounded'
+              onClick={() => setPinbarAlerts([])}
+            >
+              Clear pinbars alerts
+            </button>
+            <ul className='overflow-y-auto text-xs h-[500px]'>
+              pinbar: lastCandleHigherVol
+              {pinbarAlerts.map(renderMessage)}
+            </ul>
+          </div>
+
+          {/* <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
+            <label>
               supervelotas de gran tamaño
               <input
                 type='checkbox'
@@ -2203,7 +2248,7 @@ socket.emit('setSelectedSymbol', coin.symbol)
               velas con gran tamaño: lastCandleHigherVol, rsi, size*20
               {superVelotaAlerts.map(renderMessage)}
             </ul>
-          </div>
+          </div> */}
 
           <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
             <label>
@@ -2225,7 +2270,7 @@ socket.emit('setSelectedSymbol', coin.symbol)
               {alerts.map(renderMessage)}
             </ul>
           </div>
-          <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
+          {/* <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
             <label>
               tick
               <input
@@ -2244,7 +2289,7 @@ socket.emit('setSelectedSymbol', coin.symbol)
               candleVolDiff: verdeComoRoja o rojaComoVerde
               {volumeDiffAlerts.map(renderMessage)}
             </ul>
-          </div>
+          </div> */}
 
           <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
             <label>

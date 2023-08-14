@@ -83,7 +83,7 @@ export default async function SocketHandler(req: NextApiRequest, res: NextApiRes
     })
 
     socket.on('setVolumeLength', (value: number) => {
-      console.log('setting max rsi', value, typeof value)
+      console.log('setting vol len', value, typeof value)
       setVolumeLength(value)
     })
 
@@ -93,7 +93,7 @@ export default async function SocketHandler(req: NextApiRequest, res: NextApiRes
     })
 
     socket.on('setVolumeFactor', (value: number) => {
-      console.log('setting max rsi', value, typeof value)
+      console.log('setting vol factor', value, typeof value)
       setVolumeFactor(value)
     })
 

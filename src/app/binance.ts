@@ -10,6 +10,10 @@ import {
   RSI,
   SMA,
   VWAP,
+  bearishhammerstick,
+  bearishinvertedhammerstick,
+  bullishhammerstick,
+  bullishinvertedhammerstick,
   doji,
   dragonflydoji,
   gravestonedoji
@@ -63,6 +67,8 @@ export interface CandleData {
   alertTypeBigCandle?: string
   change: number
   distanceToEma20: string | number
+  isPinbarDown: boolean
+  isPinbarUp: boolean
 }
 
 export interface Symbol {
@@ -102,7 +108,7 @@ let MIN_RSI = 30
 let MAX_RSI = 70
 let BB_CANDLE_PERCENT_OUT = 40
 let SUPERVELOTA_SIZE_MULT_FACTOR = 6
-let VOLUME_LENGTH = 30 //  por ahora usar rsi length
+let VOLUME_LENGTH = 20 //  por ahora usar rsi length
 let VOL_FACTOR = 1.5 //cuanto mas deberia ser el nuevo candle, para considerar q es "power candle"
 // segun el ejemplo del technical indicator.. la data para calcular (el sma, rsi) es casi el doble
 const TOTAL_CANDLES = Math.max(
@@ -135,39 +141,39 @@ const getSymbols = async () => {
   }
 
   const bannedSymbols = [
-    '1000LUNCUSDT',
-    'XVSUSDT',
-    'ASTRUSDT',
-    'ARUSDT',
-    'API3USDT',
-    'BANDUSDT',
-    'BLURUSDT',
-    'BLUEBIRDUSDT',
+    // '1000LUNCUSDT',
+    // 'XVSUSDT',
+    // 'ASTRUSDT',
+    // 'ARUSDT',
+    // 'API3USDT',
+    // 'BANDUSDT',
+    // 'BLURUSDT',
+    // 'BLUEBIRDUSDT',
     'BTCDOMUSDT',
-    'BTCUSDT_230929',
-    'BNXUSDT',
-    'CELOUSDT',
-    'COMBOUSDT',
-    'CTKUSDT',
-    'DEFIUSDT',
-    'DGBUSDT',
-    'ETHUSDT_230929',
-    'ENSUSDT',
-    'FOOTBALLUSDT',
-    'JOEUSDT',
-    'KNCUSDT',
-    'LEVERUSDT',
-    'LUNA2USDT',
-    'MTLUSDT',
-    'MINAUSDT',
-    'OMGUSDT',
-    'TRUUSDT',
-    'TUSDT',
-    'TLMUSDT',
-    'USDCUSDT',
-    'UMAUSDT',
-    'XVGUSDT',
-    'ZENUSDT'
+    'BTCUSDT_230929'
+    // 'BNXUSDT',
+    // 'CELOUSDT',
+    // 'COMBOUSDT',
+    // 'CTKUSDT',
+    // 'DEFIUSDT',
+    // 'DGBUSDT',
+    // 'ETHUSDT_230929',
+    // 'ENSUSDT',
+    // 'FOOTBALLUSDT',
+    // 'JOEUSDT',
+    // 'KNCUSDT',
+    // 'LEVERUSDT',
+    // 'LUNA2USDT',
+    // 'MTLUSDT',
+    // 'MINAUSDT',
+    // 'OMGUSDT',
+    // 'TRUUSDT',
+    // 'TUSDT',
+    // 'TLMUSDT',
+    // 'USDCUSDT',
+    // 'UMAUSDT',
+    // 'XVGUSDT',
+    // 'ZENUSDT'
   ]
   symbols = exchangeInfo.symbols
     .filter((coin: any) => coin.quoteAsset === 'USDT' && coin.status === 'TRADING')
@@ -310,7 +316,9 @@ const getCandleData = (candle: Partial<CandleType>): CandleData => {
     candlePercentBelow: 0,
     isAlert: false,
     alertTypeBollinger: '',
-    alertTypeBigCandle: ''
+    alertTypeBigCandle: '',
+    isPinbarDown: false,
+    isPinbarUp: false
   }
 }
 
@@ -341,6 +349,7 @@ const addExtraCandleData = (
   }
 
   // calc rsi
+  const open = data.map((val: any) => Number(val.open))
   const close = data.map((val: any) => Number(val.close))
   const high = data.map((val: any) => Number(val.high))
   const low = data.map((val: any) => Number(val.low))
@@ -355,12 +364,14 @@ const addExtraCandleData = (
 
   // isRedCandle
   const lastCandle = data[data.length - 1]
-  const isLastCandleRed = lastCandle ? lastCandle.close < lastCandle.open : false
-  const isLastCandleGreen = lastCandle ? lastCandle.close > lastCandle.open : false
-
   const prevCandle = data[data.length - 2]
-  const isPrevCandleRed = prevCandle ? prevCandle.close < prevCandle.open : false
-  const isPrevCandleGreen = prevCandle ? prevCandle.close > prevCandle.open : false
+  if (!lastCandle || !prevCandle) return
+
+  const isLastCandleRed = isCandleRed(lastCandle)
+  const isLastCandleGreen = isCandleGreen(lastCandle)
+
+  const isPrevCandleRed = isCandleRed(prevCandle)
+  const isPrevCandleGreen = isCandleGreen(prevCandle)
 
   //----------------------------
   // hasPrevCandleHighVolAndRevert
@@ -483,6 +494,24 @@ const addExtraCandleData = (
   const macd = MACD.calculate(MACDInput)
   const macdLast = macd[macd.length - 1] ?? { MACD: 0, histogram: 0, signal: 0 }
 
+  // hammer/pinbar
+  const pinbarInput = {
+    open,
+    high,
+    close,
+    low
+  }
+  const pinbar1 = bullishinvertedhammerstick(pinbarInput) // mazo abajo  b
+  const pinbar2 = bearishinvertedhammerstick(pinbarInput) // b rojo
+
+  const isPinbarDownLast =
+    pinbar1[pinbar1.length - 1] || pinbar2[pinbar2.length - 1] || isInvertedHammerCandle(lastCandle)
+
+  const pinbar3 = bullishhammerstick(pinbarInput) // P
+  const pinbar4 = bearishhammerstick(pinbarInput) // P rojo
+  const isPinbarUpLast =
+    pinbar3[pinbar3.length - 1] || pinbar4[pinbar4.length - 1] || isHammerCandle(lastCandle)
+
   // %change
   let change = 0
   if (close1d.length > 0) {
@@ -493,6 +522,7 @@ const addExtraCandleData = (
   }
 
   //distance to daily ema20
+  // TODO : fix calculation
   let distanceToEma20: string | number = ''
   if (ema20Daily) {
     distanceToEma20 = (lastCandle.close - ema20Daily) / lastCandle.close
@@ -529,7 +559,9 @@ const addExtraCandleData = (
     crossUp,
     crossDown,
     candlePercentAbove,
-    candlePercentBelow
+    candlePercentBelow,
+    isPinbarDown: isPinbarDownLast,
+    isPinbarUp: isPinbarUpLast
   }
 }
 
@@ -773,6 +805,28 @@ const addCandleData = (sendAlert: (type: string, data: any) => void) => async (c
         lastCandle.alertTypeBigCandle = 'up'
       }
 
+      //----------------------
+      // pinbar up, cruzando bb lower hacia arriba
+      if (
+        lastCandle.isPinbarUp &&
+        lastCandle.hasLastCandleHighVolume &&
+        lastCandle.low < lastCandle.bollinger.lower &&
+        lastCandle.high > lastCandle.bollinger.lower
+        // lastCandle.candlePercentBelow > BB_CANDLE_PERCENT_OUT
+      ) {
+        sendAlert(`alert:pinbarCandleUp`, { ...coin, interval })
+      }
+      //----------------------
+      // pinbar down cruzando bb upper hacia abajo
+      if (
+        lastCandle.isPinbarDown &&
+        lastCandle.hasLastCandleHighVolume &&
+        lastCandle.low < lastCandle.bollinger.upper &&
+        lastCandle.high > lastCandle.bollinger.upper
+        // lastCandle.candlePercentAbove > BB_CANDLE_PERCENT_OUT
+      ) {
+        sendAlert(`alert:pinbarCandleDown`, { ...coin, interval })
+      }
       //----------------------------------
       // CHECK if alerttype was correct
       //----------------------------------
@@ -1100,6 +1154,10 @@ const getDataToSend = () => {
 const isOverSold = (candle: any) => candle.rsi < MIN_RSI
 const isOverBought = (candle: any) => candle.rsi > MAX_RSI
 const getBodySize = (candle: any) => Math.abs(candle.open - candle.close)
+const getCandleSize = (candle: any) => Math.abs(candle.high - candle.low)
+const isCandleRed = (candle: any) => (candle ? candle.close < candle.open : false)
+const isCandleGreen = (candle: any) => (candle ? candle.close > candle.open : false)
+
 const getSellVolume = (candle: any) =>
   candle.high === candle.low
     ? 0
@@ -1108,6 +1166,28 @@ const getBuyVolume = (candle: any) =>
   candle.high === candle.low
     ? 0
     : (candle.volume * (candle.close - candle.low)) / (candle.high - candle.low)
+
+const isInvertedHammerCandle = (candle: any) => {
+  // mecha arriba, mas mecha que cuerpo
+  // wick should be at least 50.1% of candle
+  // const candleSize = getCandleSize(candle)
+  const candleBody = getBodySize(candle)
+  let wick = 0
+  if (isCandleGreen(candle)) wick = candle.high - candle.close
+  if (isCandleRed(candle)) wick = candle.high - candle.open
+  return wick > candleBody
+}
+
+const isHammerCandle = (candle: any) => {
+  // mecha abajo, mas mecha que cuerpo
+  // wick should be at least 50.1% of candle
+  // const candleSize = getCandleSize(candle)
+  const candleBody = getBodySize(candle)
+  let wick = 0
+  if (isCandleGreen(candle)) wick = candle.open - candle.low
+  if (isCandleRed(candle)) wick = candle.close - candle.low
+  return wick > candleBody
+}
 
 export const refreshData = () => {
   const data = getDataToSend()
