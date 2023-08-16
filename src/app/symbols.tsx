@@ -61,7 +61,7 @@ export const Symbols = () => {
 
   // tengo vol factor color (bajo(claro), medio(normal), alto(oscuro))
   // y vol factor para indicator push/superpush
-  const [volumeFactorFilter, setVolumeFactorFilter] = useState(1.5)
+  const [volumeFactorFilter, setVolumeFactorFilter] = useState(1.8)
   const [bbCandlePercentOutFilter, setBbCandlePercentOutFilter] = useState(40)
 
   const [pushFilter, setPushFilter] = useState(false)
@@ -105,6 +105,8 @@ export const Symbols = () => {
   const [chartData1, setChartData1] = useState<any[]>([])
   const [chartData2, setChartData2] = useState<any[]>([])
   // const [chartData3, setChartData3] = useState<any[]>([])
+  const [btcOrderBook, setBtcOrderBook] = useState<any>({})
+  const [chartOrderBook, setChartOrderBook] = useState<any>({})
 
   const btcCoin0 = useRef('BTCUSDT:1d')
   const btcCoin1 = useRef('BTCUSDT:5m')
@@ -152,15 +154,18 @@ export const Symbols = () => {
 
     return () => {
       clearInterval(pingInterval.current)
-      socket.emit('bye')
-      socket.disconnect()
+      if (socket) {
+        socket.emit('bye')
+        socket.disconnect()
+      }
     }
   }, [])
 
   useLayoutEffect(() => {
     const chartUpdater = (
       selectedCoin: MutableRefObject<string>,
-      setter: (value: SetStateAction<any[]>) => void
+      setter: (value: SetStateAction<any[]>) => void,
+      orderBookSetter?: (value: SetStateAction<any>) => void
     ) => {
       if (selectedCoin.current) {
         const parts = selectedCoin.current.split(':')
@@ -194,6 +199,11 @@ export const Symbols = () => {
             default:
               console.log('wrong inteval passed', interval)
           }
+
+          // update orderbook
+          if (orderBookSetter) {
+            orderBookSetter(data.orderBook)
+          }
         } else {
           console.log('no data with that symbol', selectedCoin.current)
         }
@@ -201,10 +211,10 @@ export const Symbols = () => {
     }
 
     // update chart data
-    chartUpdater(btcCoin0, setBtcData0) //btcusdt
+    chartUpdater(btcCoin0, setBtcData0, setBtcOrderBook) //btcusdt
     chartUpdater(btcCoin1, setBtcData1) //btcusdt
     // chartUpdater(btcCoin2, setBtcData2) //btcusdt
-    chartUpdater(selectedCoin1, setChartData1)
+    chartUpdater(selectedCoin1, setChartData1, setChartOrderBook)
     chartUpdater(selectedCoin2, setChartData2)
     // chartUpdater(selectedCoin3, setChartData3)
   }, [symbols, forceUpdating])
@@ -310,25 +320,25 @@ export const Symbols = () => {
     //   if (sndVolume && volumeAlertsActive.current) sndVolume.play()
     // })
 
-    //------------------------------------------
-    // bolinger cross up alert
-    //------------------------------------------
-    socket.on('alert:bollingerUp', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg(ALERT_TYPE.bollingerup, coin), ...m].slice(0, MAX_ALERTS)
-      )
-      if (sndBoliUp && bollingerAlertsActive.current) sndBoliUp.play()
-    })
+    // // ------------------------------------------
+    // // bolinger cross up alert
+    // // ------------------------------------------
+    // socket.on('alert:bollingerUp', (coin: any) => {
+    //   setBollingerAlerts(m =>
+    //     [formatAlertMsg(ALERT_TYPE.bollingerup, coin), ...m].slice(0, MAX_ALERTS)
+    //   )
+    //   if (sndBoliUp && bollingerAlertsActive.current) sndBoliUp.play()
+    // })
 
-    //------------------------------------------
-    // bolinger cross down alert
-    //------------------------------------------
-    socket.on('alert:bollingerDown', (coin: any) => {
-      setBollingerAlerts(m =>
-        [formatAlertMsg(ALERT_TYPE.bollingerdown, coin), ...m].slice(0, MAX_ALERTS)
-      )
-      if (sndBoliDown && bollingerAlertsActive.current) sndBoliDown.play()
-    })
+    // //------------------------------------------
+    // // bolinger cross down alert
+    // //------------------------------------------
+    // socket.on('alert:bollingerDown', (coin: any) => {
+    //   setBollingerAlerts(m =>
+    //     [formatAlertMsg(ALERT_TYPE.bollingerdown, coin), ...m].slice(0, MAX_ALERTS)
+    //   )
+    //   if (sndBoliDown && bollingerAlertsActive.current) sndBoliDown.play()
+    // })
 
     //------------------------------------------
     // pinbar up alert
@@ -979,7 +989,16 @@ export const Symbols = () => {
                     </span> */}
                 </div>
               </div>
-              <Chart data={btcData0} useAutoFit ema20 sma50 sma200 vwap height={600} />
+              <Chart
+                data={btcData0}
+                book={btcOrderBook}
+                useAutoFit
+                ema20
+                sma50
+                sma200
+                vwap
+                height={600}
+              />
             </div>
           </div>
           <div className='chart-group flex-col flex-1'>
@@ -1031,7 +1050,7 @@ export const Symbols = () => {
                     </span> */}
                 </div>
               </div>
-              <Chart data={btcData1} ema20 sma50 sma200 height={300} />
+              <Chart data={btcData1} book={btcOrderBook} ema20 sma50 sma200 height={300} />
             </div>
 
             <div className='chart m-2 flex-1' id='chart-1'>
@@ -1093,6 +1112,7 @@ export const Symbols = () => {
               </div>
               <Chart
                 data={chartData1}
+                book={chartOrderBook}
                 symbol={selectedCoin1.current.split(':')[0]}
                 ema20
                 sma50
@@ -1162,6 +1182,7 @@ export const Symbols = () => {
               </div>
               <Chart
                 data={chartData2}
+                book={chartOrderBook}
                 symbol={selectedCoin2.current.split(':')[0]}
                 useAutoFit
                 ema20
@@ -2313,7 +2334,7 @@ socket.emit('setSelectedSymbol', coin.symbol)
             </ul>
           </div>
 
-          <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
+          {/* <div className='flex flex-1 flex-col border border-1 border-green-500 mx-0.5'>
             <label>
               boli up/down
               <input
@@ -2332,7 +2353,7 @@ socket.emit('setSelectedSymbol', coin.symbol)
               crossBBBand, candle%OutBB, rsi
               {bollingerAlerts.map(renderMessage)}
             </ul>
-          </div>
+          </div> */}
           {/* <ul className='overflow-y-auto'>{volumeAlerts.map(renderMessage)}</ul> */}
         </div>
       </div>
@@ -2356,12 +2377,15 @@ const TRADING_VIEW_SYMBOLS: { [key: string]: string } = {
   '1000SHIBUSDT': 'SHIBUSDT',
   '1000XECUSDT': 'XECUSDT',
   '1000LUNCUSDT': 'LUNCUSDT',
-  '1000PEPEUSDT': 'PEPEUSDT',
-  '1000FLOKIUSDT': 'FLOKIUSDT'
+  '1000PEPEUSDT': 'PEPEUSDT'
+  // 'FOOTBALLUSDT':'FOOTBALLUSDT.P','KAVAUSDT':'KAVAUSDT.P','COTIUSDT':'COTIUSDT.P',
+  // '1000FLOKIUSDT': 'FLOKIUSDT','RVNUSDT':'RVNUSDT:P',
+  // 'ARVNUSDT':'ARVNUSDT.P','ZECUSDT':'ZECUSDT.P','NMRUSDT':'NMRUSDT.P','TUSDT':'TUSDT.P',
+  // 'CELRUSDT':'CELRUSDT.P','CHRUSDT':'CHRUSDT.P','ZILUSDT':'ZILUSDT.P','CHZUSDT':'CHZUSDT.P'
 }
 
 const getTradingViewSymbol = (symbol: string) => {
-  return TRADING_VIEW_SYMBOLS[symbol] ?? symbol
+  return TRADING_VIEW_SYMBOLS[symbol] ?? symbol + '.P'
 }
 
 const getTradingViewInterval = (interval: string) => {

@@ -3,6 +3,7 @@ import {
   CrosshairMode,
   IChartApi,
   ISeriesApi,
+  LineStyle,
   MouseEventParams,
   TimeRange,
   createChart
@@ -11,6 +12,7 @@ import { useEffect, useRef, useState } from 'react'
 
 export const Chart = ({
   data = [],
+  book = {},
   ema20 = false,
   sma50 = false,
   sma200 = false,
@@ -22,6 +24,7 @@ export const Chart = ({
   symbol = 'BTCUSDT'
 }: {
   data: any[]
+  book?: any
   width?: number
   height?: number
   ema20?: boolean
@@ -36,12 +39,17 @@ export const Chart = ({
   const [fitContent, setFitContent] = useState(true)
   const [userScrolled, setUserScrolled] = useState(false)
   const [currentSymbol, setCurrentSymbol] = useState(symbol)
+  const [bidPriceLines, setBidPriceLines] = useState<any[]>([])
+  const [askPriceLines, setAskPriceLines] = useState<any[]>([])
+
   const [hover, setHover] = useState<MouseEventParams>()
   const ema20Series = useRef<ISeriesApi<'Line'>>()
   const sma50Series = useRef<ISeriesApi<'Line'>>()
   const sma200Series = useRef<ISeriesApi<'Line'>>()
   const vwapSeries = useRef<ISeriesApi<'Line'>>()
   const candlestickSeries = useRef<ISeriesApi<'Candlestick'>>()
+  const orderBookAskSeries = useRef<ISeriesApi<'Line'>>()
+  const orderBookBidSeries = useRef<ISeriesApi<'Line'>>()
   const chartRef = useRef<IChartApi>()
 
   useEffect(() => {
@@ -120,6 +128,20 @@ export const Chart = ({
       wickDownColor: 'red'
     })
 
+    orderBookAskSeries.current = chartRef.current.addLineSeries({
+      color: '#FF0000',
+      lineWidth: 2,
+      // disabling built-in price lines
+      lastValueVisible: false,
+      priceLineVisible: false
+    })
+    orderBookBidSeries.current = chartRef.current.addLineSeries({
+      color: '#00FF00',
+      lineWidth: 2,
+      // disabling built-in price lines
+      lastValueVisible: false,
+      priceLineVisible: false
+    })
     // candlestickSeries.priceScale().applyOptions({
     //   autoScale: false, // disables auto scaling based on visible content
     //   scaleMargins: {
@@ -246,6 +268,86 @@ export const Chart = ({
 
         vwapSeries.current?.setData(formattedVwap)
       }
+
+      // inicio orderbook
+      // const orderBookAsks = book.asks?.map((d: any) => ({
+      //   time: Date.now(),
+      //   open: +d.price,
+      //   high: +d.price,
+      //   low: +d.price,
+      //   close: +d.price,
+      //   volume: +d.quantity
+      // }))
+
+      // const orderBookBids = book.bids?.map((d: any) => ({
+      //   time: Date.now(),
+      //   open: +d.price,
+      //   high: +d.price,
+      //   low: +d.price,
+      //   close: +d.price,
+      //   volume: +d.quantity
+      // }))
+      //no puedo usar candlesticks xq la data requiere fechas(time) progresivas ascendentes
+      // if (orderBookAsks) orderBookAskSeries.current?.setData(orderBookAsks)
+
+      // if (orderBookBids) orderBookBidSeries.current?.setData(orderBookBids)
+
+      const formattedLineData = data.map(d => ({ time: d.time, value: d.close }))
+      // console.log('formatted vwap', formattedVwap)
+
+      orderBookAskSeries.current?.setData(formattedLineData)
+      orderBookBidSeries.current?.setData(formattedLineData)
+
+      if (askPriceLines.length > 0)
+        askPriceLines.forEach(priceLine => orderBookAskSeries.current?.removePriceLine(priceLine))
+
+      if (book.asks) {
+        setAskPriceLines(
+          book.asks
+            ?.map((v: any) => ({ price: +v.price, quantity: +v.quantity }))
+            .sort((a: any, b: any) => b.quantity - a.quantity)
+            .slice(0, 20)
+            .map((d: any) => {
+              // console.log('line at', d.price)
+              return orderBookAskSeries.current?.createPriceLine({
+                price: d.price,
+                color: '#AA000040',
+                axisLabelColor: '#AA000040',
+                axisLabelTextColor: 'white',
+                lineWidth: 2,
+                lineStyle: LineStyle.Dashed,
+                //axisLabelVisible: true
+                title: d.quantity
+              })
+            })
+        )
+      }
+
+      if (bidPriceLines.length > 0)
+        bidPriceLines.forEach(priceLine => orderBookBidSeries.current?.removePriceLine(priceLine))
+
+      if (book.bids) {
+        setBidPriceLines(
+          book.bids
+            ?.map((v: any) => ({ price: +v.price, quantity: +v.quantity }))
+            .sort((a: any, b: any) => b.quantity - a.quantity)
+            .slice(0, 20)
+            .map((d: any) => {
+              // console.log('line at', d.price)
+              return orderBookBidSeries.current?.createPriceLine({
+                price: d.price,
+                color: '#00AA0040',
+                axisLabelColor: '#00AA0040',
+                axisLabelTextColor: 'white',
+                lineWidth: 2,
+                lineStyle: LineStyle.Dotted,
+                //axisLabelVisible: true
+                title: d.quantity
+              })
+            })
+        )
+      }
+      //---- fin orderbook
 
       // Generate sample data to use within a candlestick series
       const candleStickData = data.map(datapoint => {

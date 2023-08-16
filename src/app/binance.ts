@@ -1,5 +1,10 @@
 import { sendAlert, sendData } from '@/pages/api/socket'
-import Binance, { CandleChartResult, Candle, ReconnectingWebSocketHandler } from 'binance-api-node'
+import Binance, {
+  CandleChartResult,
+  Candle,
+  ReconnectingWebSocketHandler,
+  Bid
+} from 'binance-api-node'
 import {
   ADX,
   ATR,
@@ -70,7 +75,10 @@ export interface CandleData {
   isPinbarDown: boolean
   isPinbarUp: boolean
 }
-
+export interface OrderBook {
+  bids: Bid[]
+  asks: Bid[]
+}
 export interface Symbol {
   symbol: string
   status: string
@@ -85,6 +93,7 @@ export interface Symbol {
   data4h: CandleData[]
   data1d: CandleData[]
   data1w: CandleData[]
+  orderBook: OrderBook
 }
 
 const USE_FUTURES_DATA = true
@@ -176,6 +185,7 @@ const getSymbols = async () => {
     // 'ZENUSDT'
   ]
   symbols = exchangeInfo.symbols
+    // .slice(0, 2) //TODO: remove slice
     .filter((coin: any) => coin.quoteAsset === 'USDT' && coin.status === 'TRADING')
     .filter((coin: any) => !bannedSymbols.includes(coin.symbol))
     // .filter((coin: any) => coin.symbol === 'LTCUSDT')
@@ -198,10 +208,10 @@ const getSymbols = async () => {
         data1h: [],
         data4h: [],
         data1d: [],
-        data1w: []
+        data1w: [],
+        orderBook: { bids: [], asks: [] }
       }
     })
-  // .slice(0, 10) //TODO: remove slice
 
   console.log('found symbols', symbols.length)
   return symbols
@@ -225,6 +235,44 @@ const populatePrice = async () => {
       console.error('no price for ', coin.symbol, error)
     }
   })
+}
+
+const updateOrderBook = async (symbol: string, bids: Bid[] = [], asks: Bid[] = []) => {
+  /*
+  {
+  lastUpdateId: 17647759,
+  asks:
+   [
+     { price: '8000.05411500', quantity: '54.55000000' },
+     { price: '8000.05416700', quantity: '1111.80100000' }
+   ],
+  bids:
+   [
+     { price: '8000.05395500', quantity: '223.70000000' },
+     { price: '8000.05395100', quantity: '1134.84100000' }
+   ]
+}
+  */
+
+  const s = symbols.find(s => s.symbol === symbol)
+  if (s) {
+    // const book = await client.futuresBook({ symbol })
+    // if (book.lastUpdateId < s.orderBook.lastUpdateId) return
+
+    // const asks = book.asks
+    const asksPrices = asks.map(a => a.price)
+    // remove all asks with same price
+    const oldAsks = s.orderBook.asks.filter(a => !asksPrices.includes(a.price))
+    const newAsks = [...oldAsks, ...asks]
+    // console.log('updating orderbook', asksPrices[0], oldAsks.length, newAsks.length, asks.length)
+    // const bids = book.bids
+    const bidsPrices = bids.map(a => a.price)
+    // remove all bids with same price
+    const oldBids = s.orderBook.bids.filter(a => !bidsPrices.includes(a.price))
+    const newBids = [...oldBids, ...bids]
+
+    s.orderBook = { asks: newAsks, bids: newBids }
+  }
 }
 
 const getCandles = async (coin: any, interval: MyCandleChartInterval = '15m') => {
@@ -979,6 +1027,9 @@ export const initializeCandles = async () => {
     await getCandles(coin, '1m')
     // await getCandles(coin, '1w')
     sendData(getDataToSend())
+
+    const book = await client.futuresBook({ symbol: coin.symbol })
+    updateOrderBook(coin.symbol, book.bids, book.asks)
     // console.log('symbol', symbols[0])
   }
 
@@ -1051,6 +1102,7 @@ export const installSockets = () => {
   }
 
   const allCoins = symbols.map(coin => coin.symbol)
+  const allCoinsDepts = symbols.map(coin => ({ symbol: coin.symbol + '@100ms', level: 20 }))
   // install socket t pull data periodically n save/recalc/emit
 
   if (USE_FUTURES_DATA) {
@@ -1061,8 +1113,31 @@ export const installSockets = () => {
       client.ws.futuresCandles(allCoins, '30m', addCandleData(sendAlert)),
       client.ws.futuresCandles(allCoins, '1h', addCandleData(sendAlert)),
       client.ws.futuresCandles(allCoins, '4h', addCandleData(sendAlert)),
-      client.ws.futuresCandles(allCoins, '1d', addCandleData(sendAlert))
+      client.ws.futuresCandles(allCoins, '1d', addCandleData(sendAlert)),
       // client.ws.futuresCandles(allCoins, '1w', addCandleData(sendAlert))
+
+      client.ws.futuresPartialDepth(allCoinsDepts, depth => {
+        console.log('futuresPartialDepth:1120', depth)
+        /*
+      {
+      eventType: 'depthUpdate',
+      eventTime: 1508612956950,
+      symbol: 'ETHBTC',
+      level: 10,
+      firstUpdateId: 18331140,
+      finalUpdateId: 18331145,
+      bidDepth: [
+        { price: '0.04896500', quantity: '0.00000000' },
+        { price: '0.04891100', quantity: '15.00000000' },
+        { price: '0.04891000', quantity: '0.00000000' } ],
+      askDepth: [
+        { price: '0.04910600', quantity: '0.00000000' },
+        { price: '0.04910700', quantity: '11.24900000' }
+      ]
+    }
+      */
+        updateOrderBook(depth.symbol, depth.bidDepth, depth.askDepth)
+      })
     )
   } else {
     sockets.push(
@@ -1072,8 +1147,28 @@ export const installSockets = () => {
       client.ws.candles(allCoins, '30m', addCandleData(sendAlert)),
       client.ws.candles(allCoins, '1h', addCandleData(sendAlert)),
       client.ws.candles(allCoins, '4h', addCandleData(sendAlert)),
-      client.ws.candles(allCoins, '1d', addCandleData(sendAlert))
+      client.ws.candles(allCoins, '1d', addCandleData(sendAlert)),
       // client.ws.candles(allCoins, '1w', addCandleData(sendAlert))
+
+      client.ws.partialDepth(allCoinsDepts, depth => {
+        // console.log(depth)
+        /*
+      {
+      symbol: 'ETHBTC',
+      level: 10,
+      bids: [
+        { price: '0.04896500', quantity: '0.00000000' },
+        { price: '0.04891100', quantity: '15.00000000' },
+        { price: '0.04891000', quantity: '0.00000000' }
+      ],
+      asks: [
+        { price: '0.04910600', quantity: '0.00000000' },
+        { price: '0.04910700', quantity: '11.24900000' }
+      ]
+    }
+      */
+        updateOrderBook(depth.symbol, depth.bids, depth.asks)
+      })
     )
   }
   console.log('sockets installed', sockets.length)
@@ -1128,8 +1223,9 @@ const getDataToSend = () => {
       data30m: coin.data30m.slice(-TOTAL_CLIENT_CANDLES),
       data1h: coin.data1h.slice(-TOTAL_CLIENT_CANDLES),
       data4h: coin.data4h.slice(-TOTAL_CLIENT_CANDLES),
-      data1d: coin.data1d.slice(-TOTAL_CLIENT_CANDLES)
+      data1d: coin.data1d.slice(-TOTAL_CLIENT_CANDLES),
       // data1w: coin.data1w.slice(-TOTAL_CLIENT_CANDLES)
+      orderBook: coin.orderBook
     }))
 
   return selectedData.concat(
@@ -1145,8 +1241,9 @@ const getDataToSend = () => {
         data30m: coin.data30m.slice(-1),
         data1h: coin.data1h.slice(-1),
         data4h: coin.data4h.slice(-1),
-        data1d: coin.data1d.slice(-1)
+        data1d: coin.data1d.slice(-1),
         // data1w: coin.data1w.slice(-1)
+        orderBook: coin.orderBook
       }))
   )
 }
